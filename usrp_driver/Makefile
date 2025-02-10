@@ -1,7 +1,7 @@
 OS:=$(shell uname -s)
 
 CCpp=g++
-CFLAGS=-c -Wall -pthread -std=c++0x -g3
+CFLAGS=-c -Wall -pthread -std=c++0x -O3
 LFLAGS  = -L"../../iniparser" -L"${HOME}/repos/uhd/host/build/lib"
 common_libs=-lm -liniparser -lrt -luhd -lfftw3
 linux_libs=-lboost_thread -lboost_system -pthread -l argtable2 -lboost_date_time
