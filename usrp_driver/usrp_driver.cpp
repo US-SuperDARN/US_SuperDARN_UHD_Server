@@ -557,8 +557,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6";
 //    usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6,recv_frame_size=50000000";
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
-    usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-    usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
+  //  usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
+  //  usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
+    usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
+    usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
     boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
     uhd::stream_args_t stream_args("sc16", "sc16");
     

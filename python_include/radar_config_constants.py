@@ -9,7 +9,7 @@ USRP_MASTER_CLOCK_FREQ = 200e6 # not all values are supported by the ettus UHD d
 # seconds of delay in usrp clock time at the start of an integration period before the first pulse
 # to allow for the usrp_drivers receive a command..
 INTEGRATION_PERIOD_SYNC_TIME_ONESEC = .2 
-INTEGRATION_PERIOD_SYNC_TIME = .2 
+INTEGRATION_PERIOD_SYNC_TIME = .4 
 
 # DELAY before clear freq record
 MIN_CLRFREQ_DELAY = .50
