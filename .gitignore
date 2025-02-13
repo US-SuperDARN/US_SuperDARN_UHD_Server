@@ -10,8 +10,6 @@ usrp_config.ini
 
 log/usrp_server_status.txt
 
-cf_server
-
 *.bin
 
 log/clr_freq/
