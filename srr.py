@@ -605,6 +605,11 @@ def start_cuda_driver():
     subprocess.Popen(['./cuda_driver.py' ])
     os.chdir(basePath)
 
+def start_clear_frequency_server():
+    myPrint("Starting clear_frequency_server...")
+    os.chdir(os.path.join(basePath, "c_include") )   
+    subprocess.Popen(['./clear_frequency_server.py' ])
+    os.chdir(basePath)
 
 def start_usrp_server():
     myPrint("Starting usrp_server...")
@@ -697,9 +702,27 @@ def restart_all():
    myPrint("Restarting all processes")
    restart_driver()
    myPrint("done starting usrps.. waiting....")
+   restart_clear_frequency_service()
    waitFor(delay_between_driver_and_server)
    myPrint("done  waiting.... starting server")
    start_usrp_server()
+   
+def restart_clear_frequency_service():
+   server_was_running = stop_clear_frequency_service()
+   if server_was_running:
+      waitFor(nSecs_restart_pause)
+   stop_clear_frequency_service()
+   start_clear_frequency_server()   
+
+def stop_clear_frequency_service():
+    myPrint(" Stopping clear frequency service...")
+    serverProcesses = get_process_ids("clear_frequency_server")
+    if len(serverProcesses):
+       terminate_all(serverProcesses)
+       return 1
+    else:
+       myPrint("  No clear_frequency_server process found...")
+       return 0
 
 def restart_driver():
     server_was_running = stop_usrp_server() 
