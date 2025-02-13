@@ -1033,7 +1033,7 @@ class ClearFrequencyService():
                 new_clrfreq_data, new_noise_data = self.repack_data(new_clrfreq_data, True)
                 for clr_freq in zip(new_clrfreq_data, new_noise_data):
                     print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq[0]} (Hz), {clr_freq[1]} (N/A) |")
-                clr_freqs = zip(new_clrfreq_data, new_noise_data)
+                clr_freq, noise = new_clrfreq_data[0], new_noise_data[0]
                 
                 self.sl_clrfreq['sem'].release()
                         
@@ -1049,7 +1049,7 @@ class ClearFrequencyService():
             if active_clients == 0 or self.soft_kill:
                 self.cleanup_shm()
                 
-        return clr_freqs
+        return clr_freq, noise
 
     def soft_kill(self):
         self.soft_kill == True
@@ -1400,8 +1400,8 @@ class scanManager():
         print(f"fcenter:    {int(metaData['usrp_fcenter'])}")
         print(f"beamNo:     {int(beamNo)}")
         print(f"antenna sample sets: { len(rawData) }")
-        clr_freqs = self.clearFreqService.request_clr_freq(rawData, clear_freq_range, int(metaData['usrp_fcenter']), int(beamNo), int(self.channel.raw_export_data['smsep']), meta_data=metaData)
-        clearFreq, noise = clr_freqs[0]
+        clearFreq, noise = self.clearFreqService.request_clr_freq(rawData, clear_freq_range, int(metaData['usrp_fcenter']), int(beamNo), int(self.channel.raw_export_data['smsep']), meta_data=metaData)
+        
         
         self.logger.debug('end calc_clear_freq_on_raw_samples')
         if 'baseband_samplerate' in RHM.commonChannelParameter: 
