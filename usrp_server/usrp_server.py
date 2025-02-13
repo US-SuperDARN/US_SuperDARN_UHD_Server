@@ -1033,12 +1033,8 @@ class ClearFrequencyService():
                 new_clrfreq_data, new_noise_data = self.repack_data(new_clrfreq_data, True)
                 for clr_freq in zip(new_clrfreq_data, new_noise_data):
                     print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq[0]} (Hz), {clr_freq[1]} (N/A) |")
-<<<<<<< HEAD
-
-=======
                 clr_freq, noise = new_clrfreq_data[0], new_noise_data[0]
                 
->>>>>>> refs/remotes/origin/Freq_Service
                 self.sl_clrfreq['sem'].release()
                         
         except KeyboardInterrupt:
@@ -1053,11 +1049,7 @@ class ClearFrequencyService():
             if active_clients == 0 or self.soft_kill:
                 self.cleanup_shm()
                 
-<<<<<<< HEAD
-        return new_clrfreq_data, new_noise_data
-=======
         return clr_freq, noise
->>>>>>> refs/remotes/origin/Freq_Service
 
     def soft_kill(self):
         self.soft_kill == True
@@ -1409,10 +1401,7 @@ class scanManager():
         print(f"beamNo:     {int(beamNo)}")
         print(f"antenna sample sets: { len(rawData) }")
         clearFreq, noise = self.clearFreqService.request_clr_freq(rawData, clear_freq_range, int(metaData['usrp_fcenter']), int(beamNo), int(self.channel.raw_export_data['smsep']), meta_data=metaData)
-<<<<<<< HEAD
-=======
         
->>>>>>> refs/remotes/origin/Freq_Service
         
         self.logger.debug('end calc_clear_freq_on_raw_samples')
         if 'baseband_samplerate' in RHM.commonChannelParameter: 
