@@ -118,7 +118,7 @@ class statusUpdater():
       self.fileName = '/data/log/usrp_server_status.txt'
       self.RHM = RHM
       self.nSeconds_update_period = 5
-      self.last_write = datetime.datetime.now()
+      self.last_write = datetime.datetime.now(datetime.UTC)
       self.str_start = self.last_write.strftime("Start time: %Y-%m-%d %H:%M:%S\n")
 
    def create_status_information(self):
@@ -133,9 +133,9 @@ class statusUpdater():
    def update_advanced(self):
       """ Writes some information in the file"""
 
-      nSeconds_since_last_write = (datetime.datetime.now() - self.last_write).total_seconds()
+      nSeconds_since_last_write = (datetime.datetime.now(datetime.UTC) - self.last_write).total_seconds()
       if self.nSeconds_update_period < nSeconds_since_last_write:
-         self.last_write = datetime.datetime.now()
+         self.last_write = datetime.datetime.now(datetime.UTC)
 #         if not os.path.isfile(self.fileName):
          with open(self.fileName, "w") as f:
             f.write(self.create_status_information())    
@@ -143,9 +143,9 @@ class statusUpdater():
 
    def update(self):
       """ just updates the empty file """
-      nSeconds_since_last_write = (datetime.datetime.now() - self.last_write).total_seconds()
+      nSeconds_since_last_write = (datetime.datetime.now(datetime.UTC) - self.last_write).total_seconds()
       if self.nSeconds_update_period < nSeconds_since_last_write:
-         self.last_write = datetime.datetime.now()
+         self.last_write = datetime.datetime.now(datetime.UTC)
 #         if not os.path.isfile(self.fileName):
          with open(self.fileName, "w") as f:
             f.write("")            # create empty file
