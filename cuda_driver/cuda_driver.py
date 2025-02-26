@@ -268,7 +268,7 @@ class cuda_add_channel_handler(cudamsg_handler):
                 chIdx = self.gpu.channelNumbers[swing].index(None)
                 self.gpu.channelNumbers[swing][chIdx] = channelNumber
             else:
-                self.logger.error("all channles active, can not add channel")
+                self.logger.error("all channels active, can not add channel")
                 return # TODO rerun error?
 
         self.gpu.sequences[swing][chIdx] = sequence
@@ -305,7 +305,7 @@ class cuda_remove_channel_handler(cudamsg_handler):
             chIdx = self.gpu.channelNumbers[swing].index(channelNumber)
             self.gpu.sequences[swing][chIdx] = None
             self.gpu.channelNumbers[swing][chIdx] = None
-            self.logger.debug("Delete Channel {}  at idx {} (swing {}). ".format(channelNumber, chIdx, swing))
+            self.logger.debug("Delete Channel {} at idx {} (swing {}). ".format(channelNumber, chIdx, swing))
         else:
             self.logger.warning("cuda remove channel: No channel {} in cuda. (channel numbers : {}) swing {}".format(channelNumber, self.gpu.channelNumbers[swing], swing))
 
@@ -337,7 +337,7 @@ class cuda_get_data_handler(cudamsg_handler):
         channel = recv_dtype(self.sock, np.int32) 
         while (channel != -1):
             channelIndex = self.gpu.channelNumbers[swing].index(channel)
-            self.logger.debug('received channel number ={}(cuda index: {}))'.format(channel, channelIndex))
+            self.logger.debug('received channel number ={} (cuda index: {}))'.format(channel, channelIndex))
 
             for iAntenna in range(nAntennas):
                 transmit_dtype(self.sock, self.antenna_index_list[iAntenna], np.uint16)
@@ -372,7 +372,7 @@ class cuda_get_if_data_handler(cudamsg_handler):
         channel = recv_dtype(self.sock, np.int32) 
         while (channel != -1):
             channelIndex = self.gpu.channelNumbers[swing].index(channel)
-            self.logger.debug('received channel number ={}(cuda index: {}))'.format(channel, channelIndex))
+            self.logger.debug('received channel number ={} (cuda index: {}))'.format(channel, channelIndex))
 
             for iAntenna in range(nAntennas):
                 transmit_dtype(self.sock, self.antenna_index_list[iAntenna], np.uint16)
@@ -410,7 +410,7 @@ class cuda_process_handler(cudamsg_handler):
         self.logger.debug('leaving cuda_process_handler (swing {})'.format(swing))
         
     def respond(self):
-        self.logger.debug("Deactivted automatic response, already send in cuda_process_handler.process()")
+        self.logger.debug("Deactivated automatic response, already sent in cuda_process_handler.process()")
 
 
 
@@ -1199,7 +1199,7 @@ def main():
         logger.debug('finished processing {} command, responding'.format(cmdname))
         handler.respond()
 
-        logger.debug('responded to {},  waiting for next command'.format(cmdname))
+        logger.debug('responded to {}, waiting for next command'.format(cmdname))
     
 
 if __name__ == '__main__':
