@@ -2938,8 +2938,8 @@ class RadarChannelHandler:
 
         self.logger.debug('SetActiveHandler number of beams per scan: {}'.format(scan_num_beams))
         self.logger.debug('SetActiveHandler fixFreq: {}'.format(fixFreq))
-        self.logger.debug('SetActiveHandler clear frequency search start frequencies: {}'.format(clrfreq_start_list))
-        self.logger.debug('SetActiveHandler clear frequency search bandwidths (Hz): {}'.format(clrfreq_bandwidth_list))
+        self.logger.debug('SetActiveHandler clear frequency search start frequencies: [{}]'.format(' '.join(map(str,clrfreq_start_list))))
+        self.logger.debug('SetActiveHandler clear frequency search bandwidths (kHz): [{}]'.format(' '.join(map(str,clrfreq_bandwidth_list))))
         self.logger.debug('SetActiveHandler scan beam list: {}'.format(scan_beam_list))
         self.logger.debug('SetActiveHandler scan_duration: {}'.format(scan_time))
         self.logger.debug('SetActiveHandler integration_duration: {}'.format(integration_time))
