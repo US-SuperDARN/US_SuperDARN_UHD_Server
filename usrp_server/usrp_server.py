@@ -2857,7 +2857,7 @@ class RadarChannelHandler:
         self.stid = recv_dtype(self.conn, np.int32)
         data_length = recv_dtype(self.conn, np.int32)
         temp = recv_dtype(self.conn, str, nitems=data_length)
-        self.ststr = temp.decode("utf-8").strip('b"').rstrip('\x00')
+        self.ststr = temp.decode("utf-8")[-4:-1]
         self.rnum = recv_dtype(self.conn, np.int32)
         self.cnum = recv_dtype(self.conn, np.int32)
 
