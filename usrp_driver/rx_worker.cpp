@@ -160,7 +160,12 @@ void usrp_rx_worker(
         }
 
         size_t num_rx_samps = rx_stream->recv(buff_ptrs , samp_request, md, timeout);
-       // DEBUG print
+	// fprintf(stderr,"RX_WORKER - n_rx_samp: %d  %d\n",num_rx_samps,rx_stream->get_num_channels());
+	// fprintf(stderr,"RX_WORKER - buffer addresses %ld %ld \n",&buff_ptrs[0],&buff_ptrs[1]);
+	// for( int j=0; j<10; j++ )fprintf(stderr,"RX_WORKER  %d  %d\n",buff_ptrs[0][j],buff_ptrs[1][j]);
+
+ 
+	// DEBUG print
 //        if (num_rx_samps == 1996) {
       //     DEBUG_PRINT("|");
 //             DEBUG_PRINT("%d  ",num_acc_samps);

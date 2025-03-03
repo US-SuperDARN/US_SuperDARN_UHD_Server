@@ -1,13 +1,16 @@
 OS:=$(shell uname -s)
 
 CCpp=g++
-CFLAGS=-c -Wall -pthread -std=c++0x -g3
-LFLAGS  = -L"../../iniparser" -L"${HOME}/repos/uhd/host/build/lib"
+CFLAGS=-c -Wall -pthread -std=c++0x -O3
+LFLAGS=-L"${HOME}/repos/iniparser/build" -L"${HOME}/repos/uhd/host/build/lib"
 common_libs=-lm -liniparser -lrt -luhd -lfftw3
 linux_libs=-lboost_thread -lboost_system -pthread -l argtable2 -lboost_date_time
-INCLUDES=-I"../include/" -I"include/" -I"../tsg/include" -I"../iniparser3.0b/src/" \
-	 -I"${HOME}/uhd/host/include" -I"${HOME}/uhd/host/include/uhd/types" -I"${HOME}/uhd/host/include/uhd/usrp" \
-	 -I"${HOME}/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/include/base" -I"${HOME}/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/include/superdarn"
+
+INCLUDES=-I"${HOME}/repos/uhd/host/include" \
+	 -I"${HOME}/repos/uhd/host/include/uhd/types" \
+	 -I"${HOME}/repos/uhd/host/include/uhd/usrp" \
+	 -I"${HOME}/repos/rst/include/base" \
+	 -I"${HOME}/repos/rst/include/superdarn"
 
 CPP_SOURCES=usrp_driver.cpp dio.cpp tx_worker.cpp  rx_worker.cpp usrp_utils.cpp
 

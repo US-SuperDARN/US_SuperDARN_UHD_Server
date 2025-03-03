@@ -1,5 +1,5 @@
 import numpy as np
-import collections
+import collections.abc as collections
 
 from drivermsg_library import driver_command, NO_COMMAND
 

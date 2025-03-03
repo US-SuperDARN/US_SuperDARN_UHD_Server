@@ -314,7 +314,7 @@ class usrp_trigger_pulse_command(driver_command):
     def __init__(self, usrps, trigger_time, tr_to_pulse_delay, swing):
         driver_command.__init__(self, usrps, UHD_TRIGGER_PULSE)
         self.queue(swing , np.int16,   'swing' )
-        self.queue(np.uint32(np.int(trigger_time)), np.uint32, 'uhd_time_int')
+        self.queue(np.uint32(np.int_(trigger_time)), np.uint32, 'uhd_time_int')
         self.queue(np.float64(np.mod(trigger_time,1)), np.float64, 'uhd_time_frac')
         self.queue(np.float64(tr_to_pulse_delay), np.float64, 'tr_to_pulse_delay')
 
@@ -407,7 +407,7 @@ class usrp_clrfreq_command(driver_command):
     def __init__(self, usrps, num_clrfreq_samples, clrfreq_uhd_time, clrfreq_freq, clrfreq_rate):
         driver_command.__init__(self, usrps, UHD_CLRFREQ)
         self.queue(num_clrfreq_samples, np.int32, 'num_clrfreq_samples')
-        self.queue(np.int32(np.int(clrfreq_uhd_time)), np.int32, 'clrfreq_uhd_time_int')
+        self.queue(np.int32(np.int32(clrfreq_uhd_time)), np.int32, 'clrfreq_uhd_time_int')
         self.queue(np.float64(np.mod(clrfreq_uhd_time,1)), np.float64, 'clrfreq_uhd_time_frac')
         self.queue(clrfreq_freq, np.float64, 'clrfreq_freq')
         self.queue(clrfreq_rate, np.float64, 'clrfreq_rate')

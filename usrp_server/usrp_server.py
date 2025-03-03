@@ -23,6 +23,7 @@ import copy
 import posix_ipc
 import mmap
 import pickle
+import struct
 
 
 sys.path.insert(0, '../python_include')
@@ -1824,13 +1825,13 @@ class RadarHardwareManager:
             offset = int(np.round(900e-6*bb_samplingRate))
             channel = RHM.channels[0]
             pulse_offsets = RHM.all_possible_integration_period_pulse_sample_offsets
-            pulse_offsets = np.array(np.round(pulse_offsets/RHM.usrp_rf_rx_rate*bb_samplingRate), dtype=np.int)
+            pulse_offsets = np.array(np.round(pulse_offsets/RHM.usrp_rf_rx_rate*bb_samplingRate), dtype=np.int32)
             pulse_offsets -= pulse_offsets[0]
             rx_idx = []
             for iPulse in range(len(pulse_offsets)-1):
                 rx_idx += range(pulse_offsets[iPulse]+offset, pulse_offsets[iPulse+1]-offset)
             rx_idx += range(pulse_offsets[iPulse+1]+offset, nSamples)
-            rx_idx = np.array(rx_idx, dtype=np.int)
+            rx_idx = np.array(rx_idx, dtype=np.int32)
             rx_idx = rx_idx[rx_idx<nSamples-1]
             if debugPlot:
                 import matplotlib.pyplot as plt
