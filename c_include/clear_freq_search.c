@@ -278,7 +278,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     for (int i = 0; i < CLR_BANDS_MAX; i++) {
         clr_bands[i].f_start = clr_search_sample_start * delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
         clr_bands[i].f_end = clr_search_sample_end * delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        clr_bands[i].noise = 0; // XXX: Logic Flip
+        clr_bands[i].noise = RAND_MAX; // XXX: Logic Flip
     };
     int min_idx[CLR_BANDS_MAX];
     
@@ -296,7 +296,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
         // Compare curr power with min_powers...
         for (int j = CLR_BANDS_MAX - 1; j >= 0 ; j--) {
             // Update Insert Index; maintaining ascending order 
-            if (curr_band.noise > clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < RAND_MAX) { // XXX: Logic Flip
+            if (curr_band.noise < clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < RAND_MAX) { // XXX: Logic Flip
                 insert_idx = j;
             }
             // Check for Intersecting Band; get intersecting clr_band index
@@ -314,7 +314,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
         if (insert_idx != -1) {
             // Intersection w/ curr_band was also Found...
             if (intersect_idx != -1) {
-                // Special: If Intersect is less noisy, do not place/skip
+                // Special: If Intersect has worse noise, do not place/skip
                 if (insert_idx > intersect_idx) continue;
                 printf("    Intersecting Insertion found w/...\n");
                 freq_band inter_band = clr_bands[intersect_idx];
