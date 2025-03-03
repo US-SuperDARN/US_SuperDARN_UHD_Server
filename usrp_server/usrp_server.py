@@ -1033,7 +1033,7 @@ class ClearFrequencyService():
                 new_clrfreq_data, new_noise_data = self.repack_data(new_clrfreq_data, True)
                 for clr_freq in zip(new_clrfreq_data, new_noise_data):
                     print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq[0]} (Hz), {clr_freq[1]} (N/A) |")
-                clr_freq, noise = new_clrfreq_data[0], new_noise_data[0]
+                clr_freq, noise = new_clrfreq_data[0]/1000, new_noise_data[0]
                 
                 self.sl_clrfreq['sem'].release()
                         
