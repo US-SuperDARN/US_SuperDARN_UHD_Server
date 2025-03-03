@@ -63,6 +63,9 @@ import subprocess
 import time
 import errno
 import signal
+from pathlib import Path
+
+homePath = str(Path.home())
 
 basePath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, basePath + '/tools')
@@ -233,14 +236,14 @@ def remote_stop_all():
         print(respond)
 
 def get_known_processes(processList):
-    kownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "rawacfwrite", "errlog", "rtserver", "python3 /home/radar/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd"]
+    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd"]
     srrProcesses = []
     for line in processList:
         wordList = [word for word in line.split(" " ) if word != ""]
         if len(wordList):
            commandString = " ".join(wordList[10:]) 
-           for knowProcess in kownProcessList:
-               if commandString.startswith(knowProcess):
+           for knownProcess in knownProcessList:
+               if commandString.startswith(knownProcess):
                   srrProcesses.append( " " + commandString + "  (PID " + wordList[1] + ")")
                   break
     return srrProcesses
