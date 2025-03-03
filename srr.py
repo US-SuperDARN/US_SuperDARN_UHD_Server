@@ -212,7 +212,7 @@ def print_status():
     srrProcesses = get_known_processes(processList)
    
     myPrint("Local: Found {} processes:".format(len(srrProcesses)))
-    for line in srrProcesses:
+    for line in sorted(srrProcesses):
        myPrint("  {}".format(line))
 
     remote_pc_list = get_remote_driver_host()
