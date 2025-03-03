@@ -21,7 +21,7 @@
 
 
 // Default Length of Variables (some dynamically change during runtime)
-#define SAMPLES_NUM     20000
+#define SAMPLES_NUM     10000
 #define ANTENNA_NUM     16
 #define SAMPLE_TIME     3                   // Time per Sample (in seconds)
 #define STORAGE_TIME    60                  // Total time per Sample Storage Batch (in seconds)

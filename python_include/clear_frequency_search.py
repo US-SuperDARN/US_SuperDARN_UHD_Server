@@ -19,6 +19,7 @@ from phasing_utils import calc_beam_azm_rad, calc_phase_increment, rad_to_rect, 
 from radar_config_constants import *
 
 RESTRICTED_POWER = 1e12 # arbitrary high power for restricted frequency
+RESTRICT_FILE = '/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.mcm/restrict.dat.inst'
 
 SAVE_CLEAR_FREQUENCY_SEARCH = False 
 CLEAR_FREQUENCY_DUMP_DIR = '/data/logs/clearfreq_logs/'
@@ -153,17 +154,21 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
     # grab raw samples
     for usrpsock in usrp_sockets:
         try:
-            antenna_no_tmp = recv_dtype(usrpsock, np.int32)
-            clrfreq_rate_actual = recv_dtype(usrpsock, np.float64)
-            assert clrfreq_rate_actual == clrfreq_rate_requested
+            nSides=recv_dtype(usrpsock, np.int32)
 
-            #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
-            dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
+            for j in range(nSides):
+               antenna_no_tmp = recv_dtype(usrpsock, np.int32)
+               clrfreq_rate_actual = recv_dtype(usrpsock, np.float64)
+               assert clrfreq_rate_actual == clrfreq_rate_requested
+
+               #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
+               dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
            
-            sample_buf = recv_dtype(usrpsock, np.int16, nitems = int(2 * num_clrfreq_samples))
+               sample_buf = recv_dtype(usrpsock, np.int16, nitems = int(2 * num_clrfreq_samples))
 
-            output_samples_list.append(sample_buf[0::2] + 1j * sample_buf[1::2])
-            output_antenna_idx_list.append(antenna_no_tmp)
+               output_samples_list.append(sample_buf[0::2] + 1j * sample_buf[1::2])
+               output_antenna_idx_list.append(antenna_no_tmp)
+               
         except:
             dbPrint("CLRFREQ response from {} failed.".format(usrpsock))
 

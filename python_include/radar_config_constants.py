@@ -2,7 +2,7 @@
 
 ST_ID = 20
 
-RESTRICT_FILE = '/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.mcm/restrict.dat.mcm'
+RESTRICT_FILE = '/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.mcm/restrict.dat.inst'
 
 USRP_MASTER_CLOCK_FREQ = 200e6 # not all values are supported by the ettus UHD driver, changing this will require changing downconversion ratios
 
@@ -15,7 +15,7 @@ INTEGRATION_PERIOD_SYNC_TIME = .4
 MIN_CLRFREQ_DELAY = .50
 
 
-CLRFREQ_RES = .25e3 # fft frequency resolution for clear freq in Hz
+CLRFREQ_RES = .50e3 # fft frequency resolution for clear freq in Hz
 MAX_AGE_OF_AUTO_CLEAR_FREQ = 10 # in sec, if data is older a new clear freq record if triggered
 PAUSE_TIME_BEFORE_AUTO_CLEAR_FREQ = 0.0 # is seconds
 

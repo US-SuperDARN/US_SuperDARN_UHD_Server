@@ -94,9 +94,8 @@ class integrationTimeManager():
       int_time = self.RHM.commonChannelParameter['integration_period_duration']  
       # TODO optimize by tracking times of last periods
       if int_time == 3.5:
-         overhead_time = 0.175
+         overhead_time = 0.4
       elif int_time == 2.9:
-         overhead_time = 0.05
          overhead_time = 0.5
       elif int_time == 3.2:
           overhead_time = 0.4
@@ -452,7 +451,7 @@ class ClearFrequencyService():
     DOUBLE_SIZE = 8
     
     # Shared Memory Object and Semaphores Constants
-    SAMPLES_NUM  = 20000
+    SAMPLES_NUM  = 10000
     ANTENNA_NUM = 16
     RESTRICT_NUM = 20
     META_ELEM    = 3                                    # 3 = 4 - 1 (fcenter has unique obj)
