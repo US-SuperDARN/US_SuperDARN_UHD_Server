@@ -170,7 +170,7 @@ class usrpSockManager():
       self.logger = logging.getLogger("usrpManager")      
       
       self.nUSRPs = len(RHM.ini_usrp_configs) # TODO should this be all USRPs or only active?
-      self.fault_status = np.ones(self.nUSRPs)
+      self.fault_status = np.zeros(self.nUSRPs)
       self.errors_in_a_row = 0
       self.error_limit = 15
       self.nSeconds_retry_reconnect = 60
