@@ -1233,7 +1233,7 @@ class RadarHardwareManager:
         self.disconnect_driver_and_clean_up()
      #   self.logger.debug("Closing client socket... ")
      #   self.client_sock.close()
-        self.logger.debug("Settinge exit flag... ")
+        self.logger.debug("Setting exit flag... ")
         self.exit_usrp_server = True
 
         # connect to ros port overcome blocking
@@ -1273,7 +1273,7 @@ class RadarHardwareManager:
     def _calc_period_details(self, newChannels=[]):
         """ calculate details for integration period and save it in channel objects"""
        
-        self.logger.debug("_calc_period_details: samplingRate _bb={}, number_of_samples={}".format(self.commonChannelParameter['baseband_samplerate'], self.commonChannelParameter['number_of_samples']))
+        self.logger.debug("_calc_period_details: samplingRate_bb={}, number_of_samples={}".format(self.commonChannelParameter['baseband_samplerate'], self.commonChannelParameter['number_of_samples']))
         # calculate the pulse sequence period with padding
     #    nSamples_per_sequence = self.commonChannelParameter['number_of_samples'] + int(PULSE_SEQUENCE_PADDING_TIME * self.commonChannelParameter['baseband_samplerate'])
         nSamples_per_sequence = max(self.commonChannelParameter['number_of_samples']+2 , int(np.ceil((self.commonChannelParameter['pulse_sequence_offsets_vector'][-1]+ self.commonChannelParameter['pulseLength']/1e6 + PULSE_SEQUENCE_PADDING_TIME) * self.commonChannelParameter['baseband_samplerate'])))
