@@ -680,12 +680,12 @@ class ProcessingGPU(object):
            self.logger.debug(" TX :")
            self.logger.debug("   upsampling rate : {}x".format( self.tx_upsamplingRate ))
 
-           self.logger.debug(" BB  Sampling Rate    :  {} kHz".format(self.tx_bb_samplingRate / 1000 ))
-           self.logger.debug(" BB  nSamples per Puse:  {}".format( tx_bb_nSamples_per_pulse))
+           self.logger.debug(" BB  Sampling Rate     :  {} kHz".format(self.tx_bb_samplingRate / 1000 ))
+           self.logger.debug(" BB  nSamples per Pulse:  {}".format( tx_bb_nSamples_per_pulse))
 
 
-           self.logger.debug(" RF  Sampling Rate    :  {} kHz".format(self.tx_rf_samplingRate / 1000 ))
-           self.logger.debug(" RF  nSamples per Puse:  {}".format( tx_rf_nSamples_per_pulse))
+           self.logger.debug(" RF  Sampling Rate     :  {} kHz".format(self.tx_rf_samplingRate / 1000 ))
+           self.logger.debug(" RF  nSamples per Pulse:  {}".format( tx_rf_nSamples_per_pulse))
 
 
            self.logger.debug('  TX Block: {}'.format( str(self.tx_block)))
@@ -1039,7 +1039,7 @@ class ProcessingGPU(object):
     def txsamples_host_to_shm(self, swing):
         for (iAntenna, ant_number) in enumerate(self.antenna_index_list):
             tx_shm_list[swing][iAntenna].seek(0)
-            self.logger.debug('copy tx sampes to shm (swing {}, ant {}): {}'.format( ant_number,swing, tx_shm_list[swing][iAntenna]))
+            self.logger.debug('copy tx samples to shm (swing {}, ant {}): {}'.format( ant_number,swing, tx_shm_list[swing][iAntenna]))
             tx_shm_list[swing][iAntenna].write(self.tx_rf_outdata[iAntenna].tobytes())
             tx_shm_list[swing][iAntenna].flush()
 
