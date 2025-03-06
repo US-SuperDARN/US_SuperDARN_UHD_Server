@@ -515,7 +515,7 @@ class ClearFrequencyService():
     
     semaphores = []
     shm_objects = []
-    temp_antenna_num = ANTENNA_NUM
+    cur_antenna_num = ANTENNA_NUM
     
     def __init__(self, sid = 'lab'):
         # Process Site ID during Sample Send 
@@ -565,11 +565,11 @@ class ClearFrequencyService():
 
         except ValueError:
             print("[ClearFrequencyService] Initialization Failed. Cleaning up SHM Objects and Semaphores...")
-            self.soft_kill == True
+            self.soft_kill = True
             self.cleanup_shm()
         except KeyboardInterrupt:
             print("[CFS] Keyboard Interupt triggered during Initialization... Canceling and cleaning up...")
-            self.soft_kill == True
+            self.soft_kill = True
             self.cleanup_shm()
             
         
@@ -905,7 +905,7 @@ class ClearFrequencyService():
         ]
         
         # Special: Halt all future ClearFreqService
-        if self.soft_kill == True:
+        if self.soft_kill is True:
             return
                 
         # Get in Queue
@@ -913,12 +913,40 @@ class ClearFrequencyService():
         print(f"[clearFrequencyService] Active clients count: {active_clients}\n")
         
         try:
+            ## Check for Premapped antenna num
+            # Map shared memory object pointer for antenna num
+            print(f"Mapping {self.shm_objects[7]['name']}")
+            self.shm_objects[7]['shm_ptr'] = mmap.mmap(self.shm_objects[7]['shm_fd'], self.shm_objects[7]['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+            
+            # Check if Antenna Num changed
+            temp_ant_num = self.read_m_data(self.shm_objects[7])
+            print("Antenna_num: ", temp_ant_num)
+            if temp_ant_num is not None and temp_ant_num != self.ANTENNA_NUM:
+                # Ant Num changed, update corresponding values
+                print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
+                self.cur_antenna_num = temp_ant_num
+                
+                # Update meta SHM values
+                meta_obj = self.shm_objects[6]
+                meta_obj['elem_num'] = len(meta_data['antenna_list']) + self.META_ELEM
+                meta_obj['size'] = meta_obj['elem_num'] * self.DOUBLE_SIZE
+                os.ftruncate(meta_obj['shm_fd'], meta_obj['size'])
+                
+                # Update samples SHM values
+                samples_obj = self.shm_objects[0]
+                samples_obj['elem_num'] = len(meta_data['antenna_list']) * self.SAMPLES_NUM * 2
+                samples_obj['size'] = samples_obj['elem_num'] * self.INT_SIZE
+                os.ftruncate(samples_obj['shm_fd'], samples_obj['size'])
+                
             # Map shared memory object pointers
             print(f"Mapping Shared Memory for Objects...\n")
             for obj in self.shm_objects:
+                # Special: Skip Antenna_Num mapping
+                if obj['name'] == '/antenna_num':
+                    continue
                 print(f"Mapping {obj['name']}")
                 obj['shm_ptr'] = mmap.mmap(obj['shm_fd'], obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
-            
+                            
             # Await for a Client Request
             print("[clearFrequencyService] Awaiting Client Request...\n")
             self.sf_client['sem'].acquire()
@@ -955,15 +983,14 @@ class ClearFrequencyService():
                 if meta_data is not None:
                     
                     # If antenna length has changed, send, set, and sync with server
-                    if self.temp_antenna_num != len(meta_data['antenna_list']):
+                    if self.cur_antenna_num != len(meta_data['antenna_list']):
                         print(f"[Frequency Client] Antenna_num changed. Reallocating memory")
-                        self.temp_antenna_num = len(meta_data['antenna_list'])
+                        self.cur_antenna_num = len(meta_data['antenna_list'])
                         
                         # Send
                         print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
                         self.write_data(self.shm_objects[7], len(meta_data['antenna_list']))
-                        
-                        
+                                                
                         # Reallocate meta SHM
                         meta_obj = self.shm_objects[6]
                         meta_obj['elem_num'] = len(meta_data['antenna_list']) + self.META_ELEM
@@ -1045,16 +1072,13 @@ class ClearFrequencyService():
             active_clients = self.decrement_active_clients()
             print(f"[clearFrequencyService] Active clients count after decrement: {active_clients}")
 
-            if active_clients == 0 or self.soft_kill:
+            if active_clients == 0: 
                 self.cleanup_shm()
                 
         return clr_freq, noise
-
-    def soft_kill(self):
-        self.soft_kill == True
     
     def cleanup_shm(self):
-        if self.soft_kill is True or self.CLEAN_ON_INACTIVE is True:
+        if self.soft_kill is False or self.CLEAN_ON_INACTIVE is False:
             print("[clearFrequencyService] No active clients remaining, but not cleaning up shared resources to keep service idle.")
             try:
                 posix_ipc.unlink_shared_memory(self.ACTIVE_CLIENTS_SHM_NAME)

@@ -465,7 +465,7 @@ void flag_debug() {
 
 
 int main() {
-    // Setup Signal Handler
+    // Setup Signal Handler (catches ctrl+c to quit safely)
     signal(SIGINT, handle_sigint);
 
     // Open Shared Memory Object
