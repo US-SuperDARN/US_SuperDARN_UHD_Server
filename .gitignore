@@ -13,3 +13,5 @@ log/usrp_server_status.txt
 *.bin
 
 log/clr_freq/
+
+*.ini
