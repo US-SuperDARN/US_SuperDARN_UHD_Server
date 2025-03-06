@@ -36,7 +36,7 @@
 #  Available PROCESS GROUPS:
 #     driver                       : cuda_driver and usrp_driver
 #     all                          : cuda_driver, usrp_driver and usrp_server
-#     allscans                     : all porcesses with scan in their name
+#     allscans                     : all processes with scan in their name
 #
 #
 #  TIP:
