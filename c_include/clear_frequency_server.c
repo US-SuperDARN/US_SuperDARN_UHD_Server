@@ -689,7 +689,7 @@ int main() {
                 }
                 
                 // Read Meta Data 
-                    printf("[Frequency Server] Meta Data reading...\n");
+                printf("[Frequency Server] Meta Data reading...\n");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
 
                 for (int j = 0; j < meta_data.num_antennas; j++) {
