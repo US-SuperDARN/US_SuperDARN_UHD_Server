@@ -2999,11 +2999,11 @@ class RadarChannelHandler:
         RHM = channelObject.parent_RadarHardwareManager
 
         if channelObject in RHM.active_channels:
-            RHM.logger.info('ROS:SET_INACTVIVE removing channel {} from RHM.active_channels'.format(RHM.channels.index(channelObject)))
+            RHM.logger.info('ROS:SET_INACTIVE removing channel {} from RHM.active_channels'.format(RHM.channels.index(channelObject)))
             RHM.active_channels.remove(channelObject)
            
         if channelObject in RHM.channels:
-            RHM.logger.info('ROS:SET_INACTVIVE removing channel {} from HardwareManager'.format(RHM.channels.index(channelObject)))
+            RHM.logger.info('ROS:SET_INACTIVE removing channel {} from HardwareManager'.format(RHM.channels.index(channelObject)))
             RHM.channels.remove(channelObject)
 
             RHM.nRegisteredChannels -= 1
