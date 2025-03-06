@@ -1436,6 +1436,8 @@ class RadarHardwareManager:
     def __init__(self, port):
         self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.client_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self.client_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
         self.client_sock.bind(('localhost', port))
 
         self.logger = logging.getLogger('HwManager')
