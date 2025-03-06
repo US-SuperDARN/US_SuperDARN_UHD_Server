@@ -555,7 +555,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
     std::string usrpargs(as_host->sval[0]);
     usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6";
-//    usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6,recv_frame_size=50000000";
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
@@ -1139,13 +1138,16 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 
 
+		    sock_send_int32(driverconn, (int32_t) nSides);
                     DEBUG_PRINT("CLRFREQ received samples, relaying %d samples back...\n", num_clrfreq_samples);
-                    sock_send_int32(driverconn, (int32_t) antennaVector[0]); // TODO both sides?
-                    sock_send_float64(driverconn, clrfreq_rate);
+		    for( int jSide = 0; jSide < (int) nSides; jSide++ ){
+		      sock_send_int32(driverconn, (int32_t) antennaVector[jSide]); 
+		      sock_send_float64(driverconn, clrfreq_rate);
 
                     // send back samples                   
-                    send(driverconn, &clrfreq_data_buffer[0][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-
+		      send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+		    }
+		    
                     //for(uint32_t i = 0; i < num_clrfreq_samples; i++) {
                         //DEBUG_PRINT("sending %d - %d\n", i, clrfreq_data_buffer[0][i]);
                     //    sock_send_cshort(driverconn, clrfreq_data_buffer[0][i]);

@@ -17,32 +17,37 @@ sudo sysctl -w net.core.netdev_budget=600
 sudo cpufreq-set -g PERFORMANCE
 
 # disable interrupt coallesing:
-sudo ethtool -C ens1f0 adaptive-tx off
-sudo ethtool -C ens1f1 adaptive-tx off
-sudo ethtool -C ens1f2 adaptive-tx off
-sudo ethtool -C ens1f3 adaptive-tx off
+sudo ethtool -C enp180s0f0 adaptive-tx off
+sudo ethtool -C enp180s0f1 adaptive-tx off
+sudo ethtool -C enp180s0f2 adaptive-tx off
+sudo ethtool -C enp180s0f3 adaptive-tx off
 
-sudo ethtool -C ens1f0 adaptive-rx off
-sudo ethtool -C ens1f1 adaptive-rx off
-sudo ethtool -C ens1f2 adaptive-rx off
-sudo ethtool -C ens1f3 adaptive-rx off
+sudo ethtool -C enp180s0f0 adaptive-rx off
+sudo ethtool -C enp180s0f1 adaptive-rx off
+sudo ethtool -C enp180s0f2 adaptive-rx off
+sudo ethtool -C enp180s0f3 adaptive-rx off
 
-sudo ethtool -C ens2f0 adaptive-tx off
-sudo ethtool -C ens2f1 adaptive-tx off
-sudo ethtool -C ens2f2 adaptive-tx off
-sudo ethtool -C ens2f3 adaptive-tx off
+sudo ethtool -C enp23s0f0 adaptive-tx off
+sudo ethtool -C enp23s0f1 adaptive-tx off
+sudo ethtool -C enp23s0f2 adaptive-tx off
+sudo ethtool -C enp23s0f3 adaptive-tx off
 
-sudo ethtool -C ens2f0 adaptive-rx off
-sudo ethtool -C ens2f1 adaptive-rx off
-sudo ethtool -C ens2f2 adaptive-rx off
-sudo ethtool -C ens2f3 adaptive-rx off
+sudo ethtool -C enp23s0f0 adaptive-rx off
+sudo ethtool -C enp23s0f1 adaptive-rx off
+sudo ethtool -C enp23s0f2 adaptive-rx off
+sudo ethtool -C enp23s0f3 adaptive-rx off
 
-sudo ethtool -C ens3f0 adaptive-tx off
-sudo ethtool -C ens3f1 adaptive-tx off
-sudo ethtool -C ens3f2 adaptive-tx off
-sudo ethtool -C ens3f3 adaptive-tx off
+sudo ethtool -C enp2s0f0 adaptive-tx off
+sudo ethtool -C enp2s0f1 adaptive-tx off
+sudo ethtool -C enp2s0f2 adaptive-tx off
+sudo ethtool -C enp2s0f3 adaptive-tx off
 
-sudo ethtool -C ens3f0 adaptive-rx off
-sudo ethtool -C ens3f1 adaptive-rx off
-sudo ethtool -C ens3f2 adaptive-rx off
-sudo ethtool -C ens3f3 adaptive-rx off
+sudo ethtool -C enp2s0f0 adaptive-rx off
+sudo ethtool -C enp2s0f1 adaptive-rx off
+sudo ethtool -C enp2s0f2 adaptive-rx off
+sudo ethtool -C enp2s0f3 adaptive-rx off
+
+sudo /home/radar/repos/SuperDARN_UHD_Server/tools/change_priority_by_name.sh ksoftirqd 60
+
+
+

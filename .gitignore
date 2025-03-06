@@ -7,3 +7,11 @@ dist/*
 
 driver_config.ini
 usrp_config.ini
+
+log/usrp_server_status.txt
+
+*.bin
+
+log/clr_freq/
+
+*.ini

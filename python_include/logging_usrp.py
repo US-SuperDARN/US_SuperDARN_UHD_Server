@@ -1,10 +1,10 @@
 import logging
 import os
 
-#consoleOutputLevel = logging.DEBUG
-#logfileOutputLevel = logging.DEBUG
-consoleOutputLevel = logging.INFO
-logfileOutputLevel = logging.INFO
+consoleOutputLevel = logging.DEBUG
+logfileOutputLevel = logging.DEBUG
+#consoleOutputLevel = logging.INFO
+#logfileOutputLevel = logging.INFO
 useColor = True
 
 
