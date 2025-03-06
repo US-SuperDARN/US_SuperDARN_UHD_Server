@@ -94,7 +94,7 @@ class integrationTimeManager():
       int_time = self.RHM.commonChannelParameter['integration_period_duration']  
       # TODO optimize by tracking times of last periods
       if int_time == 3.5:
-         overhead_time = 0.4
+         overhead_time = 0.1
       elif int_time == 2.9:
          overhead_time = 0.5
       elif int_time == 3.2:
@@ -198,6 +198,8 @@ class usrpSockManager():
                port = int(usrpConfig['usrp_hostname'].split(".")[2]) + usrp_driver_base_port
                usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                connectPar = (usrpConfig['driver_hostname'], port)
+               usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+               usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
                usrpsock.connect(connectPar)
                if USRP_SOCK_TIMEOUT != None:
                   usrpsock.settimeout(USRP_SOCK_TIMEOUT)
@@ -341,6 +343,8 @@ class usrpSockManager():
             
          try: 
             usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
             usrpsock.connect(usrp)
 
             self.socks.append(usrpsock)
@@ -1474,6 +1478,7 @@ class RadarHardwareManager:
         self.nSequences_per_period = 0
 
         self.auto_collect_clrfrq_after_rx = False
+
     def run(self):
         def spawn_channel(conn):
             # start new radar channel handler
@@ -1781,6 +1786,7 @@ class RadarHardwareManager:
            try:
                 self.logger.debug('connecting to cuda driver on {}:{}'.format(c, cuda_driver_port))
                 cudasock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 cudasock.connect((c, cuda_driver_port))
                 cuda_driver_socks.append(cudasock)
            except ConnectionRefusedError:
