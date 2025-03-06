@@ -465,7 +465,7 @@ void flag_debug() {
 
 
 int main() {
-    // Setup Signal Handler
+    // Setup Signal Handler (catches ctrl+c to quit safely)
     signal(SIGINT, handle_sigint);
 
     // Open Shared Memory Object
@@ -689,7 +689,7 @@ int main() {
                 }
                 
                 // Read Meta Data 
-                    printf("[Frequency Server] Meta Data reading...\n");
+                printf("[Frequency Server] Meta Data reading...\n");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
 
                 for (int j = 0; j < meta_data.num_antennas; j++) {
