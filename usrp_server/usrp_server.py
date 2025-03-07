@@ -922,11 +922,10 @@ class ClearFrequencyService():
             print(f"Mapping {self.shm_objects[7]['name']}")
             self.shm_objects[7]['shm_ptr'] = mmap.mmap(self.shm_objects[7]['shm_fd'], self.shm_objects[7]['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
             
-            # Check if Antenna Num changed
-            temp_ant_num = self.read_m_data(self.shm_objects[7])
+            # Check if Antenna Num changed, update corresponding values before their mapping
+            temp_ant_num = self.read_m_data(self.shm_objects[7])[0]
             print("Antenna_num: ", temp_ant_num)
-            if temp_ant_num is not None and temp_ant_num != self.ANTENNA_NUM:
-                # Ant Num changed, update corresponding values
+            if temp_ant_num != 0 and temp_ant_num != self.ANTENNA_NUM:
                 print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
                 self.cur_antenna_num = temp_ant_num
                 
