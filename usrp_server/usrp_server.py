@@ -664,7 +664,9 @@ class ClearFrequencyService():
                     if current_value < 0 or current_value > 1000:  # Arbitrary threshold to detect uninitialized state
                         m.seek(0)
                         m.write(struct.pack('i', 0))
-                print("[clearFrequencyService] Created Active Clients Counter...")
+                    m.seek(0)
+                    current_value = struct.unpack('i', m.read(struct.calcsize('i')))[0]
+                print("[clearFrequencyService] Created Active Clients Counter... @ ", current_value)
                 return 
             except FileNotFoundError:
                 print("[clearFrequencyService] Active Clients Counter not found. Retrying...")

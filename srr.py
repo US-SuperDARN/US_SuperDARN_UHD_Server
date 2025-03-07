@@ -714,7 +714,7 @@ def restart_clear_frequency_service():
 
 def stop_clear_frequency_service():
     myPrint(" Stopping clear frequency service...")
-    serverProcesses = get_process_ids("clear_frequency_server")
+    serverProcesses = get_process_ids("cf_server")
     if len(serverProcesses):
        terminate_all(serverProcesses)
        return 1
