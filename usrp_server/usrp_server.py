@@ -656,7 +656,7 @@ class ClearFrequencyService():
             try:
                 # Init counter
                 print(f"[clearFrequencyService] Attempting to initialize Active Clients Counter (Attempt {attempts + 1}/{self.RETRY_ATTEMPTS})...")
-                self.active_clients_fd = os.open(f"/dev/shm{self.ACTIVE_CLIENTS_SHM_NAME}", os.O_RDWR | os.O_CREAT, 0o666)
+                self.active_clients_fd = os.open(f"/dev/shm", os.O_RDWR | os.O_TMPFILE, 0o666)
                 os.ftruncate(self.active_clients_fd, struct.calcsize('i'))  # Ensure the size of the shared memory object is large enough for an integer
                 # If abnormal num of clients, set to 0
                 with mmap.mmap(self.active_clients_fd, struct.calcsize('i'), mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) as m:

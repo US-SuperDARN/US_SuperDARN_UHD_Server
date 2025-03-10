@@ -342,7 +342,6 @@ void clean_sem(semaphore sem) {
  */
 void cleanup() {
     printf("[Frequency Server] Cleaning all semaphores and SHM objects...\n");
-    printf("                   Except the active client object!!! (done on client-side)\n");
 
     for (int i = 0; i < SEM_NUM; i++) clean_sem(*semaphores[i]);
     printf("[Frequency Server] Cleaned all semaphores ...\n");
@@ -375,7 +374,7 @@ void handle_sigint(int sig) {
     printf("[Frequency Server] Main processes and communication terminated.\n"
            "Goodbye.\n");
            
-    exit(0);
+    exit(sig);
 }
 
 void write_clr_log_csv(freq_band **clr_storage, int clr_num) {
@@ -470,7 +469,8 @@ void flag_debug() {
 
 
 int main() {
-    // Setup Signal Handler (catches ctrl+c to quit safely)
+    // Setup Signal Handler (catches ctrl+c and kill? to quit safely)
+    signal(SIGTERM, handle_sigint);
     signal(SIGINT, handle_sigint);
 
     // Open Shared Memory Object
