@@ -500,13 +500,20 @@ int main() {
     // Request Block of Memory
     printf("[Frequency Server] Requesting Shared Memory Cache...\n");    
     for (int i = 0; i < PARAM_NUM; i++) {
-        objects[i]->shm_ptr = mmap(0, objects[i]->size, PROT_WRITE | PROT_READ, MAP_SHARED | MAP_ANONYMOUS, objects[i]->shm_fd, 0);
+        objects[i]->shm_ptr = mmap(0, objects[i]->size, PROT_WRITE | PROT_READ, MAP_SHARED, objects[i]->shm_fd, 0);
         if (objects[i]->shm_ptr == MAP_FAILED) {
             printf("[Frequency Server] Memory Mapping failed for %s\n", objects[i]->name);
             exit(EXIT_FAILURE);
         }
     }
     printf("[Frequency Server] Memory successfully cached...\n");
+
+    // Initialize SHM to zero
+    printf("[Frequency Server] Initializing Shared Memory to zero...\n");
+    for (int i = 0; i < PARAM_NUM; i++) {
+        memset(objects[i]->shm_ptr, 0, objects[i]->size);
+    }
+    printf("[Frequency Server] Successfully initialized SHM to zero...\n");
 
 
     // Open Semaphores for synchronization     
@@ -658,8 +665,8 @@ int main() {
 
                     // Request Block of Memory
                     printf("[Frequency Server] Requesting Shared Memory Cache...\n");                    
-                    samples_obj.shm_ptr = mmap(0, samples_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED | MAP_ANONYMOUS, samples_obj.shm_fd, 0);
-                    if (samples_obj.shm_ptr == MAP_FAILED) {
+                    meta_obj.shm_ptr = mmap(0, meta_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED, meta_obj.shm_fd, 0);
+                    if (meta_obj.shm_ptr == MAP_FAILED) {
                         printf("[Frequency Server] Memory Mapping failed for %s\n", meta_obj.name);
                         exit(EXIT_FAILURE);
                     }                    
