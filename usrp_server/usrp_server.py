@@ -194,6 +194,8 @@ class usrpSockManager():
                port = int(usrpConfig['usrp_hostname'].split(".")[2]) + usrp_driver_base_port
                usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                connectPar = (usrpConfig['driver_hostname'], port)
+               usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+               usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
                usrpsock.connect(connectPar)
                if USRP_SOCK_TIMEOUT != None:
                   usrpsock.settimeout(USRP_SOCK_TIMEOUT)
@@ -337,6 +339,8 @@ class usrpSockManager():
             
          try: 
             usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
             usrpsock.connect(usrp)
 
             self.socks.append(usrpsock)
@@ -1122,6 +1126,7 @@ class RadarHardwareManager:
            try:
                 self.logger.debug('connecting to cuda driver on {}:{}'.format(c, cuda_driver_port))
                 cudasock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 cudasock.connect((c, cuda_driver_port))
                 cuda_driver_socks.append(cudasock)
            except ConnectionRefusedError:

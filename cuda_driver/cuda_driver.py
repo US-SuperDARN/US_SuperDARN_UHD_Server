@@ -1159,6 +1159,8 @@ def main():
     # create command socket server to communicate with usrp_server.py
     cmd_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     cmd_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    cmd_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    cmd_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
     cmd_sock.bind((network_settings.get('ServerHost'), network_settings.getint('CUDADriverPort')))
    
     # get size of shared memory buffer per-antenna in bytes from cudadriver_config.ini
