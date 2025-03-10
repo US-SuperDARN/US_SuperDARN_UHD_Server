@@ -44,6 +44,7 @@
 #define ANTENNA_SHM_SIZE        (1 * sizeof(int))
 #define CLR_BANDS_SHM_SIZE      (1 * sizeof(int) * 3)    
 #define SITE_ID_SHM_SIZE        (SITE_ID_ELEM * sizeof(char))
+#define ACTIVE_CLIENTS_SHM_SIZE (1 * sizeof(int))
 
 // Shared Memory and Semaphore Names 
 #define SAMPLES_SHM_NAME        "/samples"
@@ -56,9 +57,11 @@
 #define ANTENNA_SHM_NAME        "/antenna_num"
 #define CLRFREQ_SHM_NAME        "/clear_freq"
 #define SITE_ID_SHM_NAME        "/site_id"
+#define ACTIVE_CLIENTS_SHM_NAME "/active_clients"   // For debugging
+
 #define SAMPLE_PARAM_NUM 4
 #define RESTRICT_PARAM_NUM 2
-#define PARAM_NUM 10
+#define PARAM_NUM 11
 
 #define SEM_F_CLIENT    "/sf_client"               // For Sync and reserving client and server roles during data transfer
 #define SEM_F_SERVER    "/sf_server"    
@@ -122,6 +125,7 @@ shm_obj meta_obj        = {META_DATA_SHM_NAME, NULL, -1, META_DATA_SHM_SIZE};
 shm_obj antenna_obj     = {ANTENNA_SHM_NAME, NULL, -1, ANTENNA_SHM_SIZE};
 shm_obj clrfreq_obj     = {CLRFREQ_SHM_NAME, NULL, -1, CLR_BANDS_SHM_SIZE};
 shm_obj site_id_obj     = {SITE_ID_SHM_NAME, NULL, -1, SITE_ID_SHM_SIZE};
+shm_obj client_num_obj  = {ACTIVE_CLIENTS_SHM_NAME, NULL, -1, ACTIVE_CLIENTS_SHM_SIZE};
 struct shm_obj *objects[PARAM_NUM] = {
     &samples_obj,
     &clr_range_obj,
@@ -133,6 +137,7 @@ struct shm_obj *objects[PARAM_NUM] = {
     &antenna_obj,
     &clrfreq_obj,
     &site_id_obj,
+    &client_num_obj,
 };
 
 void **temp_ptrs;
@@ -835,6 +840,4 @@ int main() {
         t2 = clock();
         printf("[Frequency Server] Processing Time for Client (s): %lf\n", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
     }
-
-    cleanup();
 }
