@@ -1074,12 +1074,7 @@ class ClearFrequencyService():
         except posix_ipc.ExistentialError or ValueError or AttributeError:
                 print("[clearFrequencyService] Shared memory has been delinked. Exiting...")
         finally:
-            # Clean up
             active_clients = self.decrement_active_clients()
-            # print(f"[clearFrequencyService] Active clients count after decrement: {active_clients}")
-
-            # if active_clients == 0: 
-            #     self.cleanup_shm()
                 
         return clr_freq, noise
     

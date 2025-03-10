@@ -366,7 +366,7 @@ void cleanup() {
  * @param  sig: Caught signal
  * @retval None
  */
-void handle_sigint(int sig) {
+void handle_sig(int sig) {
     printf("\n[Frequency Server] Caught signal %d, cleaning up and exiting...\n", sig);
     cleanup();
 
@@ -469,9 +469,15 @@ void flag_debug() {
 
 
 int main() {
-    // Setup Signal Handler (catches ctrl+c and kill? to quit safely)
-    signal(SIGTERM, handle_sigint);
-    signal(SIGINT, handle_sigint);
+    // Setup Signal Handler (catches ctrl+c and termination? to quit safely)
+    signal(SIGTERM, handle_sig);
+    signal(SIGINT, handle_sig);
+    signal(SIGSEGV, handle_sig);
+
+
+    printf("[Frequency Server] Pre-Cleaning...\n\n");
+    cleanup();
+    
 
     // Open Shared Memory Object
     printf("[Frequency Server] Initializing Shared Memory Object...\n");
@@ -494,7 +500,7 @@ int main() {
     // Request Block of Memory
     printf("[Frequency Server] Requesting Shared Memory Cache...\n");    
     for (int i = 0; i < PARAM_NUM; i++) {
-        objects[i]->shm_ptr = mmap(0, objects[i]->size, PROT_WRITE | PROT_READ, MAP_SHARED, objects[i]->shm_fd, 0);
+        objects[i]->shm_ptr = mmap(0, objects[i]->size, PROT_WRITE | PROT_READ, MAP_SHARED | MAP_ANONYMOUS, objects[i]->shm_fd, 0);
         if (objects[i]->shm_ptr == MAP_FAILED) {
             printf("[Frequency Server] Memory Mapping failed for %s\n", objects[i]->name);
             exit(EXIT_FAILURE);
@@ -514,7 +520,7 @@ int main() {
         } 
     }
     printf("[Frequency Server] Done Initializing...\n\n");
-
+    
     // Allocate temp mem for shm varibles
     fftw_complex **temp_samples = NULL;
     temp_samples = (fftw_complex **)fftw_malloc(ANTENNA_NUM * sizeof(fftw_complex *));
@@ -652,7 +658,7 @@ int main() {
 
                     // Request Block of Memory
                     printf("[Frequency Server] Requesting Shared Memory Cache...\n");                    
-                    samples_obj.shm_ptr = mmap(0, samples_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED, samples_obj.shm_fd, 0);
+                    samples_obj.shm_ptr = mmap(0, samples_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED | MAP_ANONYMOUS, samples_obj.shm_fd, 0);
                     if (samples_obj.shm_ptr == MAP_FAILED) {
                         printf("[Frequency Server] Memory Mapping failed for %s\n", meta_obj.name);
                         exit(EXIT_FAILURE);
