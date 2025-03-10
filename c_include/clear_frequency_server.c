@@ -726,6 +726,7 @@ int main() {
     
             // If first client or new site_id, proceed to read in site_id and Restrict File
             if (site_id != new_site_id) {
+                printf("[Frequency Server] Site ID assigned, getting site's Resticted Frequencies ...\n");
                 site_id = new_site_id;
                 // Get site specific restrict file
                 if (strcmp(new_site_id,"lab") != 0) {
@@ -744,21 +745,21 @@ int main() {
             }
 
             sem_post(sl_init.sem);
-            printf("[Frequency Server] Initialization data read; processing...\n");
+            // printf("[Frequency Server] Initialization data read; processing...\n");
             // TODO: storeInRadarTable(restrict_freq, meta_data)
-            printf("[Frequency Server] Initialization data processed...\n");
+            // printf("[Frequency Server] Initialization data processed...\n");
         }
-
-        printf("attempting sample process\n");
-
+        
+        printf("[Frequency Server] Processing Clear Frequency...\n");
+        
         // Special: Semaphore order is faulty
         if (meta_data.num_antennas == 0) {
-                printf("[Frequency Server] ERROR: Called for Clear Freq without prior Initialization\n");
-                printf("[Frequency Server] ERROR: There is likely a semaphore leak, please close and restart all related processes.\n");
-                cleanup();
-                return 0;
-            }
-
+            printf("[Frequency Server] ERROR: Called for Clear Freq without prior Initialization\n");
+            printf("[Frequency Server] ERROR: There is likely a semaphore leak, please close and restart all related processes.\n");
+            cleanup();
+            return 0;
+        }
+        
         // If samples flagged, process clear frequency
         else if (sem_trywait(sf_samples.sem) == 0 && meta_data.num_antennas != 0){
             // Wait to read-in data
@@ -773,19 +774,19 @@ int main() {
             if (*(int*) (clr_range_obj.shm_ptr) != 0) {
                 printf("[Frequency Server] Clear Range reading...\n");
                 read_int(clr_range, clr_range_obj.shm_ptr, 2);
-                printf("    clr_range: %d -- %d\n", clr_range[0], clr_range[1]);
+                // printf("    clr_range: %d -- %d\n", clr_range[0], clr_range[1]);
             }
 
             if (*(int*) (fcenter_obj.shm_ptr) != 0) {
                 printf("[Frequency Server] Freq Center reading...\n");
                 read_single_int( &(meta_data.usrp_fcenter), fcenter_obj.shm_ptr);
-                printf("    fcenter: %d\n", meta_data.usrp_fcenter);
+                // printf("    fcenter: %d\n", meta_data.usrp_fcenter);
             }
 
             if (*(int*) (beam_num_obj.shm_ptr) != 0) {
                 printf("[Frequency Server] Beam Number reading...\n");
                 read_single_int(&beam_num, beam_num_obj.shm_ptr);
-                printf("    beam_num: %d\n", beam_num);
+                // printf("    beam_num: %d\n", beam_num);
             }
 
             sem_post(sl_samples.sem);
