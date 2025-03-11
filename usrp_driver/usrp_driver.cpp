@@ -637,6 +637,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
         sockopt = 1;
         setsockopt(driversock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int32_t));
+        setsockopt(driversock, IPPROTO_TCP, TCP_NODELAY, &sockopt, sizeof(int32_t));
+        setsockopt(driversock, IPPROTO_TCP, TCP_QUICKACK, &sockopt, sizeof(int32_t));
 
         sockaddr.sin_family = AF_INET;
         // TODO: maybe limit addr to interface connected to usrp_server
