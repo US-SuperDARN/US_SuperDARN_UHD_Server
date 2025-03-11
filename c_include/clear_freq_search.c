@@ -237,7 +237,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     if (clr_search_sample_end < 0) clr_search_sample_end = 0;
     else if (clr_search_sample_end > spectrum_sample_end) clr_search_sample_end = spectrum_sample_end;
 
-    printf("[Debug] spectrum_sample_start: %d\n     f_start: %f\n", spectrum_sample_start, f_start);
+    // printf("[Debug] spectrum_sample_start: %d\n     f_start: %f\n", spectrum_sample_start, f_start);
 
     // Trim Spectrum Data to only Clear Search Range (Used for convolving)
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
@@ -254,7 +254,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     }
 
     // Scan Search range w/ Bandpass Filter (BPF) to find Clear Freq Band
-    printf("[find_clear_freqs()] Scanning Search Range w/ Bandpass...\n");
+    // printf("[find_clear_freqs()] Scanning Search Range w/ Bandpass...\n");
     int *bpf = (int *) malloc(sizeof(int) * clear_sample_bw);
     for (int band_i = 0; band_i < clear_sample_bw; band_i++) {
         bpf[band_i] = 1;
@@ -288,7 +288,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
         curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * delta_f;
         curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * delta_f;
         curr_band.noise = convolve_result[i];
-        printf("[%d] | %d -- %f -- %d|\n", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
+        // printf("[%d] | %d -- %f -- %d|\n", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         int insert_idx = -1;
         int intersect_idx = -1;
@@ -308,7 +308,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
             // Continue Intersection Search 
         }
         // printf("    Intersection Search finished...\n");
-        printf("    intersect_idx: %d\n    insert_idx: %d\n", intersect_idx, insert_idx);
+        // printf("    intersect_idx: %d\n    insert_idx: %d\n", intersect_idx, insert_idx);
 
         // Insertion Point was Found...
         if (insert_idx != -1) {
@@ -316,16 +316,16 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
             if (intersect_idx != -1) {
                 // Special: If Intersect has worse noise, do not place/skip
                 if (insert_idx > intersect_idx) continue;
-                printf("    Intersecting Insertion found w/...\n");
+                // printf("    Intersecting Insertion found w/...\n");
                 freq_band inter_band = clr_bands[intersect_idx];
 
-                printf("        i-band = | %d -- %f -- %d|\n", inter_band.f_start, inter_band.noise, inter_band.f_end);
+                // printf("        i-band = | %d -- %f -- %d|\n", inter_band.f_start, inter_band.noise, inter_band.f_end);
 
                 // Special: Shift right till the Intersecting band is overwritten 
                 if (insert_idx < intersect_idx) {
                     // Debug: verify bands shift properly @ sample
                     if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                        printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
+                        // printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
                     }
                     
                     // printf("        shifting clr_bands for intersect...\n");
@@ -356,12 +356,12 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
 
             // Debug: verify shifting @ sample   
             if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
+                // printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
             }
         }
     }
 
-    printf("    Convolution Results packed up...\n");
+    // printf("    Convolution Results packed up...\n");
 
     // Debug: Output Final Clear Freq Bands
     // for (int i = 0; i < CLR_BANDS_MAX; i++)
