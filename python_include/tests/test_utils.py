@@ -1,12 +1,12 @@
 # This is a pytest testing program
 
+import sys
 import numpy as np
 import pytest
 
-from python_include.utils import complex_float_to_int16
+sys.path.insert(0, '../')
 
-import sys
-sys.path.append("/home/radar/SuperDARN_UHD_Server/python_include")
+from utils import complex_float_to_int16
 
 
 def test_complex_float_to_int16_integer_array():

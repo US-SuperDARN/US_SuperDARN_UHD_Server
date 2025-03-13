@@ -1,9 +1,12 @@
 # This is a pytest testing program
 
+import sys
 import numpy as np
 import pytest
 
-from python_include.phasing_utils import calc_beam_azm_rad, calc_phase_increment
+sys.path.insert(0, '../')
+
+from phasing_utils import calc_beam_azm_rad, calc_phase_increment
 
 
 # def test_rad_to_rect():
