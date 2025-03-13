@@ -237,7 +237,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     if (clr_search_sample_end < 0) clr_search_sample_end = 0;
     else if (clr_search_sample_end > spectrum_sample_end) clr_search_sample_end = spectrum_sample_end;
 
-    // printf("[Debug] spectrum_sample_start: %d\n     f_start: %f\n", spectrum_sample_start, f_start);
+    printf("[Debug] spectrum_sample_start: %d\n     f_start: %f\n", spectrum_sample_start, f_start);
 
     // Trim Spectrum Data to only Clear Search Range (Used for convolving)
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
@@ -269,10 +269,10 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     printf("    Convolved Scan Band and BPF...\n");
 
     // Debug: Check convolve result
-    // for (int i = 0; i < clr_search_sample_bw; i++)
-    // {
-    //     printf("convolve[%d]: %f\n", i, convolve_result[i]);
-    // }
+    for (int i = 0; i < clr_search_sample_bw; i++)
+    {
+        printf("convolve[%d]: %f\n", i, convolve_result[i]);
+    }
     
     // Initialize Clear Freq Bands
     for (int i = 0; i < CLR_BANDS_MAX; i++) {
@@ -325,10 +325,10 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
                 if (insert_idx < intersect_idx) {
                     // Debug: verify bands shift properly @ sample
                     if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                        // printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
+                        printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
                     }
                     
-                    // printf("        shifting clr_bands for intersect...\n");
+                    printf("        shifting clr_bands for intersect...\n");
                     for (int j = intersect_idx - 1; j >= insert_idx; j--) {
                         if (j + 1 < CLR_BANDS_MAX) {
                             clr_bands[j + 1] = clr_bands[j];
