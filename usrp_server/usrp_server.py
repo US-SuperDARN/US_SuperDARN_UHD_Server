@@ -1818,22 +1818,25 @@ class RadarHardwareManager:
         #time.sleep(.05)
 
         # connect cuda_driver servers
+        socklist=[]
         cuda_driver_socks = []
+        for jrad in range(N_RADARs):
+           cuda_driver_socks.append(socklist)
 
         cuda_driver_port = int(self.ini_network_settings['CUDADriverPort'])
         cuda_driver_hostnames = [name.strip() for name in self.ini_network_settings['CUDADriverHostnames'].split(',')]
 
         for c in cuda_driver_hostnames:
            try:
-                self.logger.debug('connecting to cuda driver on {}:{}'.format(c, cuda_driver_port))
-                cudasock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
-                cudasock.connect((c, cuda_driver_port))
-                cuda_driver_socks.append(cudasock)
+              self.logger.debug('connecting to cuda driver on {}:{}'.format(c, cuda_driver_port))
+              cudasock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+              cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+              cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+              cudasock.connect((c, cuda_driver_port))
+              cuda_driver_socks.append(cudasock)
            except ConnectionRefusedError:
-                self.logger.error("cuda server connection failed on {}".format(c))
-                sys.exit(1)
+              self.logger.error("cuda server connection failed on {}".format(c))
+              sys.exit(1)
 
         if len(cuda_driver_socks) == 0:
            self.logger.error("No cuda connection available. Exiting usrp_server")
