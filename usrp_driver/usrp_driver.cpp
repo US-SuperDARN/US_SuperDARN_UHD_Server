@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <signal.h>
 #include <iostream>
 #include <complex>
@@ -646,7 +647,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
         sockopt = 1;
         setsockopt(driversock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int32_t));
-
+        setsockopt(driversock, IPPROTO_TCP, TCP_NODELAY, &sockopt, sizeof(int32_t));
+        setsockopt(driversock, IPPROTO_TCP, TCP_QUICKACK, &sockopt, sizeof(int32_t));
+	
         sockaddr.sin_family = AF_INET;
         // TODO: maybe limit addr to interface connected to usrp_server
         sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -1064,19 +1067,25 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     break;
                     }
 
-                case AUTOCLRFREQ: {
+
+		  
+	        case AUTOCLRFREQ: {
                     // has to be called after GET_DATA and before USRP_SETUP
                     DEBUG_PRINT("entering getting auto clear freq command\n");
-//                    uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
-
-                    iSide = 0;// TODO both sides!
+					  
                     if (auto_clear_freq_available) {
-                        DEBUG_PRINT("AUTOCLRFREQ samples sending %d samples for antenna %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide]);
-                        sock_send_int32(driverconn, (int32_t) antennaVector[iSide]); 
-                        sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[iSide].size());
 
-                        // send samples                   
-                        send(driverconn, &rx_auto_clear_freq[iSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[iSide].size() , 0);
+		      DEBUG_PRINT("AUTOCLRFREQ samples sending %d samples for antenna %d usrp side %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide],iSide);
+
+		      sock_send_int32(driverconn, (int32_t) nSides ); 
+
+		      for( int jSide=0; jSide<(int)nSides; jSide++ ){
+			sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
+			sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[jSide].size());
+		      // send samples                   
+			send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[jSide].size() , 0);
+		      }
+
                     }
                     else {
                         sock_send_int32(driverconn, (int32_t) -1); 

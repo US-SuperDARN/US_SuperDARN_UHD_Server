@@ -94,7 +94,7 @@ class integrationTimeManager():
       int_time = self.RHM.commonChannelParameter['integration_period_duration']  
       # TODO optimize by tracking times of last periods
       if int_time == 3.5:
-         overhead_time = 0.1
+         overhead_time = 0.3
       elif int_time == 2.9:
          overhead_time = 0.5
       elif int_time == 3.2:
@@ -976,20 +976,20 @@ class ClearFrequencyService():
                 self.sl_init['sem'].acquire()
                 print("[clearFrequencyService] Initialization Semaphore Acquired...")
                 
-                # If restrict data present, send & overwrite 
-                if restrict_data is not None:    
-                    print(f"[Frequency Client] Data Write Progress: {self.shm_objects[5]['name']}")
-                    # self.write_m_data(self.shm_objects[5], [(int(x)) for x in restrict_data])
+                # # If restrict data present, send & overwrite 
+                # if restrict_data is not None:    
+                #     print(f"[Frequency Client] Data Write Progress: {self.shm_objects[5]['name']}")
+                #     # self.write_m_data(self.shm_objects[5], [(int(x)) for x in restrict_data])
                     
-                    new_restrict_data = []
-                    # print("[Frequency Client] restrict_arr len: ", len(restrict_data))
-                    for restricted_freq in restrict_data:   
-                        new_restrict_data.append(int(restricted_freq[0]))
-                        new_restrict_data.append(int(restricted_freq[1]))
+                #     new_restrict_data = []
+                #     # print("[Frequency Client] restrict_arr len: ", len(restrict_data))
+                #     for restricted_freq in restrict_data:   
+                #         new_restrict_data.append(int(restricted_freq[0]))
+                #         new_restrict_data.append(int(restricted_freq[1]))
                         
-                    print("[Frequency Client] Writing restricted freq data:\n", restrict_data[:2], "...")
-                    self.shm_objects[5]['shm_ptr'].seek(0)
-                    self.shm_objects[5]['shm_ptr'].write(struct.pack('i' * (self.RESTRICT_NUM * 2), *new_restrict_data))
+                #     print("[Frequency Client] Writing restricted freq data:\n", restrict_data[:2], "...")
+                #     self.shm_objects[5]['shm_ptr'].seek(0)
+                #     self.shm_objects[5]['shm_ptr'].write(struct.pack('i' * (self.RESTRICT_NUM * 2), *new_restrict_data))
                 
                 # If sample separation present, send
                 if sample_sep is not None:                
@@ -1518,7 +1518,7 @@ class RadarHardwareManager:
         self.integration_time_manager = integrationTimeManager(self)
         self.nSequences_per_period = 0
 
-        self.auto_collect_clrfrq_after_rx = False
+        self.auto_collect_clrfrq_after_rx = True
 
     def run(self):
         def spawn_channel(conn):
@@ -1828,6 +1828,7 @@ class RadarHardwareManager:
                 self.logger.debug('connecting to cuda driver on {}:{}'.format(c, cuda_driver_port))
                 cudasock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
                 cudasock.connect((c, cuda_driver_port))
                 cuda_driver_socks.append(cudasock)
            except ConnectionRefusedError:
