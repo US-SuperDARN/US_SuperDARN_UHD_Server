@@ -976,20 +976,20 @@ class ClearFrequencyService():
                 self.sl_init['sem'].acquire()
                 print("[clearFrequencyService] Initialization Semaphore Acquired...")
                 
-                # If restrict data present, send & overwrite 
-                if restrict_data is not None:    
-                    print(f"[Frequency Client] Data Write Progress: {self.shm_objects[5]['name']}")
-                    # self.write_m_data(self.shm_objects[5], [(int(x)) for x in restrict_data])
+                # # If restrict data present, send & overwrite 
+                # if restrict_data is not None:    
+                #     print(f"[Frequency Client] Data Write Progress: {self.shm_objects[5]['name']}")
+                #     # self.write_m_data(self.shm_objects[5], [(int(x)) for x in restrict_data])
                     
-                    new_restrict_data = []
-                    # print("[Frequency Client] restrict_arr len: ", len(restrict_data))
-                    for restricted_freq in restrict_data:   
-                        new_restrict_data.append(int(restricted_freq[0]))
-                        new_restrict_data.append(int(restricted_freq[1]))
+                #     new_restrict_data = []
+                #     # print("[Frequency Client] restrict_arr len: ", len(restrict_data))
+                #     for restricted_freq in restrict_data:   
+                #         new_restrict_data.append(int(restricted_freq[0]))
+                #         new_restrict_data.append(int(restricted_freq[1]))
                         
-                    print("[Frequency Client] Writing restricted freq data:\n", restrict_data[:2], "...")
-                    self.shm_objects[5]['shm_ptr'].seek(0)
-                    self.shm_objects[5]['shm_ptr'].write(struct.pack('i' * (self.RESTRICT_NUM * 2), *new_restrict_data))
+                #     print("[Frequency Client] Writing restricted freq data:\n", restrict_data[:2], "...")
+                #     self.shm_objects[5]['shm_ptr'].seek(0)
+                #     self.shm_objects[5]['shm_ptr'].write(struct.pack('i' * (self.RESTRICT_NUM * 2), *new_restrict_data))
                 
                 # If sample separation present, send
                 if sample_sep is not None:                

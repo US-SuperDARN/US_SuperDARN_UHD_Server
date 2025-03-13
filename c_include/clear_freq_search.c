@@ -288,7 +288,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
         curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * delta_f;
         curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * delta_f;
         curr_band.noise = convolve_result[i];
-        // printf("[%d] | %d -- %f -- %d|\n", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
+        printf("[%d] | %d -- %f -- %d|\n", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         int insert_idx = -1;
         int intersect_idx = -1;
@@ -307,8 +307,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
             }
             // Continue Intersection Search 
         }
-        // printf("    Intersection Search finished...\n");
-        // printf("    intersect_idx: %d\n    insert_idx: %d\n", intersect_idx, insert_idx);
+        printf("    Intersection Search finished...\n");
+        printf("    intersect_idx: %d\n    insert_idx: %d\n", intersect_idx, insert_idx);
 
         // Insertion Point was Found...
         if (insert_idx != -1) {
@@ -319,7 +319,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
                 // printf("    Intersecting Insertion found w/...\n");
                 freq_band inter_band = clr_bands[intersect_idx];
 
-                // printf("        i-band = | %d -- %f -- %d|\n", inter_band.f_start, inter_band.noise, inter_band.f_end);
+                printf("        i-band = | %d -- %f -- %d|\n", inter_band.f_start, inter_band.noise, inter_band.f_end);
 
                 // Special: Shift right till the Intersecting band is overwritten 
                 if (insert_idx < intersect_idx) {
@@ -364,8 +364,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     // printf("    Convolution Results packed up...\n");
 
     // Debug: Output Final Clear Freq Bands
-    // for (int i = 0; i < CLR_BANDS_MAX; i++)
-    //     printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+    for (int i = 0; i < CLR_BANDS_MAX; i++)
+        printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
 
     // Free allocated memory
     free(convolve_result);
@@ -500,10 +500,10 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     for (int i = 0; i < CLR_BANDS_MAX; i++)
         printf("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |\n", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
     
-    // // Debug: Print Restricted Freqs
-    // for (int i = 0; i < restricted_num; i++) {
-    //     printf("Restricted[%d]: %d -- %d\n", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
-    // }      
+    // Debug: Print Restricted Freqs
+    for (int i = 0; i < restricted_num; i++) {
+        printf("Restricted[%d]: %d -- %d\n", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
+    }      
     
 
     // Save data to csv
