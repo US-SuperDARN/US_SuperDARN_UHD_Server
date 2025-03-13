@@ -714,7 +714,7 @@ def restart_clear_frequency_service():
 
 def stop_clear_frequency_service():
     myPrint(" Stopping clear frequency service...")
-    serverProcesses = get_process_ids("cf_server")
+    serverProcesses = get_process_ids("cf_server") + get_process_ids("./cf_server")
     if len(serverProcesses):
        terminate_all(serverProcesses)
        return 1
@@ -853,6 +853,7 @@ def main():
             remote_stop_all()
             stop_watchdog()
             server_was_running = stop_usrp_server() 
+            stop_clear_frequency_service()
             if server_was_running:
                 waitFor(5)
             stop_usrp_driver()
