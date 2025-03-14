@@ -1438,7 +1438,6 @@ class scanManager():
         self.logger.debug('start calc_clear_freq_on_raw_samples')
         # clearFreq, noise = calc_clear_freq_on_raw_samples(rawData, metaData, all_restricted_freq, self.clear_freq_range_list[iPeriod], beam_angle, self.channel.raw_export_data['smsep'])
         
-        # CFS_clear_freq_range = [ int(12 * pow(10,6)), int(12.5 * pow(10,6)) ]
         clear_freq_range = []
         for freq in self.clear_freq_range_list[iPeriod]: 
             clear_freq_range.append(int(freq))

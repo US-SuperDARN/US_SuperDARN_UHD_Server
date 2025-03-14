@@ -25,7 +25,7 @@
 
 
 // Config and Debug Flags
-#define VERBOSE 0
+#define VERBOSE 1
 #define SPECTRAL_AVGING 1
 #define BIN_OR_CSV_LOG  0   // 0 for Bin, otherwise CSV
 
@@ -405,7 +405,19 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
         exit(EXIT_FAILURE);
     }
 
+    if (VERBOSE) {   
+        for (int i = 0; i < num_samples; i++) if (i < 10) {
+            printf("raw_samples[0][%d]: %f + %fi\n", i, creal(raw_samples[0][i]), cimag(raw_samples[0][i]));
+            printf("raw_samples[1][%d]: %f + %fi\n", i, creal(raw_samples[1][i]), cimag(raw_samples[1][i]));
+        }
+    }
+
+    if (VERBOSE)
+        printf("beamformed[625]    = %f + %fi\n", creal(beamformed_samples[625]), cimag(beamformed_samples[625]));
+
     phasing_and_beamforming(beam_angle, clear_freq_range, meta_data, phasing_vector, antennas, num_samples, raw_samples, sample_im, sample_re, beamformed_samples);
+
+    for (int i = 0; i < num_samples; i++) if (i < 10) printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
 
     // Frequency Vector Calculation
     double delta_f = meta_data->usrp_rf_rate / num_samples;
@@ -429,7 +441,11 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
 
     printf("[SpectAvg] done with avg freq vector\n");
 
+<<<<<<< HEAD
     double *avg_spectrum = (double*) calloc(num_avg_samples,sizeof(double));
+=======
+    double *avg_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
+>>>>>>> 6f7719c (Fix: avg_spectrum Accuracy and Calloc)
     fftw_complex *fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
     if (VERBOSE) printf("num_avg_sample: %d\navg_freq_ratio: %d\n", num_avg_samples, avg_freq_ratio);
     
