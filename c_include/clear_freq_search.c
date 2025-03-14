@@ -170,7 +170,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
         if (( mask_end <= freq_vector[num_samples - 1] && mask_end > freq_vector[0] ) ||
             ( mask_start < freq_vector[num_samples - 1] && mask_start >= freq_vector[0])) {
                 // Debug: Show masks applied
-                printf("    [MASK] Applying... | %d -- %d|\n", mask_start, mask_end);
+                printf("    [MASK] Applying...  | %d -- %d|\n", mask_start, mask_end);
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
                 int mask_sample_start, mask_sample_end;
@@ -183,6 +183,8 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
                
                 // Apply mask
                 for (int j = mask_sample_start; j <= mask_sample_end && j <= num_samples; j++) spectrum[j] = RAND_MAX;
+                printf("    [MASK]              | %d -- %d|\n", mask_sample_start, mask_sample_end);
+
 
                 is_applied = true;
         }
@@ -405,15 +407,15 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
         exit(EXIT_FAILURE);
     }
 
-    if (VERBOSE) {   
-        for (int i = 0; i < num_samples; i++) if (i < 10) {
-            printf("raw_samples[0][%d]: %f + %fi\n", i, creal(raw_samples[0][i]), cimag(raw_samples[0][i]));
-            printf("raw_samples[1][%d]: %f + %fi\n", i, creal(raw_samples[1][i]), cimag(raw_samples[1][i]));
-        }
-    }
+    // if (VERBOSE) {   
+    //     for (int i = 0; i < num_samples; i++) if (i < 10) {
+    //         printf("raw_samples[0][%d]: %f + %fi\n", i, creal(raw_samples[0][i]), cimag(raw_samples[0][i]));
+    //         printf("raw_samples[1][%d]: %f + %fi\n", i, creal(raw_samples[1][i]), cimag(raw_samples[1][i]));
+    //     }
+    // }
 
-    if (VERBOSE)
-        printf("beamformed[625]    = %f + %fi\n", creal(beamformed_samples[625]), cimag(beamformed_samples[625]));
+    // if (VERBOSE)
+    //     printf("beamformed[625]    = %f + %fi\n", creal(beamformed_samples[625]), cimag(beamformed_samples[625]));
 
     
 
@@ -497,12 +499,14 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     if (restricted_bands != NULL) mask_restricted_freq(avg_spectrum, freq_vector_avg, delta_f_avg, num_avg_samples, restricted_bands, restricted_num);
     printf("------f_start: %f\n      f_end: %f\n",freq_vector_avg[0], freq_vector_avg[num_avg_samples - 1]);
 
+    // Define Clear Freq Range from Hz to sample index
     int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f);
     int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f);
     printf("clear_range: | %d -- %d |\n", clear_freq_range[0], clear_freq_range[1]);
     printf("    samples: | %d -- %d |\n", clear_sample_start, clear_sample_end);
     if (VERBOSE) for (int i = clear_sample_start; i < clear_sample_end; i++) {
-        if (i < 2 + clear_sample_start || i > clear_sample_end - 3) printf("spectrum_pow[%d]: %f\n", i, avg_spectrum[i]);   
+        // if (i < 2 + clear_sample_start || i > clear_sample_end - 3) 
+        printf("spectrum_pow[%d]: %f\n", i, avg_spectrum[i]);   
     }
 
     // Find clear frequency
@@ -555,14 +559,15 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         printf("phase_increment: %lf\n", phase_increment);
 
     for (int i = 0; i < meta_data->num_antennas; i++) {
-        if (antennas[i] <= IDX_LAST_MA) {
+        if (antennas[i] <= IDX_LAST_MA || antennas[i] > IDX_LAST_IA) {
             phasing_vector[i] = rad_to_rect(antennas[i] * phase_increment);
-            if (VERBOSE) {
-                printf("ant[%d]: %d", i, antennas[i]);
-                printf("phasing vec[%d]: %f + %fi\n", i, creal(phasing_vector[1]), cimag(phasing_vector[1]));
-            }
         } 
         else phasing_vector[i] = 0;
+
+        if (VERBOSE) {
+            printf("ant[%d]: %d", i, antennas[i]);
+            printf("phasing vec[%d]: %f + %fi\n", i, creal(phasing_vector[i]), cimag(phasing_vector[i]));
+        }
     }
     // if (VERBOSE) {
     //     printf("antenna[1]: %d\n", antennas[1]);
