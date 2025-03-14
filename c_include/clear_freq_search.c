@@ -415,6 +415,8 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     if (VERBOSE)
         printf("beamformed[625]    = %f + %fi\n", creal(beamformed_samples[625]), cimag(beamformed_samples[625]));
 
+    
+
     phasing_and_beamforming(beam_angle, clear_freq_range, meta_data, phasing_vector, antennas, num_samples, raw_samples, sample_im, sample_re, beamformed_samples);
 
     for (int i = 0; i < num_samples; i++) if (i < 10) printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
@@ -553,19 +555,19 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         printf("phase_increment: %lf\n", phase_increment);
 
     for (int i = 0; i < meta_data->num_antennas; i++) {
-        if (i <= IDX_LAST_MA) {
-            if (i < meta_data->num_antennas) {
-                phasing_vector[i] = rad_to_rect(antennas[i] * phase_increment);
-            } else {
-                fprintf(stderr, "Error: Accessing antennas out of bounds at index %d\n", i);
-                exit(EXIT_FAILURE);
+        if (antennas[i] <= IDX_LAST_MA) {
+            phasing_vector[i] = rad_to_rect(antennas[i] * phase_increment);
+            if (VERBOSE) {
+                printf("ant[%d]: %d", i, antennas[i]);
+                printf("phasing vec[%d]: %f + %fi\n", i, creal(phasing_vector[1]), cimag(phasing_vector[1]));
             }
-        }
+        } 
+        else phasing_vector[i] = 0;
     }
-    if (VERBOSE) {
-        printf("antenna[1]: %d\n", antennas[1]);
-        printf("phasing_vector[1]: %f + %fi\n", creal(phasing_vector[1]), cimag(phasing_vector[1]));
-    }
+    // if (VERBOSE) {
+    //     printf("antenna[1]: %d\n", antennas[1]);
+    //     printf("phasing_vector[1]: %f + %fi\n", creal(phasing_vector[1]), cimag(phasing_vector[1]));
+    // }
 
     // Apply beamforming
     for (int i = 0; i < num_samples; i++) {
@@ -577,8 +579,6 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
             double imag_sample = cimag(raw_samples[aidx][i]);
             double real_phase = creal(phasing_vector[aidx]);
             double imag_phase = cimag(phasing_vector[aidx]);
-            if (VERBOSE && i < 4)
-                printf("sample[%d][%d]\n", aidx, i);
             if (VERBOSE && i == 2499) {
                 printf("sample[%d][2499]    = %f + %fi\n", aidx, real_sample, imag_sample);
                 printf("phase[%d]           = %f + %fi\n", aidx, real_phase, imag_phase);
@@ -587,7 +587,7 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
             real_sum += real_sample * real_phase - imag_sample * imag_phase;
             imag_sum += real_sample * imag_phase + imag_sample * real_phase;
 
-            // Store for debugging
+            // Store for debugging/logging
             sample_im[aidx][i] = cimag(raw_samples[aidx][i]);
             sample_re[aidx][i] = creal(raw_samples[aidx][i]);
         }
