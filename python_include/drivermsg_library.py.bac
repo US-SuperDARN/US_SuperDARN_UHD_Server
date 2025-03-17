@@ -4,6 +4,7 @@ import uuid
 import collections
 import pdb
 import logging
+import time
 from socket_utils import *
 from termcolor import cprint
 
@@ -15,6 +16,7 @@ UHD_RXFE_SET = ord('r')
 UHD_READY_DATA = ord('d')
 UHD_TRIGGER_PULSE = ord('t')
 UHD_CLRFREQ = ord('c')
+UHD_AUTOCLRFREQ = ord('a')
 UHD_GETTIME = ord('m')
 UHD_SYNC = ord('S')
 UHD_EXIT = ord('e')
@@ -105,7 +107,8 @@ class driver_command(object):
                   # cprint('transmitting {}: {}'.format(item.name, item.data), 'yellow')
             except:
 #               self.logger.error("Error transmitting command {} to cient {}:{} (from {};{})".format(self.command, clientsock.getpeername()[0], clientsock.getpeername()[1], clientsock.getsockname()[0], clientsock.getsockname()[1] ))
-               self.logger.error("Error transmitting command {}  (from {};{})".format(self.command,  clientsock.getsockname()[0], clientsock.getsockname()[1] ))
+#               self.logger.error("Error transmitting command {}  (from {};{})".format(self.command,  clientsock.getsockname()[0], clientsock.getsockname()[1] ))
+               self.logger.error("Error transmitting command {} ".format(self.command ))
 
     # ask all clients for a return value, compare against command
     # normally, client will indicate success by sending the command byte back to the server 
@@ -119,8 +122,8 @@ class driver_command(object):
                
                returns.append(r)
             except:
-               self.logger.error("Error receiving client_return for command {} from  client {}:{}".format(self.command, client.getsockname()[0], client.getsockname()[1] ))
-               pdb.set_trace()
+               self.logger.error("Error receiving client_return for command '{}'({}) from  client {}:{}".format(chr(self.command), self.command, client.getsockname()[0], client.getsockname()[1] ))
+              # pdb.set_trace()
                returns.append(CONNECTION_ERROR)
 
         #cprint('command return success', 'yellow')
@@ -283,7 +286,7 @@ class cuda_generate_pulse_command(driver_command):
 
 # re-initialize the usrp driver for a new pulse sequence
 class usrp_setup_command(driver_command):
-    def __init__(self, usrps, txfreq, rxfreq, txrate, rxrate, npulses, num_requested_rx_samples, num_requested_tx_samples, pulse_offsets_vector, swing):
+    def __init__(self, usrps, txfreq, rxfreq, txrate, rxrate, npulses, num_requested_rx_samples, num_pause_samples, num_auto_clear_freq, num_requested_tx_samples, pulse_offsets_vector, swing):
         driver_command.__init__(self, usrps, UHD_SETUP)
         
         self.queue(swing , np.int16,   'swing' )
@@ -293,6 +296,8 @@ class usrp_setup_command(driver_command):
         self.queue(rxrate, np.float64, 'rxrate')
         self.queue(npulses, np.uint32, 'npulses')
         self.queue(num_requested_rx_samples, np.uint64, 'num_requested_rx_samples')
+        self.queue(num_pause_samples, np.uint64, 'num_pause_samples')
+        self.queue(num_auto_clear_freq, np.uint64, 'num_auto_clear_freq')
         self.queue(num_requested_tx_samples, np.uint64, 'num_requested_tx_samples')
         self.queue(pulse_offsets_vector, np.uint64, 'pulse_offsets_vector')
 
@@ -362,6 +367,34 @@ class usrp_get_time_command(driver_command):
         self.full_sec = recv_dtype(sock, np.uint32)
         self.frac_sec = recv_dtype(sock, np.float64)
         return self.full_sec + self.frac_sec
+
+# command get auto clear freq samples
+class usrp_get_auto_clear_freq_command(driver_command):
+    def __init__(self, usrps):
+        driver_command.__init__(self, usrps, UHD_AUTOCLRFREQ)
+    
+    def recv_samples_from_one_usrp(self, sock):
+        antenna_no = recv_dtype(sock, np.int32)
+        if antenna_no == -1:
+            sample_buf = []
+        else:
+            nSamples = recv_dtype(sock, np.uint32)
+            print("receive ant {}: {} samples".format(antenna_no, nSamples))
+            time.sleep(0.001)
+            sample_buf = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
+            sample_buf = sample_buf[0::2] + 1j * sample_buf[1::2]
+        return antenna_no, sample_buf
+
+    def recv_all(self):
+        antenna_list = []
+        all_samples = []
+        for sock in self.clients:
+            tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock)
+            if tmp_ant != -1:
+                antenna_list.append(tmp_ant)
+                all_samples.append(tmp_samples)
+        return antenna_list, all_samples
+ 
  
 # command to query usrp time
 class usrp_sync_time_command(driver_command):

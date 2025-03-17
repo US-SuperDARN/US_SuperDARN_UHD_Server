@@ -1,4 +1,4 @@
-Start time: 2024-03-28 04:18:52
+Start time: 2025-03-17 00:27:27
 USRPs: 10 active, 0 inactive
 Channels: 1 active (of 1)
-Sequences per period: 27
+Sequences per period: 29

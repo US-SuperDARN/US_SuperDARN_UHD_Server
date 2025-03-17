@@ -11,7 +11,7 @@ INTEGRATION_PERIOD_SYNC_TIME = .3
 MIN_CLRFREQ_DELAY = .50
 
 
-CLRFREQ_RES = 333 # fft frequency resolution for clear freq in Hz
+CLRFREQ_RES = 666 # fft frequency resolution for clear freq in Hz
 MAX_AGE_OF_AUTO_CLEAR_FREQ = 600 # in sec, if data is older a new clear freq record if triggered
 PAUSE_TIME_BEFORE_AUTO_CLEAR_FREQ = 0.0 # is seconds
 
