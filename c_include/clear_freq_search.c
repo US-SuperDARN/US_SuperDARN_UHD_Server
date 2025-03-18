@@ -139,6 +139,7 @@ void convolve(double* u, int u_size, int* v, int v_size, double* result) {
         for (int j = 0; j < v_size; j++) {
             result[i] += v[j] * u[i + j]; // result[i + (int) v_size] += ...
         }
+        result[i] /= v_size;
     }
 }
 
@@ -170,7 +171,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
         if (( mask_end <= freq_vector[num_samples - 1] && mask_end > freq_vector[0] ) ||
             ( mask_start < freq_vector[num_samples - 1] && mask_start >= freq_vector[0])) {
                 // Debug: Show masks applied
-                printf("    [MASK] Applying...  | %d -- %d|\n", mask_start, mask_end);
+                if (VERBOSE) printf("    [MASK] Applying...  | %d -- %d|\n", mask_start, mask_end);
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
                 int mask_sample_start, mask_sample_end;
@@ -183,7 +184,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
                
                 // Apply mask
                 for (int j = mask_sample_start; j <= mask_sample_end && j <= num_samples; j++) spectrum[j] = RAND_MAX;
-                printf("    [MASK]              | %d -- %d|\n", mask_sample_start, mask_sample_end);
+                if (VERBOSE) printf("    [MASK]              | %d -- %d|\n", mask_sample_start, mask_sample_end);
 
 
                 is_applied = true;
@@ -271,10 +272,10 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     printf("    Convolved Scan Band and BPF...\n");
 
     // Debug: Check convolve result
-    for (int i = 0; i < clr_search_sample_bw; i++)
-    {
-        if (i < 10) printf("convolve[%d]: %f\n", i, convolve_result[i]);
-    }
+    // for (int i = 0; i < clr_search_sample_bw; i++)
+    // {
+    //     if (i < 10) printf("convolve[%d]: %f\n", i, convolve_result[i]);
+    // }
     
     // Initialize Clear Freq Bands
     for (int i = 0; i < CLR_BANDS_MAX; i++) {
@@ -564,10 +565,6 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
             printf("phasing vec[%d]: %f + %fi\n", i, creal(phasing_vector[i]), cimag(phasing_vector[i]));
         }
     }
-    // if (VERBOSE) {
-    //     printf("antenna[1]: %d\n", antennas[1]);
-    //     printf("phasing_vector[1]: %f + %fi\n", creal(phasing_vector[1]), cimag(phasing_vector[1]));
-    // }
 
     // Apply beamforming
     for (int i = 0; i < num_samples; i++) {
