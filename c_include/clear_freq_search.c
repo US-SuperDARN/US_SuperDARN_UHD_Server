@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,9 +6,8 @@
 #include <fftw3.h>      // FFT transform library
 #include <string.h>
 #include <time.h>
-#include "misc_read_writes.c" 
+#include <signal.h>
 #include "clear_freq_search.h"
-
 
 // Define Constants
 #define IDX_LAST_IA 19      // Last Interferrometer Array
@@ -25,7 +23,6 @@
 
 
 // Config and Debug Flags
-#define VERBOSE 1
 #define SPECTRAL_AVGING 1
 #define BIN_OR_CSV_LOG  0   // 0 for Bin, otherwise CSV
 

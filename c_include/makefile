@@ -1,0 +1,15 @@
+CFLAGS= -O3 -pthread 
+
+LIBS= -lfftw3 -lm 
+
+INCLUDE= 
+
+.c.o:
+	gcc $(CFLAGS) $(INCLUDE) -c -o $@ $<
+
+OBJS=clear_frequency_server.o clear_freq_search.o ini_parser.o misc_read_wrirtes.o
+
+cf_server:	$(OBJS)
+	gcc -o ../cf_server $(CFLAGS) $(OBJS) $(LIBS)
+
+
