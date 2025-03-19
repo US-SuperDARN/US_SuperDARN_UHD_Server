@@ -14,6 +14,7 @@
 #include "clear_freq_search.h"
 
 
+
 // Build with the following flags:
 // -lrt -pthread -lfftw3 -lm 
 
@@ -165,23 +166,28 @@ void read_restrict_shm(freq_band *restricted_freq, int *restrict_shm_ptr, int *r
     }
 }
 
-void read_sample_shm(fftw_complex **temp_samples, void *samples_shm_ptr, int antenna_num) {
+void read_sample_shm(fftw_complex **temp_samples, void *samples_shm_ptr, int antenna_num, int samples_num) {
     int *s_ptr = (int *) samples_shm_ptr;
     
     // Store sample data into complex form
     for (int i = 0; i < antenna_num; i++)
     {
-        for (int j = 0; j < SAMPLES_NUM; j += 2)
-        {
-            temp_samples[i][j] = s_ptr[i * SAMPLES_NUM + j] + I * s_ptr[i * SAMPLES_NUM + j + 1];
+        for (int j = 0; j < samples_num; j++) {
+            temp_samples[i][j] = s_ptr[i * samples_num + j * 2] + I * s_ptr[i * samples_num + j * 2 + 1];
 
             // Debug: Print 5 complex of each antenna batch
-            // if (j < 10) {
-            //     printf("shm[%d]      =   %d + i%d\n", i * SAMPLES_NUM + j, ((int*) samples_shm_ptr)[i * SAMPLES_NUM + j], ((int*) samples_shm_ptr)[i * SAMPLES_NUM + j + 1]);
-            //     printf("vs\n");
-            //     printf("temp_samples[%d][%d] =  %f + i%f\n\n", i, j, creal(temp_samples[i][j]), cimag(temp_samples[i][j]));
-            // }
+            if (j < 4 || j > samples_num - 4 || j == 2499) {
+                printf("shm[%d]      =   %d + i%d\n", i * samples_num + j, ((int*) samples_shm_ptr)[i * samples_num + j], ((int*) samples_shm_ptr)[i * samples_num + j + 1]);
+                printf("vs\n");
+                printf("temp_samples[%d][%d] =  %f + i%f\n\n", i, j, creal(temp_samples[i][j]), cimag(temp_samples[i][j]));
+            }
         }
+
+
+        // for (int j = 0; j < samples_num; j += 2)
+        // {
+        //     temp_samples[i][j] = s_ptr[i * samples_num + j] + I * s_ptr[i * samples_num + j + 1];
+        // }
     }
 }
 
@@ -607,6 +613,7 @@ int main() {
     meta_data.antenna_list = malloc(ANTENNA_NUM * sizeof(int));
     add_ptr(meta_data.antenna_list);
     int old_antenna_num = ANTENNA_NUM;
+    int samples_num = SAMPLES_NUM;
             
     // Parameters for Reading Restricted Frequencies
     char *restrict_file = "";
@@ -673,7 +680,7 @@ int main() {
 
                     /// Sample Reallocation
                     // Set Size of Shared Memory Object
-                    samples_obj.size = (meta_data.num_antennas) * SAMPLES_NUM * 2 * sizeof(int);
+                    samples_obj.size = (meta_data.num_antennas) * samples_num * 2 * sizeof(int);
                     if (ftruncate(samples_obj.shm_fd, samples_obj.size) == -1) {
                         perror("[Frequency Server] ftruncate failed\n");
                         exit(EXIT_FAILURE);
@@ -697,7 +704,7 @@ int main() {
                         exit(EXIT_FAILURE);
                     }
                     for (int i = 0; i < meta_data.num_antennas; i++) {
-                        temp_samples[i] = (fftw_complex *)fftw_malloc(SAMPLES_NUM * sizeof(fftw_complex));
+                        temp_samples[i] = (fftw_complex *)fftw_malloc(samples_num * sizeof(fftw_complex));
                         if (temp_samples[i] == NULL) {
                             perror("Error allocating memory for temp_samples elements");
                             exit(EXIT_FAILURE);
@@ -708,6 +715,7 @@ int main() {
                 // Read Meta Data 
                 printf("[Frequency Server] Meta Data reading...\n");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
+                samples_num = meta_data.number_of_samples;
 
                 for (int j = 0; j < meta_data.num_antennas; j++) {
                     printf("    antenna_list[%d]: %d\n", j, meta_data.antenna_list[j]);
@@ -767,7 +775,7 @@ int main() {
 
             // Process Sample relevant data
             printf("[Frequency Server] Processing client sample data...\n");
-            read_sample_shm(temp_samples, samples_obj.shm_ptr, meta_data.num_antennas);
+            read_sample_shm(temp_samples, samples_obj.shm_ptr, meta_data.num_antennas, samples_num);
             printf("[Frequency Server] Samples done...\n");
             
             if (*(int*) (clr_range_obj.shm_ptr) != 0) {
