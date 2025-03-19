@@ -7,15 +7,52 @@
 // #include <cblas.h>      // Matrix Multi library
 // #include <utils/phasing_utils.c>
 #include <string.h>
-#include "ini_parser.c"
-#include "read_config.c"
 #include <time.h>
 #include "clear_freq_search.h"
+#include <ctype.h>
 
 void file_access_error(const char *filepath) {
     printf("[CFS] ERROR: accessing filepath: %s\n", filepath);
 }
 
+
+
+static int config_ini_handler(void* user, const char* section, const char* name, const char* value) {
+    Config* pconfig = (Config*)user;
+
+    if (strcmp(section, "array_info") == 0) {
+        if (strcmp(name, "radar_stid") == 0) {
+            pconfig->array_info.radar_stid = atoi(value);
+        } else if (strcmp(name, "x_spacing") == 0) {
+            pconfig->array_info.x_spacing = atof(value);
+            // printf("value: %f\nvalue (str): %s", atof(value), value);
+        } else if (strcmp(name, "nbeams") == 0) {
+            pconfig->array_info.nbeams = atoi(value);
+            // printf("value: %d\nvalue (str): %s", atoi(value), value);
+        } else if (strcmp(name, "beam_sep") == 0) {
+            pconfig->array_info.beam_sep = atof(value);
+            // printf("value: %f\nvalue (str): %s", atof(value), value);
+        }
+    } else if (strcmp(section, "hardware_limits") == 0) {
+        if (strcmp(name, "max_tpulse") == 0) {
+            pconfig->hardware_limits.max_tpulse = atof(value);
+        } else if (strcmp(name, "min_chip") == 0) {
+            pconfig->hardware_limits.min_chip = atof(value);
+        } else if (strcmp(name, "max_dutycycle") == 0) {
+            pconfig->hardware_limits.max_dutycycle = atof(value);
+        } else if (strcmp(name, "max_integration") == 0) {
+            pconfig->hardware_limits.max_integration = atof(value);
+        } else if (strcmp(name, "minimum_tfreq") == 0) {
+            pconfig->hardware_limits.minimum_tfreq = atof(value);
+        } else if (strcmp(name, "maximum_tfreq") == 0) {
+            pconfig->hardware_limits.maximum_tfreq = atof(value);
+        } else if (strcmp(name, "min_tr_to_pulse") == 0) {
+            pconfig->hardware_limits.min_tr_to_pulse = atof(value);
+        }
+    }
+
+    return 1;
+}
 
 /**
  * @brief  Writes a complex Frequency Spectrum to csv file to be plotted in python.
@@ -115,8 +152,8 @@ void write_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vecto
     fwrite(freq_vector, sizeof(freq_vector), 1, file);
     fwrite(spectrum, sizeof(spectrum), 1, file);
 
-    printf("Bytes of spectrum_mag: %ld, %ld, %ld\n", sizeof(num_samples), sizeof(freq_vector), sizeof(spectrum));
 
+    printf("  ********************************************   Bytes of spectrum_mag: %ld, %ld, %ld\n", sizeof(num_samples), sizeof(freq_vector), sizeof(spectrum));
     fclose(file);
 }
 
