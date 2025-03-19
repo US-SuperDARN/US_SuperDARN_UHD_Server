@@ -4,8 +4,6 @@
 #include <math.h>
 #include <complex.h>
 #include <fftw3.h>      // FFT transform library
-// #include <cblas.h>      // Matrix Multi library
-// #include <utils/phasing_utils.c>
 #include <string.h>
 #include <time.h>
 #include "clear_freq_search.h"
