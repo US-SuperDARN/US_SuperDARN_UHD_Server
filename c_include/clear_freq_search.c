@@ -37,6 +37,7 @@
 #define SAMPLE_RE_FILE      "log/sample_re.csv"
 #define SAMPLE_IM_FILE      "log/sample_im.csv"
 
+
 // TODO: Pass in clr_freq_range via restrict actual file
 // #define RESTRICT_FILE = '/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.sps/restrict.dat.inst'
 

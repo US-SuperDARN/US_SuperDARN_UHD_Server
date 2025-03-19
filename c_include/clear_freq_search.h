@@ -34,6 +34,30 @@ typedef struct clear_freq {
 } clear_freq;
 
 
+
+typedef struct {
+    int radar_stid;
+    double x_spacing;
+    int nbeams;
+    double beam_sep;
+} ArrayInfo;
+
+typedef struct {
+    double max_tpulse;
+    double min_chip;
+    double max_dutycycle;
+    double max_integration;
+    double minimum_tfreq;
+    double maximum_tfreq;
+    double min_tr_to_pulse;
+} HardwareLimits;
+
+typedef struct {
+    ArrayInfo array_info;
+    HardwareLimits hardware_limits;
+} Config;
+
+
 #pragma once
 void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_meta_data *meta_data, fftw_complex *phasing_vector, int *antennas, int num_samples, fftw_complex **raw_samples, int **sample_im, int **sample_re, fftw_complex *beamformed_samples);
 
