@@ -148,9 +148,9 @@ void write_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vecto
         return;
     }
 
-    fwrite(&num_samples, sizeof(num_samples), 1, file);
-    fwrite(freq_vector, sizeof(freq_vector), 1, file);
-    fwrite(spectrum, sizeof(spectrum), 1, file);
+    fwrite(&num_samples, sizeof(int), 1, file);
+    fwrite(freq_vector, sizeof(double), num_samples, file);
+    fwrite(spectrum, sizeof(double), num_samples, file);
 
 
     printf("  ********************************************   Bytes of spectrum_mag: %ld, %ld, %ld\n", sizeof(num_samples), sizeof(freq_vector), sizeof(spectrum));
@@ -224,9 +224,9 @@ void write_clr_freq_bin(char *filename, freq_band *clr_bands) {
         if (clr_bands[i].f_end > clr_end && clr_bands[i].noise < RAND_MAX) clr_end = clr_bands[i].f_end;
     }    
 
-    fwrite(&clr_start, sizeof(clr_start), 1, file);
-    fwrite(&clr_end, sizeof(clr_end), 1, file);
-    fwrite(clr_bands, sizeof(clr_bands), 1, file);
+    fwrite(&clr_start, sizeof(int), 1, file);
+    fwrite(&clr_end, sizeof(int), 1, file);
+    fwrite(clr_bands, sizeof(freq_band), 1, file);
 
     fclose(file);
 }
@@ -266,8 +266,8 @@ void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector
     }
 
     fread(&num_samples, sizeof(num_samples), 1, file);
-    fread(spectrum, sizeof(spectrum), 1, file);
-    fread(freq_vector, sizeof(freq_vector), 1, file);
+    fread(spectrum, sizeof(double), num_samples, file);
+    fread(freq_vector, sizeof(double), num_samples, file);
 
     fclose(file);
 }
@@ -279,9 +279,9 @@ void read_clr_freq_bin(char *filename, freq_band *clr_bands, int *clr_start, int
         return;
     }
 
-    fread(&clr_start, sizeof(clr_start), 1, file);
-    fread(&clr_end, sizeof(clr_start), 1, file);
-    fread(clr_bands, sizeof(clr_bands), 1, file);
+    fread(clr_start, sizeof(clr_start), 1, file);
+    fread(clr_end, sizeof(int), 1, file);
+    fread(clr_bands, sizeof(freq_band), 1, file);
 
     fclose(file);
 }
