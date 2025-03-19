@@ -11,7 +11,6 @@ killall rtserver
 killall fitacfwrite
 killall rawacfwrite
 killall iqwrite
-# killall cf_server
 
 killall shellserver
 killall errlog
