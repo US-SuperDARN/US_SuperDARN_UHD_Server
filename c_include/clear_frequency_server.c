@@ -176,11 +176,11 @@ void read_sample_shm(fftw_complex **temp_samples, void *samples_shm_ptr, int ant
             temp_samples[i][j] = s_ptr[i * samples_num + j * 2] + I * s_ptr[i * samples_num + j * 2 + 1];
 
             // Debug: Print 5 complex of each antenna batch
-            if (j < 4 || j > samples_num - 4 || j == 2499) {
-                printf("shm[%d]      =   %d + i%d\n", i * samples_num + j, ((int*) samples_shm_ptr)[i * samples_num + j * 2], ((int*) samples_shm_ptr)[i * samples_num + j * 2 + 1]);
-                printf("vs\n");
-                printf("temp_samples[%d][%d] =  %f + i%f\n\n", i, j, creal(temp_samples[i][j]), cimag(temp_samples[i][j]));
-            }
+            // if (j < 4 || j > samples_num - 4 || j == 2499) {
+            //     printf("shm[%d]      =   %d + i%d\n", i * samples_num + j, ((int*) samples_shm_ptr)[i * samples_num + j * 2], ((int*) samples_shm_ptr)[i * samples_num + j * 2 + 1]);
+            //     printf("vs\n");
+            //     printf("temp_samples[%d][%d] =  %f + i%f\n\n", i, j, creal(temp_samples[i][j]), cimag(temp_samples[i][j]));
+            // }
         }
 
 
@@ -617,11 +617,16 @@ int main() {
             
     // Parameters for Reading Restricted Frequencies
     char *restrict_file = "";
-    char *site_id = (char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
-    add_ptr(site_id);
+    char *ststr = (char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
+    add_ptr(ststr);
     char *new_site_id = (char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
     add_ptr(new_site_id);
-    char *site_path = getenv("SD_SITE_PATH");
+    char *rst_path = getenv("RSTPATH");
+    // if no result, error out
+    if (rst_path == NULL) {
+        perror("[Frequency Server] CRITICAL ERROR: $RSTPATH not found. Restrict Freq file is inaccessible.\n\n\n");
+        exit(EXIT_FAILURE);
+    }
 
     // Continuously process clients via shared memory
     while (1) {
@@ -731,21 +736,28 @@ int main() {
             printf("[Frequency Server] Site ID reading...\n");
             read_site_id_data(new_site_id, site_id_obj.shm_ptr, SITE_ID_ELEM);
     
-            // If first client or new site_id, proceed to read in site_id and Restrict File
-            if (site_id != new_site_id) {
+            // If first client or new ststr, proceed to read in ststr and Restrict File
+            if (ststr != new_site_id) {
                 printf("[Frequency Server] Site ID assigned, getting site's Resticted Frequencies ...\n");
-                site_id = new_site_id;
+                ststr = new_site_id;
+                int str_f_result = 0; 
+
                 // Get site specific restrict file
                 if (strcmp(new_site_id,"lab") != 0) {
-                    printf("[Frequency Server] Using restrict.dat.inst in site_id\n\n");
-                    sprintf(restrict_file,"%s/site.%s/restrict.dat.inst",site_path,site_id);
+                    printf("[Frequency Server] Using restrict.dat.inst in ststr\n\n");
+                    str_f_result = asprintf(&restrict_file,"%s/tables/superdarn/site/site.%s/restrict.dat.inst",rst_path,ststr);
+                    if (str_f_result < 1) {
+                        perror("[Frequency Server] site path format (asprint) failed\n");
+                        return 1;
+                    }
                     printf("\nFrequency Server] Using restrict file path: %s\n\n", restrict_file);
+                    
                 } 
                 // Default: Get lab testing restrict file
                 else {
                     restrict_file = "/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.mcm/restrict.dat.inst";               // File path for lab testing
                     
-                    printf("\n[Frequency Server] WARNING: Parameter \'site_id\' is missing or set to a \"lab\" setting!\n");
+                    printf("\n[Frequency Server] WARNING: Parameter \'ststr\' is missing or set to a \"lab\" setting!\n");
                     printf("[Frequency Server] Using %s\n\n", restrict_file);
                 }
                 read_restrict(restrict_file, restricted_freq, &restricted_num);

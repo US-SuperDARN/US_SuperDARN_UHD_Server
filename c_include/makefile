@@ -12,4 +12,6 @@ OBJS=clear_frequency_server.o clear_freq_search.o ini_parser.o misc_read_writes.
 cf_server:	$(OBJS)
 	gcc -o ../cf_server $(CFLAGS) $(OBJS) $(LIBS)
 
+clean:
+	rm -rf *.o
 
