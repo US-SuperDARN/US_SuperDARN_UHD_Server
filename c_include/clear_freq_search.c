@@ -261,8 +261,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     for (int band_i = 0; band_i < clear_sample_bw; band_i++) {
         bpf[band_i] = 1;
     }
-    if (VERBOSE) printf("    clr_search_sample_start: %d\n    clr_search_sample_end: %d\n    clr_search_sample_bw: %d\n", 
-        clr_search_sample_start, clr_search_sample_end, clr_search_sample_bw);
+    if (VERBOSE) printf("    clr_search_sample_start: %d\n    clr_search_sample_end: %d\n    clr_search_sample_bw: %d\n", clr_search_sample_start, clr_search_sample_end, clr_search_sample_bw);
 
     // Convolve BPF with Search Range
     int convolve_bw = clr_search_sample_bw - clear_sample_bw;
@@ -366,8 +365,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     // printf("    Convolution Results packed up...\n");
 
     // Debug: Output Final Clear Freq Bands
-    for (int i = 0; i < CLR_BANDS_MAX; i++)
-        printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+    // for (int i = 0; i < CLR_BANDS_MAX; i++)
+    //     printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
 
     // Free allocated memory
     free(convolve_result);
@@ -408,21 +407,16 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     }
 
     // if (VERBOSE) {   
-    //     for (int i = 0; i < num_samples; i++) if (i < 10) {
+    //     for (int i = 0; i < num_samples; i++) if (i < 5) {
     //         printf("raw_samples[0][%d]: %f + %fi\n", i, creal(raw_samples[0][i]), cimag(raw_samples[0][i]));
     //         printf("raw_samples[1][%d]: %f + %fi\n", i, creal(raw_samples[1][i]), cimag(raw_samples[1][i]));
     //     }
     // }
 
-    // if (VERBOSE)
-    //     printf("beamformed[625]    = %f + %fi\n", creal(beamformed_samples[625]), cimag(beamformed_samples[625]));
-
-    
-
     phasing_and_beamforming(beam_angle, clear_freq_range, meta_data, phasing_vector, antennas, num_samples, raw_samples, sample_im, sample_re, beamformed_samples);
 
-    for (int i = 0; i < num_samples; i++) if (i < 10) printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
-
+    // if (VERBOSE) {for (int i = 0; i < num_samples; i++) if (i < 5) printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));}
+    
     // Frequency Vector Calculation
     double delta_f = meta_data->usrp_rf_rate / num_samples;
     double f_start = meta_data->usrp_fcenter * 1000 - (meta_data->usrp_rf_rate / 2);
@@ -504,10 +498,10 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f);
     printf("clear_range: | %d -- %d |\n", clear_freq_range[0], clear_freq_range[1]);
     printf("    samples: | %d -- %d |\n", clear_sample_start, clear_sample_end);
-    if (VERBOSE) for (int i = clear_sample_start; i < clear_sample_end; i++) {
-        // if (i < 2 + clear_sample_start || i > clear_sample_end - 3) 
-        printf("spectrum_pow[%d]: %f\n", i, avg_spectrum[i]);   
-    }
+    // if (VERBOSE){ for (int i = clear_sample_start; i < clear_sample_end; i++) {
+    //     // if (i < 2 + clear_sample_start || i > clear_sample_end - 3) 
+    //     printf("spectrum_pow[%d]: %f\n", i, avg_spectrum[i]);   
+    // }}
 
     // Find clear frequency
     double clear_bw = 4e6 / smsep; // ~ 300 us
@@ -522,10 +516,10 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     for (int i = 0; i < CLR_BANDS_MAX; i++)
         printf("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |\n", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
     
-    // Debug: Print Restricted Freqs
-    for (int i = 0; i < restricted_num; i++) {
-        printf("Restricted[%d]: %d -- %d\n", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
-    }      
+    // // Debug: Print Restricted Freqs
+    // for (int i = 0; i < restricted_num; i++) {
+    //     printf("Restricted[%d]: %d -- %d\n", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
+    // }      
     
 
     // Save data to csv
@@ -555,8 +549,7 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
 {
     // Calculate and Apply phasing vector
     float phase_increment = calc_phase_increment(beam_angle, (clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
-    if (VERBOSE)
-        printf("phase_increment: %lf\n", phase_increment);
+    if (VERBOSE) printf("phase_increment: %lf\n", phase_increment);
 
     for (int aidx = 0; aidx < meta_data->num_antennas; aidx++) {
         if (antennas[aidx] <= IDX_LAST_MA || antennas[aidx] > IDX_LAST_IA) {
@@ -594,7 +587,7 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         }
         beamformed_samples[i] = real_sum + I * imag_sum;
 
-        if (VERBOSE)
+        if (VERBOSE && i == 2499)
             printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
     }
 }
