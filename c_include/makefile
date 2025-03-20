@@ -1,6 +1,6 @@
 CFLAGS= -O3 -pthread 
 
-LIBS= -lfftw3 -lm 
+LIBS= -lfftw3 -lm -lrt
 
 INCLUDE= 
 
