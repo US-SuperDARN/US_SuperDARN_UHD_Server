@@ -897,8 +897,8 @@ class ClearFrequencyService():
             noise_data = []
             for start_freq, noise, end_freq in zip(read_data[::3], read_data[1::3], read_data[2::3]):
                 # Return Center Freq and Noise
-                packed_data.append(((start_freq + end_freq) / 2) / 1000)
-                noise_data.append(noise)
+                packed_data.append(int(((start_freq + end_freq) / 2) / 1000))
+                noise_data.append(int(noise))
             return packed_data, noise_data            
                 
     def request_clr_freq(self, raw_samples, clr_range=None, fcenter=None, beam_num=None, sample_sep=None, restrict_data=None, meta_data=None, ):
