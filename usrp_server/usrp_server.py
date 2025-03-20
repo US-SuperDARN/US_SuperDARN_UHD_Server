@@ -895,7 +895,7 @@ class ClearFrequencyService():
             noise_data = []
             for start_freq, noise, end_freq in zip(read_data[::3], read_data[1::3], read_data[2::3]):
                 # Return Center Freq and Noise
-                packed_data.append((start_freq + end_freq) / 2)
+                packed_data.append(((start_freq + end_freq) / 2) / 1000)
                 noise_data.append(noise)
             return packed_data, noise_data            
                 
@@ -1082,9 +1082,9 @@ class ClearFrequencyService():
                 new_noise_data = []
                 new_clrfreq_data = self.read_m_data(self.shm_objects[8])
                 new_clrfreq_data, new_noise_data = self.repack_data(new_clrfreq_data, True)
-                for clr_freq in zip(new_clrfreq_data, new_noise_data):
-                    print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq[0]} (Hz), {clr_freq[1]} (N/A) |")
-                clr_freq, noise = new_clrfreq_data[0]/1000, new_noise_data[0]
+                for clr_freq_and_noise in zip(new_clrfreq_data, new_noise_data):
+                    print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq_and_noise[0]} (kHz), {clr_freq_and_noise[1]} (N/A) |")
+                clr_freq, noise = new_clrfreq_data[0], new_noise_data[0]
                 
                 self.sl_clrfreq['sem'].release()
                         
