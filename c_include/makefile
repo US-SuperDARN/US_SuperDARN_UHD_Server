@@ -19,5 +19,3 @@ build:	$(OBJS)
 
 clean:
 	-rm -rf $(OBJS) $(TARGET)
-
-.PHONY: all build clean
