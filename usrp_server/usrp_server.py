@@ -896,7 +896,7 @@ class ClearFrequencyService():
             for start_freq, noise, end_freq in zip(read_data[::3], read_data[1::3], read_data[2::3]):
                 # Return Center Freq and Noise
                 packed_data.append(int(((start_freq + end_freq) / 2) / 1000))
-                noise_data.append(int(noise))
+                noise_data.append(noise)
             return packed_data, noise_data            
                 
     def request_clr_freq(self, raw_samples, clr_range=None, fcenter=None, beam_num=None, sample_sep=None, restrict_data=None, meta_data=None, ):
@@ -932,7 +932,8 @@ class ClearFrequencyService():
             
             # Check if Antenna Num changed, update corresponding values before they're mapped
             shm_ant_num = self.read_m_data(self.shm_objects[7])[0]
-            print("SHM Antenna_num: ", shm_ant_num)
+            print("SHM Antenna_num:  ", shm_ant_num)
+            print("Meta Antenna num: ", len(meta_data['antenna_list']))
             if shm_ant_num != self.cur_antenna_num or self.cur_antenna_num != len(meta_data['antenna_list']):
                 print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
                 self.cur_antenna_num = len(meta_data['antenna_list'])
@@ -1023,6 +1024,12 @@ class ClearFrequencyService():
                         os.ftruncate(samples_obj['shm_fd'], samples_obj['size'])
                         samples_obj['shm_ptr'] = mmap.mmap(samples_obj['shm_fd'], samples_obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
                     
+                    # If server's antenna num is outdated, update it
+                    elif shm_ant_num != self.cur_antenna_num:
+                        # Send
+                        print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
+                        self.write_data(self.shm_objects[7], len(meta_data['antenna_list']))
+                        
                     print(f"[Frequency Client] Data Write Progress: {self.shm_objects[6]['name']}")
                     
                     # Rearrange meta_data ordering
