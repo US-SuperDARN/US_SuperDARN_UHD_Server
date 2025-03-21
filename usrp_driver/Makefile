@@ -20,6 +20,7 @@ EXECUTABLE=usrp_driver
 
 all: $(EXECUTABLE)
 
+build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(CPP_OBJECTS)
 	$(CCpp) -o $@ $(CUDA_OBJECT0) $(CUDA_OBJECT1) $(CPP_OBJECTS) $(LFLAGS) $(common_libs) $(linux_libs) ${INCLUDES}
