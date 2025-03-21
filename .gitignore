@@ -2,16 +2,20 @@
 *.o
 *.log
 *.*int16
+*.bin
+*.ini
 tags
 dist/*
+
+log/usrp_server_status.txt
+log/clr_freq/*
+log/fft_spectrum/*
 
 driver_config.ini
 usrp_config.ini
 
-log/usrp_server_status.txt
+cf_server
+save_spectrum
 
-*.bin
 
-log/clr_freq/*
 
-*.ini
