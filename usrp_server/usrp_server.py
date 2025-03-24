@@ -8,6 +8,7 @@
 # RadarHardwareManager class (RHM)
 # - has a radar_main_control_loop() that executes clear freq search, adding new channels and triggering
 #
+# This branch is set up for two-radar operation at dual sites. Select the config/driver_config__two_radar.ini to be driver_config.ini
 
 import sys
 import os
@@ -38,6 +39,7 @@ from profiling_tools import *
 import logging_usrp
 import utils
 
+N_RADARs = 1
 
 RMSG_PORT = 45000
 MAX_CHANNELS = 4
@@ -931,6 +933,11 @@ class ClearFrequencyService():
             self.shm_objects[7]['shm_ptr'] = mmap.mmap(self.shm_objects[7]['shm_fd'], self.shm_objects[7]['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
             
             # Check if Antenna Num changed, update corresponding values before they're mapped
+            temp_ant_num = self.read_m_data(self.shm_objects[7])[0]
+            print("Antenna_num: ", temp_ant_num)
+            if temp_ant_num != 0 and temp_ant_num != self.ANTENNA_NUM:
+                print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
+                self.cur_antenna_num = temp_ant_num
             shm_ant_num = self.read_m_data(self.shm_objects[7])[0]
             print("SHM Antenna_num:  ", shm_ant_num)
             print("Meta Antenna num: ", len(meta_data['antenna_list']))
@@ -1716,9 +1723,11 @@ class RadarHardwareManager:
          self.logger.debug("Skipping call of cuda_setup because up/down samplingRates are unknown.")
       else:
          self.logger.debug("start CUDA_SETUP")
-         cmd = cuda_setup_command(self.cudasocks, self.commonChannelParameter['upsample_rate'],self.commonChannelParameter['downsample_rates'][0],self.commonChannelParameter['downsample_rates'][1], self.mixingFreqManager.current_mixing_freq*1000 )
-         cmd.transmit()
-         cmd.client_return() 
+         for jrad in range(N_RADARs):
+            cmd = cuda_setup_command(self.cudasocks[jrad], self.commonChannelParameter['upsample_rate'],self.commonChannelParameter['downsample_rates'][0],self.commonChannelParameter['downsample_rates'][1], self.mixingFreqManager.current_mixing_freq*1000 )
+            cmd.transmit()
+            cmd.client_return()
+
          self.logger.debug("end CUDA_SETUP")
 
     def _resync_usrps(self, first_sync = False):
@@ -1824,22 +1833,29 @@ class RadarHardwareManager:
         #time.sleep(.05)
 
         # connect cuda_driver servers
+        socklist=[]
         cuda_driver_socks = []
+        for jrad in range(N_RADARs):
+           cuda_driver_socks.append(socklist)
 
         cuda_driver_port = int(self.ini_network_settings['CUDADriverPort'])
-        cuda_driver_hostnames = [name.strip() for name in self.ini_network_settings['CUDADriverHostnames'].split(',')]
 
-        for c in cuda_driver_hostnames:
-           try:
-                self.logger.debug('connecting to cuda driver on {}:{}'.format(c, cuda_driver_port))
-                cudasock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                cudasock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
-                cudasock.connect((c, cuda_driver_port))
-                cuda_driver_socks.append(cudasock)
-           except ConnectionRefusedError:
-                self.logger.error("cuda server connection failed on {}".format(c))
-                sys.exit(1)
+        cuda_driver_hostnames = [
+           [name.strip() for name in self.ini_network_settings['CUDADriverHostnames_R1'].split(',')],
+           [name.strip() for name in self.ini_network_settings['CUDADriverHostnames_R2'].split(',')]
+        ]
+
+        for jrad in range(N_RADARs):
+           for c in cuda_driver_hostnames[jrad]:
+              try:
+                 self.logger.debug('connecting to cuda driver on {}:{}'.format(c, cuda_driver_port))
+                 cudasock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                 cudasock.connect((c, cuda_driver_port))
+            
+                 cuda_driver_socks[jrad].append(cudasock)
+              except ConnectionRefusedError:
+                 self.logger.error("cuda server connection failed on {}".format(c))
+                 sys.exit(1)
 
         if len(cuda_driver_socks) == 0:
            self.logger.error("No cuda connection available. Exiting usrp_server")
@@ -1871,8 +1887,8 @@ class RadarHardwareManager:
         for channel in newChannelList:
      
             # CUDA_ADD_CHANNEL in first period
-            cmd = cuda_add_channel_command(RHM.cudasocks, sequence=channel.get_current_sequence(), swing = channel.swingManager.activeSwing)
-            RHM.logger.debug('calling CUDA_ADD_CHANNEL at initialize_channel() (cnum {}, swing {}, beam {})'.format(channel.cnum, channel.swingManager.activeSwing, channel.scanManager.current_beam))
+            cmd = cuda_add_channel_command(RHM.cudasocks[channel.rnum], sequence=channel.get_current_sequence(), swing = channel.swingManager.activeSwing)
+            RHM.logger.debug('calling CUDA_ADD_CHANNEL at initialize_channel() (rnum {} cnum {}, swing {}, beam {})'.format(channel.rnum, channel.cnum, channel.swingManager.activeSwing, channel.scanManager.current_beam))
             cmd.transmit()
             cmd.client_return()      
             if channel.active_state == CS_INACTIVE: 
@@ -1889,9 +1905,12 @@ class RadarHardwareManager:
 
         # CUDA_GENERATE for first period
         RHM.logger.debug('start CUDA_GENERATE_PULSE swing {} (1st period) '.format(RHM.swingManager.activeSwing))
-        cmd = cuda_generate_pulse_command(RHM.cudasocks, RHM.swingManager.activeSwing, RHM.mixingFreqManager.current_mixing_freq*1000)
-        cmd.transmit()
-        cmd.client_return()
+
+        for jrad in range(N_RADARs):
+           cmd = cuda_generate_pulse_command(RHM.cudasocks[jrad], RHM.swingManager.activeSwing, RHM.mixingFreqManager.current_mixing_freq*1000)
+           cmd.transmit()
+           cmd.client_return()
+
         RHM.logger.debug('end CUDA_GENERATE_PULSE (1st period)')
         RHM.logger.debug("end initialize_channel")
 
@@ -1923,7 +1942,7 @@ class RadarHardwareManager:
             self.logger.debug('send CUDA_REMOVE_CHANNEL')
             for iSwing in range(nSwings):
                try:
-                   cmd = cuda_remove_channel_command(self.cudasocks, sequence=channelObject.get_current_sequence(remove_channel=True), swing = iSwing)
+                   cmd = cuda_remove_channel_command(self.cudasocks[channelObject.rnum], sequence=channelObject.get_current_sequence(remove_channel=True), swing = iSwing)
                    cmd.transmit()
                    cmd.client_return()
                except AttributeError:
@@ -1968,12 +1987,13 @@ class RadarHardwareManager:
            for sock in self.usrpManager.socks:
                sock.close()
 
-        if hasattr(self, 'cudasocks'): 
-            cmd = cuda_exit_command(self.cudasocks)
-            cmd.transmit()
+        if hasattr(self, 'cudasocks'):
+           for jrad in range(N_RADARs):
+              cmd = cuda_exit_command(self.cudasocks[jrad])
+              cmd.transmit()
 
-            for sock in self.cudasocks:
-                sock.close()
+              for sock in self.cudasocks[jrad]:
+                 sock.close()
         
         # clean up server semaphores
        # if hasattr(self, 'set_par_semaphore'):
@@ -2224,7 +2244,7 @@ class RadarHardwareManager:
            if CS_PROCESSING in allProcessingChannelStates:
                # CUDA_GET_DATA
                self.logger.debug('start CUDA_GET_DATA')
-               cmd = cuda_get_data_command(self.cudasocks, self.swingManager.processingSwing)
+               cmd = cuda_get_data_command(self.cudasocks[self.channel.rnum], self.swingManager.processingSwing)
                cmd.transmit()
 
                nMainAntennas = len(self.antenna_idx_list_main)
@@ -2232,7 +2252,7 @@ class RadarHardwareManager:
                main_samples = None
 
 
-               for cudasock in self.cudasocks:
+               for cudasock in self.cudasocks[self.channel.rnum]:
                    nAntennas = recv_dtype(cudasock, np.uint32)
                    for iChannel,channel in enumerate(self.channels):
                        if channel.processing_state == CS_PROCESSING:
@@ -2365,7 +2385,7 @@ class RadarHardwareManager:
         for channel in self.channels:
             if channel.scanManager.isLastPeriod: # or channel.scanManager.isForelastPeriod:
                self.logger.debug("start CUDA_REMOVE_CHANNEL")
-               cmd = cuda_remove_channel_command(self.cudasocks, sequence=channel.get_current_sequence(remove_channel=True), swing = self.swingManager.processingSwing) 
+               cmd = cuda_remove_channel_command(self.cudasocks[channel.rnum], sequence=channel.get_current_sequence(remove_channel=True), swing = self.swingManager.processingSwing) 
                self.logger.debug('send CUDA_REMOVE_CHANNEL (cnum {}, swing {})'.format(channel.cnum, self.swingManager.processingSwing))
                cmd.transmit()
                cmd.client_return()      
@@ -2380,7 +2400,7 @@ class RadarHardwareManager:
             else:
                if channel.active:
                   self.logger.debug("start CUDA_ADD_CHANNEL")
-                  cmd = cuda_add_channel_command(self.cudasocks, sequence=channel.get_next_sequence(), swing = self.swingManager.processingSwing) 
+                  cmd = cuda_add_channel_command(self.cudasocks[channel.rnum], sequence=channel.get_next_sequence(), swing = self.swingManager.processingSwing) 
                   self.logger.debug('send CUDA_ADD_CHANNEL (cnum {}, swing {}, beam {})'.format(channel.cnum, self.swingManager.processingSwing, channel.scanManager.current_beam))
                   cmd.transmit()
                   cmd.client_return()      
@@ -2396,9 +2416,10 @@ class RadarHardwareManager:
 
         # CUDA_GENERATE for next period
         self.logger.debug('start CUDA_GENERATE_PULSE')
-        cmd = cuda_generate_pulse_command(self.cudasocks, self.swingManager.processingSwing, self.mixingFreqManager.current_mixing_freq*1000)
-        cmd.transmit()
-        cmd.client_return()
+        for jrad in range(N_RADARs):
+           cmd = cuda_generate_pulse_command(self.cudasocks[jrad], self.swingManager.processingSwing, self.mixingFreqManager.current_mixing_freq*1000)
+           cmd.transmit()
+           cmd.client_return()
         self.logger.debug('end CUDA_GENERATE_PULSE')
 
         if transmittingChannelAvailable and trigger_next_period: 
@@ -2463,9 +2484,11 @@ class RadarHardwareManager:
            if trigger_next_period:
               # CUDA_PROCESS for processingSwing
               self.logger.debug('start CUDA_PROCESS')
-              cmd = cuda_process_command(self.cudasocks, swing=self.swingManager.processingSwing, nSamples=nSamples_rx_requested_of_last_trigger)
-              cmd.transmit()
-              cmd.client_return()
+              for jrad in range(N_RADARs):
+                 cmd = cuda_process_command(self.cudasocks[jrad], swing=self.swingManager.processingSwing, nSamples=nSamples_rx_requested_of_last_trigger)
+                 cmd.transmit()
+                 cmd.client_return()
+
               self.logger.debug('end CUDA_PROCESS')
 
            # repeat CLR_FREQ record for 2nd period (if executed for 1st)
@@ -3104,12 +3127,12 @@ class RadarChannelHandler:
       RHM = channel.parent_RadarHardwareManager
       # CUDA_GET_IF_DATA
       channel.logger.debug('start CUDA_GET_IF_DATA')
-      cmd = cuda_get_if_data_command(RHM.cudasocks, RHM.swingManager.processingSwing)
+      cmd = cuda_get_if_data_command(RHM.cudasocks[channel.nrad], RHM.swingManager.processingSwing)
       cmd.transmit()
 
       if_samples = None
       all_antenna_list = RHM.antenna_idx_list_main + RHM.antenna_idx_list_back
-      for cudasock in RHM.cudasocks:
+      for cudasock in RHM.cudasocks[channel.rnum]:
           nAntennas = recv_dtype(cudasock, np.uint32)
 
           if channel.processing_state == CS_PROCESSING:
@@ -3148,11 +3171,13 @@ class RadarChannelHandler:
         if not os.path.isdir(savePath):
             os.mkdir(savePath)
                     
-        fileName = '{:04d}{:02d}{:02d}{:02d}{:02d}.{:d}.iraw.{:c}'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute, channel.rnum, 96+channel.cnum)
+        fileName = '{:04d}{:02d}{:02d}{:02d}{:02d}.{:s}.iraw.{:c}'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute, channel.station[0:3], 96+channel.cnum)
 
         exportList = []
         exportList = []
         exportList.append( version )
+        exportList.append( channel.stid )
+        exportList.append( channel.cnum )        
         exportList.append( time_now.year )
         exportList.append( time_now.month )
         exportList.append( time_now.day )
@@ -3569,6 +3594,9 @@ class RadarChannelHandler:
     def SetRadarChanHandler(self, rmsg):
         self.rnum = recv_dtype(self.conn, np.int32)
         self.cnum = recv_dtype(self.conn, np.int32)
+        self.stid = recv_dtype(self.conn, np.int32)
+        data_length = recv_dtype(self.conn, np.int32)
+        self.station = recv_dtype(self.conn, str, nitems=data_length)
 
         if self.cnum in [ch.cnum for ch in self.parent_RadarHardwareManager.channels if ch is not None and ch is not self]:
            self.logger.error("New channel (cnum {}) can not be added beause channel with this cnum already active.".format(self.cnum))
