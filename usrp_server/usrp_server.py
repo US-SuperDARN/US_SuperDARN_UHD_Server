@@ -897,7 +897,7 @@ class ClearFrequencyService():
             noise_data = []
             for start_freq, noise, end_freq in zip(read_data[::3], read_data[1::3], read_data[2::3]):
                 # Return Center Freq and Noise
-                packed_data.append((start_freq + end_freq) / 2)
+                packed_data.append(int(((start_freq + end_freq) / 2) / 1000))
                 noise_data.append(noise)
             return packed_data, noise_data            
                 
@@ -938,6 +938,12 @@ class ClearFrequencyService():
             if temp_ant_num != 0 and temp_ant_num != self.ANTENNA_NUM:
                 print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
                 self.cur_antenna_num = temp_ant_num
+            shm_ant_num = self.read_m_data(self.shm_objects[7])[0]
+            print("SHM Antenna_num:  ", shm_ant_num)
+            print("Meta Antenna num: ", len(meta_data['antenna_list']))
+            if shm_ant_num != self.cur_antenna_num or self.cur_antenna_num != len(meta_data['antenna_list']):
+                print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
+                self.cur_antenna_num = len(meta_data['antenna_list'])
                 
                 # Update meta SHM values
                 meta_obj = self.shm_objects[6]
@@ -1025,6 +1031,12 @@ class ClearFrequencyService():
                         os.ftruncate(samples_obj['shm_fd'], samples_obj['size'])
                         samples_obj['shm_ptr'] = mmap.mmap(samples_obj['shm_fd'], samples_obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
                     
+                    # If server's antenna num is outdated, update it
+                    elif shm_ant_num != self.cur_antenna_num:
+                        # Send
+                        print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
+                        self.write_data(self.shm_objects[7], len(meta_data['antenna_list']))
+                        
                     print(f"[Frequency Client] Data Write Progress: {self.shm_objects[6]['name']}")
                     
                     # Rearrange meta_data ordering
@@ -1084,9 +1096,9 @@ class ClearFrequencyService():
                 new_noise_data = []
                 new_clrfreq_data = self.read_m_data(self.shm_objects[8])
                 new_clrfreq_data, new_noise_data = self.repack_data(new_clrfreq_data, True)
-                for clr_freq in zip(new_clrfreq_data, new_noise_data):
-                    print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq[0]} (Hz), {clr_freq[1]} (N/A) |")
-                clr_freq, noise = new_clrfreq_data[0]/1000, new_noise_data[0]
+                for clr_freq_and_noise in zip(new_clrfreq_data, new_noise_data):
+                    print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq_and_noise[0]} (kHz), {clr_freq_and_noise[1]} (N/A) |")
+                clr_freq, noise = new_clrfreq_data[0], new_noise_data[0]
                 
                 self.sl_clrfreq['sem'].release()
                         
@@ -1438,7 +1450,6 @@ class scanManager():
         self.logger.debug('start calc_clear_freq_on_raw_samples')
         # clearFreq, noise = calc_clear_freq_on_raw_samples(rawData, metaData, all_restricted_freq, self.clear_freq_range_list[iPeriod], beam_angle, self.channel.raw_export_data['smsep'])
         
-        # CFS_clear_freq_range = [ int(12 * pow(10,6)), int(12.5 * pow(10,6)) ]
         clear_freq_range = []
         for freq in self.clear_freq_range_list[iPeriod]: 
             clear_freq_range.append(int(freq))
@@ -1894,6 +1905,7 @@ class RadarHardwareManager:
 
         # CUDA_GENERATE for first period
         RHM.logger.debug('start CUDA_GENERATE_PULSE swing {} (1st period) '.format(RHM.swingManager.activeSwing))
+
         for jrad in range(N_RADARs):
            cmd = cuda_generate_pulse_command(RHM.cudasocks[jrad], RHM.swingManager.activeSwing, RHM.mixingFreqManager.current_mixing_freq*1000)
            cmd.transmit()
