@@ -429,7 +429,7 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
 
     printf("[SpectAvg] done with avg freq vector\n");
 
-    double *avg_spectrum = (double*) fftw_malloc(sizeof(double) * num_avg_samples);
+    double *avg_spectrum = (double*) calloc(num_avg_samples,sizeof(double));
     fftw_complex *fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
     if (VERBOSE) printf("num_avg_sample: %d\navg_freq_ratio: %d\n", num_avg_samples, avg_freq_ratio);
     
@@ -446,12 +446,12 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     // (0, 1, 2, 3 -> avg[0]), ..., (n-4, n-3, n-2, n-1 -> avg[n/4])
     // For every averaged element, ...
     for (int k = 0; k < num_avg_samples; k++) {
+      avg_spectrum[k]=0;
         // Avg the magnitude of four spectrum samples in a row 
         for (int j = 0; j < avg_freq_ratio; j++) {
             double re = creal(fft_spectrum[k * avg_freq_ratio + j]) * creal(fft_spectrum[k * avg_freq_ratio + j]);
             double im = cimag(fft_spectrum[k * avg_freq_ratio + j]) * cimag(fft_spectrum[k * avg_freq_ratio + j]);
-            if (j == 1) avg_spectrum[k] = sqrt(re + im);
-            else avg_spectrum[k] += sqrt(re + im);
+            avg_spectrum[k] += sqrt(re + im);
 
             // if (k == 9) {
             //     printf("sample[%d][%d][%d]: %f + j%f\n", k, j, k + j, creal(fft_spectrum[k + j]), cimag(fft_spectrum[k + j]));
@@ -525,7 +525,7 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     
     fftw_free(phasing_vector);
     fftw_free(beamformed_samples);
-    fftw_free(avg_spectrum);
+    free(avg_spectrum);
     free(freq_vector);
 }
 
