@@ -439,11 +439,7 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
 
     printf("[SpectAvg] done with avg freq vector\n");
 
-<<<<<<< HEAD
-    double *avg_spectrum = (double*) calloc(num_avg_samples,sizeof(double));
-=======
     double *avg_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
->>>>>>> 6f7719c (Fix: avg_spectrum Accuracy and Calloc)
     fftw_complex *fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
     if (VERBOSE) printf("num_avg_sample: %d\navg_freq_ratio: %d\n", num_avg_samples, avg_freq_ratio);
     
@@ -460,7 +456,6 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     // (0, 1, 2, 3 -> avg[0]), ..., (n-4, n-3, n-2, n-1 -> avg[n/4])
     // For every averaged element, ...
     for (int k = 0; k < num_avg_samples; k++) {
-      avg_spectrum[k]=0;
         // Avg the magnitude of four spectrum samples in a row 
         for (int j = 0; j < avg_freq_ratio; j++) {
             double re = creal(fft_spectrum[k * avg_freq_ratio + j]) * creal(fft_spectrum[k * avg_freq_ratio + j]);
