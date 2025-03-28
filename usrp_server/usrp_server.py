@@ -794,11 +794,10 @@ class ClearFrequencyService():
                         # print("[Frequency Client]                   : ", flattened_data[-2])
                         # print("[Frequency Client]                   : ", flattened_data[-1])
             elif atype == 'meta':
-                flattened_data += array_data[0]
-                # for ant in array_data[0]:
-                    # flattened_data.append(ant.item())
                 for i in range (1, len(array_data)):
                     flattened_data.append(array_data[i])
+                # Place antenna list last
+                flattened_data += array_data[0]
             elif atype == "sid":
                 for letter in array_data:
                     flattened_data.append(bytes(letter, 'ascii'))

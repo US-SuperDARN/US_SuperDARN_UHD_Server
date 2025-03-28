@@ -368,23 +368,25 @@ void read_meta_data(sample_meta_data *result, void *shm_ptr, int ant_num) {
     double *ref_ptr = (double *) shm_ptr;
     int *antenna_ptr = (int *) result->antenna_list;
 
-    // Read in antenna_list elements
-    for (int i = 0; i < ant_num; i++) {
-        antenna_ptr[i] = (int) ref_ptr[i];
-        if (VERBOSE && i < 2) printf("    reading antenna_list: %d\n", antenna_ptr[i]);
+    
+    // Loop thru all meta elements and copy into result
+    for (int i = 0; i < (META_ELEM); i++) {
+        printf("reading[%d]: %f\n", i, ref_ptr[i]);
+        
+        if      (i == (0)) result->number_of_samples = (int) ref_ptr[i];
+        else if (i == (1)) result->x_spacing = ref_ptr[i];
+        else if (i == (2)) result->usrp_rf_rate = (int) ref_ptr[i];
+        
+        // if (VERBOSE && i < (ant_num + 2)) printf("    read_meta: %f\n", ref_ptr[i]);
     }
 
-    printf("Fin reading ant list and reading meta_elem...\n");
-
-    // Loop thru all meta elements and copy into result
-    for (int i = ant_num; i < (META_ELEM + ant_num); i++) {
-        printf("reading[%d]: %f\n", i, ref_ptr[i]);
-
-        if      (i == (ant_num))     result->number_of_samples = (int) ref_ptr[i];
-        else if (i == (ant_num + 1)) result->x_spacing = ref_ptr[i];
-        else if (i == (ant_num + 2)) result->usrp_rf_rate = (int) ref_ptr[i];
-
-        // if (VERBOSE && i < (ant_num + 2)) printf("    read_meta: %f\n", ref_ptr[i]);
+    printf("Fin reading meta_elem; reading antenna_list...\n");
+    
+    // Read in antenna_list elements
+    for (int i = META_ELEM; i < (ant_num + META_ELEM); i++) {
+        if (VERBOSE) printf("    reading antenna_list: %d\n", antenna_ptr[i - META_ELEM]);
+        if (VERBOSE) printf("    reading ref_ptr     : %d\n", ref_ptr[i]);
+        antenna_ptr[i - META_ELEM] = (int) ref_ptr[i];
     }
 }
 
