@@ -25,8 +25,9 @@
 #define ANTENNA_NUM     16
 #define SAMPLE_TIME     3                   // Time per Sample (in seconds)
 #define STORAGE_TIME    60                  // Total time per Sample Storage Batch (in seconds)
+#define STORAGE_NUM     (STORAGE_TIME / SAMPLE_TIME) // Total number of processed sample sets to store
 #define META_ELEM       3                   // 4 = 5 - 1 (fcenter has unique obj)
-#define RESTRICT_NUM    20                  // Number of restricted freq bands in the restrict.dat.inst
+#define RESTRICT_NUM    50                  // Number of restricted freq bands in the restrict.dat.inst
 #ifndef CLR_BANDS_MAX
 #define CLR_BANDS_MAX   6
 #endif
@@ -140,29 +141,143 @@ struct shm_obj *objects[PARAM_NUM] = {
     &client_num_obj,
 };
 
-void **temp_ptrs;
+
 int temp_ptrs_num = 0;
+void **temp_ptrs;
 
-void **temp_fftw_ptrs;
-int temp_fftw_ptrs_num = 0;
+fftw_complex **temp_samples = NULL;
+int temp_sample_sizes[] = {
+    ANTENNA_NUM,
+    SAMPLES_NUM,
+};
+fftw_complex ***samples_storage = NULL;
+int samples_storage_sizes[] = {
+    STORAGE_NUM,
+    ANTENNA_NUM,
+    SAMPLES_NUM,
+};
+int samples_storage_i = 0;
+freq_band **clr_bands_storage = NULL;
+int clr_storage_i = 0;
+int clr_storage_sizes[] = {
+    CLR_STORAGE_NUM,
+    CLR_BANDS_MAX,
+};
+sample_meta_data meta_data = {0};
 
-void add_ptr(void *ptr) {
-    temp_ptrs_num++;
-    temp_ptrs = malloc(temp_ptrs_num * sizeof(void*));
+
+void add_ptr(void **ptr) {
+    // Check for pre-existing ptr
+    for (int i = 0; i < temp_ptrs_num; i++) {
+        if (temp_ptrs[i] == ptr) {
+            // printf("Pointer already exists in temp_ptrs[%d]: %p\n", i, temp_ptrs[i]);
+            return;
+        }
+    }
+
+    // Allocate memory for the new pointer
+    void *tmp = NULL;
+    tmp = realloc(temp_ptrs, (temp_ptrs_num + 1) * sizeof(void *));
+    if (tmp == NULL) {
+        perror("Error reallocating memory for temp_ptrs");
+        exit(EXIT_FAILURE);
+    }
+    temp_ptrs = tmp;
+    temp_ptrs[temp_ptrs_num] = ptr; 
+    // printf("  temp_ptrs[%d] = %p -> %p\n", temp_ptrs_num, temp_ptrs[temp_ptrs_num], *(void **)temp_ptrs[temp_ptrs_num]);
+    temp_ptrs_num++;    
 }
 
-void add_fftw_ptr(void *ptr) {
-    temp_fftw_ptrs_num++;
-    temp_fftw_ptrs = fftw_malloc(temp_fftw_ptrs_num * sizeof(fftw_complex*));
+void update_ptr(void *old_ptr, void *new_ptr) {
+    // Check if the old pointer exists in the array
+    for (int i = 0; i < temp_ptrs_num; i++) {
+        if (temp_ptrs[i] == old_ptr) {
+            // printf("Updating temp_ptrs[%d] from %p to %p\n", i, temp_ptrs[i], new_ptr);
+            temp_ptrs[i] = new_ptr;
+            return; // Exit the function once the pointer is found and updated
+        }
+    }
+    
+    // If the old pointer is not found, add the new pointer to the array
+    add_ptr((void **)&new_ptr);
 }
 
-void read_restrict_shm(freq_band *restricted_freq, int *restrict_shm_ptr, int *restricted_num) {
-    // Store Restricted Freq
-    for (int i = 0; i < *restricted_num; i++)
-    {
-        restricted_freq[i].f_start = restrict_shm_ptr[i * 2];
-        restricted_freq[i].f_end = restrict_shm_ptr[i * 2 + 1];
-        // if (i < 3) printf("restricted_freq[%d]: |%d -- %d| ...\n", i, restricted_freq[i].f_start, restricted_freq[i].f_end);
+void free_nested_fftw_ptr(void *ptr, int nest_depth, int *sizes) {
+    if (ptr == NULL || nest_depth <= 0) {
+        return; // Base case: nothing to free
+    }
+    
+    // Debug: Print the pointer and sizes
+    // printf("free_nested_fftw_ptr: %p, nest_depth: %d,", ptr, nest_depth);
+    // printf("sizes: ");
+    // for (int i = 0; i < nest_depth; i++) {
+    //     if (i == nest_depth - 1) {
+    //         printf("%d\n", sizes[i]);
+    //     } else printf("%d ", sizes[i]);
+    // }
+
+    if (nest_depth == 1) {
+        // Free the final level of pointers
+        fftw_free(ptr);
+        ptr = NULL;
+        return;
+    }
+    
+    // Cast the pointer to a void** to access nested pointers
+    void **nested_ptr = (void **)ptr;
+
+    // Iterate through the array and recursively free each nested pointer
+    for (int i = 0; i < sizes[0]; i++) {
+        if (nested_ptr[i] != NULL) {
+            free_nested_fftw_ptr(nested_ptr[i], nest_depth - 1, sizes + 1);
+            nested_ptr[i] = NULL; // Set the pointer to NULL after freeing
+        }
+    }
+
+    fftw_free(nested_ptr);
+    nested_ptr = NULL;
+}
+
+void free_nested_ptr(void *ptr, int nest_depth, int *sizes) {
+    if (ptr == NULL || nest_depth <= 0) {
+        return; // Base case: nothing to free
+    }
+    
+    printf("free_nested_ptr: %p, nest_depth: %d,", ptr, nest_depth);
+    printf("sizes: ");
+    for (int i = 0; i < nest_depth; i++) {
+        if (i == nest_depth - 1) {
+            printf("%d\n", sizes[i]);
+        } else printf("%d ", sizes[i]);
+    }
+
+    if (nest_depth == 1) {
+        // Free the final level of pointers
+        free(ptr);
+        ptr = NULL;
+        return;
+    }
+    
+    // Cast the pointer to a void** to access nested pointers
+    void **nested_ptr = (void **)ptr;
+
+    // Iterate through the array and recursively free each nested pointer
+    for (int i = 0; i < sizes[0]; i++) {
+        if (nested_ptr[i] != NULL) {
+            free_nested_ptr(nested_ptr[i], nest_depth - 1, sizes + 1);
+            nested_ptr[i] = NULL; // Set the pointer to NULL after freeing
+        }
+    }
+
+    free(nested_ptr);
+    nested_ptr = NULL;
+}
+
+
+void print_temp_ptrs() {
+    printf("Contents of temp_ptrs:\n");
+    for (int i = 0; i < temp_ptrs_num; i++) {
+        printf("  temp_ptrs[%d] = %p -> %p\n", i, temp_ptrs[i], *(void **)temp_ptrs[i]);
     }
 }
 
@@ -346,6 +461,7 @@ void clean_sem(semaphore sem) {
  * @retval None
  */
 void cleanup() {
+    // print_temp_ptrs();
     printf("[Frequency Server] Cleaning all semaphores and SHM objects...\n");
 
     for (int i = 0; i < SEM_NUM; i++) clean_sem(*semaphores[i]);
@@ -354,15 +470,33 @@ void cleanup() {
     for (int i = 0; i < PARAM_NUM; i++) clean_obj(*objects[i]);
     printf("[Frequency Server] Cleaned all objects ...\n");
 
-    for (int i = 0; i < temp_fftw_ptrs_num; i++) {
-        if (temp_fftw_ptrs[i] != NULL) fftw_free(temp_fftw_ptrs[i]);
-    }
-    printf("[Frequency Server] Cleaned all pointers ...\n");
+    // Free fftw ptrs
+    free_nested_fftw_ptr(temp_samples, 2, temp_sample_sizes);
+    printf("[Frequency Server] Cleaned 1/2 fftw_ptrs ...\n");
+    free_nested_fftw_ptr(samples_storage, 3, samples_storage_sizes);
+    printf("[Frequency Server] Cleaned 2/2 fftw_ptrs ...\n");
 
+    printf("[Frequency Server] Cleaned all fftw pointers ...\n");
+    
+    // Free ptrs
+    free_nested_ptr(clr_bands_storage, 2, clr_storage_sizes);
+    printf("[Frequency Server] Cleaned clr_bands_storage ...\n");
+
+    // int temp_sizes[] = {1 ,temp_ptrs_num};
+    // free_nested_ptr(temp_ptrs, 2, temp_sizes);
     for (int i = 0; i < temp_ptrs_num; i++) {
-        if (temp_ptrs[i] != NULL) free(temp_ptrs[i]);
+        if (*(void **)temp_ptrs[i] != NULL) { //temp_ptrs[i] != NULL && 
+            // printf("Freeing temp_ptrs[%d/%d]: %p\n", i, temp_ptrs_num, *(void **)temp_ptrs[i]);
+            free(*(void **)temp_ptrs[i]);
+            *(void **)temp_ptrs[i] = NULL; 
+        } else {
+            printf("Skipping invalid or NULL pointer at temp_ptrs[%d]\n", i);
+        }
     }
-    printf("[Frequency Server] Cleaned all pointer lengths ...\n");
+    free(temp_ptrs);
+
+
+    printf("[Frequency Server] Cleaned all pointers ...\n");
 }
 
 /**
@@ -536,8 +670,9 @@ int main() {
     }
     printf("[Frequency Server] Done Initializing...\n\n");
     
+
+
     // Allocate temp mem for shm varibles
-    fftw_complex **temp_samples = NULL;
     temp_samples = (fftw_complex **)fftw_malloc(ANTENNA_NUM * sizeof(fftw_complex *));
     if (temp_samples == NULL) {
         perror("Error allocating memory for temp_samples pointers");
@@ -550,16 +685,14 @@ int main() {
             exit(EXIT_FAILURE);
         }
     }
-    add_fftw_ptr(temp_samples);
 
-    fftw_complex ***samples_storage = NULL;
-    samples_storage = (fftw_complex ***)fftw_malloc( (STORAGE_TIME / SAMPLE_TIME) * sizeof(fftw_complex **));
+    samples_storage = (fftw_complex ***)fftw_malloc(STORAGE_NUM * sizeof(fftw_complex **));
     if (samples_storage == NULL) {
         perror("Error allocating memory for samples_storage pointers");
         exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < (STORAGE_TIME / SAMPLE_TIME); i++) {
-        samples_storage[i] = (fftw_complex **)fftw_malloc( ANTENNA_NUM * sizeof(fftw_complex *));
+    for (int i = 0; i < STORAGE_NUM; i++) {
+        samples_storage[i] = (fftw_complex **)fftw_malloc(ANTENNA_NUM * sizeof(fftw_complex *));
         if (samples_storage[i] == NULL) {
             perror("Error allocating memory for samples_storage's antenna pointers");
             exit(EXIT_FAILURE);
@@ -572,8 +705,6 @@ int main() {
             }
         }
     }
-    add_fftw_ptr(samples_storage);
-    int samples_storage_i = 0;
 
     int restricted_num = RESTRICT_NUM;      // Number of Restricted Freqs at runtime varies depending on site
     freq_band *restricted_freq = NULL;
@@ -582,7 +713,7 @@ int main() {
         perror("Error allocating memory for restricted_freq elements");
         exit(EXIT_FAILURE);
     }
-    add_ptr(restricted_freq);
+    add_ptr((void **)&restricted_freq);
 
     freq_band *clr_bands = NULL;
     clr_bands = (freq_band *)malloc(CLR_BANDS_MAX * sizeof(freq_band));
@@ -590,9 +721,8 @@ int main() {
         perror("Error allocating memory for clr_bands elements");
         exit(EXIT_FAILURE);
     }
-    add_ptr(clr_bands);
+    add_ptr((void **)&clr_bands);
 
-    freq_band **clr_bands_storage = NULL;
     clr_bands_storage = (freq_band **)malloc(CLR_STORAGE_NUM * sizeof(freq_band *));
     if (clr_bands_storage == NULL) {
         perror("Error allocating memory for clr_bands_storage pointers");
@@ -605,27 +735,19 @@ int main() {
             exit(EXIT_FAILURE);
         }
     }
-    add_ptr(clr_bands_storage);
 
-    int clr_storage_i = 0;
     int* clr_range = malloc(2 * sizeof(int));
-    add_ptr(clr_range);
+    add_ptr((void **)&clr_range);
     int beam_num = 0;
     int sample_sep = 0;
-    sample_meta_data meta_data = {0};
-    meta_data.antenna_list = malloc(ANTENNA_NUM * sizeof(int));
-    add_ptr(meta_data.antenna_list);
     int old_antenna_num = ANTENNA_NUM;
     int samples_num = SAMPLES_NUM;
             
     // Parameters for Reading Restricted Frequencies
-    char *restrict_file = "";
-    char *ststr = (char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
-    add_ptr(ststr);
-    char *new_site_id = (char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
-    add_ptr(new_site_id);
+    char restrict_file[255] = "";
+    char ststr[SITE_ID_ELEM + 1] = {0}; //(char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
+    char new_site_id[SITE_ID_ELEM + 1] = {0}; // = (char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
     char *rst_path = getenv("RSTPATH");
-    // if no result, error out
     if (rst_path == NULL) {
         perror("[Frequency Server] CRITICAL ERROR: $RSTPATH not found. Restrict Freq file is inaccessible.\n\n\n");
         exit(EXIT_FAILURE);
@@ -654,9 +776,6 @@ int main() {
                 read_single_int(&sample_sep, sample_sep_obj.shm_ptr);
                 printf("    sample_sep: %d\n", sample_sep);
             }
-
-            // Read Restricted Frequencies
-            // if (restrict_obj.shm_ptr[0] != 0) read_restrict_shm(restricted_freq, restrict_obj.shm_ptr);
 
             // Read Meta Data
             // if ( *(double*) (meta_obj.shm_ptr) != 0) {
@@ -687,6 +806,12 @@ int main() {
                     printf("[Frequency Server] Meta Data successfully cached...\n");     
 
                     /// Sample Reallocation
+                    temp_sample_sizes[0] = meta_data.num_antennas;
+                    temp_sample_sizes[1] = samples_num;
+                    // TODO: Record the num_antennas and calc mode to filter for 1min processing
+                    // samples_storage_sizes[1] = meta_data.num_antennas;
+                    // samples_storage_sizes[2] = samples_num;
+
                     // Set Size of Shared Memory Object
                     samples_obj.size = (meta_data.num_antennas) * samples_num * 2 * sizeof(int);
                     if (ftruncate(samples_obj.shm_fd, samples_obj.size) == -1) {
@@ -703,12 +828,24 @@ int main() {
                     }                    
                     printf("[Frequency Server] Samples Data successfully cached...\n");    
 
-                    // Re Allocate Vars
-                    meta_data.antenna_list = malloc(meta_data.num_antennas * sizeof(int));
 
+                    // Temp_samples Reallocation
+                    // Free previously allocated memory for temp_samples
+                    if (temp_samples != NULL) {
+                        for (int i = 0; i < old_antenna_num; i++) {
+                            if (temp_samples[i] != NULL) {
+                                fftw_free(temp_samples[i]);
+                                temp_samples[i] = NULL;
+                            }
+                        }
+                        fftw_free(temp_samples);
+                        temp_samples = NULL;
+                    }
+                    
+                    // Allocate new memory for temp_samples
                     temp_samples = (fftw_complex **)fftw_malloc(meta_data.num_antennas * sizeof(fftw_complex *));
                     if (temp_samples == NULL) {
-                        perror("Error allocating memory for temp_samples pointers");
+                        perror("Error reallocating memory for temp_samples pointers");
                         exit(EXIT_FAILURE);
                     }
                     for (int i = 0; i < meta_data.num_antennas; i++) {
@@ -738,37 +875,43 @@ int main() {
             /// Read Restricted Frequency (by grabbing site ID then reading its restricted freq file)
             printf("[Frequency Server] Site ID reading...\n");
             read_site_id_data(new_site_id, site_id_obj.shm_ptr, SITE_ID_ELEM);
+            printf("    Site ID: %s\n", ststr);
+            printf("    New Site ID: %s\n", new_site_id);
     
             // If first client or new ststr, proceed to read in ststr and Restrict File
-            if (ststr != new_site_id) {
+            if (strcmp(new_site_id, ststr) != 0) {
                 printf("[Frequency Server] Site ID assigned, getting site's Resticted Frequencies ...\n");
-                ststr = new_site_id;
+                strncpy(ststr, new_site_id, SITE_ID_ELEM);
+                ststr[SITE_ID_ELEM] = '\0'; 
                 int str_f_result = 0; 
 
-                // Get site specific restrict file
+                // Get site specific restrict file and join with path
                 if (strcmp(new_site_id,"lab") != 0) {
-                    printf("[Frequency Server] Using restrict.dat.inst in ststr\n\n");
-                    str_f_result = asprintf(&restrict_file,"%s/tables/superdarn/site/site.%s/restrict.dat.inst",rst_path,ststr);
+                    printf("[Frequency Server] Using /site.%s/restrict.dat.inst in ststr\n\n", ststr);
+                    // str_f_result = asprintf(&restrict_file,"%s/tables/superdarn/site/site.%s/restrict.dat.inst",rst_path,ststr);
+                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, ststr);
                     if (str_f_result < 1) {
-                        perror("[Frequency Server] site path format (asprint) failed\n");
+                        perror("[Frequency Server] site path format failed\n");
                         return 1;
                     }
-                    printf("\nFrequency Server] Using restrict file path: %s\n\n", restrict_file);
-                    
                 } 
+
                 // Default: Get lab testing restrict file
                 else {
-                    restrict_file = "/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.mcm/restrict.dat.inst";               // File path for lab testing
-                    
                     printf("\n[Frequency Server] WARNING: Parameter \'ststr\' is missing or set to a \"lab\" setting!\n");
-                    printf("[Frequency Server] Using %s\n\n", restrict_file);
+                    strcpy(restrict_file, "/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.sys/restrict.dat.inst\0");
                 }
-                read_restrict(restrict_file, restricted_freq, &restricted_num);
+
+                printf("\nFrequency Server] Using restrict file path: %s\n\n", restrict_file);
+                read_restrict(restrict_file, restricted_freq, &restricted_num, temp_ptrs, temp_ptrs_num);
             }
 
             sem_post(sl_init.sem);
+
             // printf("[Frequency Server] Initialization data read; processing...\n");
+
             // TODO: storeInRadarTable(restrict_freq, meta_data)
+
             // printf("[Frequency Server] Initialization data processed...\n");
         }
         
@@ -814,13 +957,13 @@ int main() {
             sem_post(sl_samples.sem);
 
             // Store Sample Data
-            // if (samples_storage_i < (STORAGE_TIME / SAMPLE_TIME)) {
+            // if (samples_storage_i < STORAGE_NUM) {
             //     samples_storage[samples_storage_i] = temp_samples;
             //     samples_storage_i++;
             // }
             // else {
             //     // Process Samples Storage per time Packets ...
-            //     for (int i = 0; i < (STORAGE_TIME / SAMPLE_TIME); i++) {
+            //     for (int i = 0; i < STORAGE_NUM; i++) {
             //         // Beamform and FFT in all directions
 
             //         // Store in temp bin
@@ -862,14 +1005,15 @@ int main() {
             sem_post(sf_clrfreq.sem);
             printf("[Frequency Server] Processed Clear Freq Request successfully...\n");
 
+
             // Debug: Store prior clear freq band sets
             memcpy(clr_bands_storage[clr_storage_i], clr_bands, CLR_BANDS_MAX * sizeof(freq_band));
             clr_storage_i++;
+            printf("[Frequency Server] Clr Freq Log Batch: %d/%d\n", clr_storage_i, CLR_STORAGE_NUM);
             if (clr_storage_i >= CLR_STORAGE_NUM) {
                 write_clr_log_csv(clr_bands_storage, clr_storage_i);
                 clr_storage_i = 0;
             }
-            printf("[Frequency Server] Clr Freq Log Batch: %d/%d\n", clr_storage_i + 1, CLR_STORAGE_NUM);
         }
         
         printf("[Frequency Server] Processed Client successfully...\n");

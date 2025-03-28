@@ -14,6 +14,43 @@ void file_access_error(const char *filepath) {
 }
 
 
+void add_ptr_no_global(void **ptr, void **temp_ptrs, int *temp_ptrs_num) {
+    // Check for pre-existing ptr
+    for (int i = 0; i < *temp_ptrs_num; i++) {
+        if (temp_ptrs[i] == ptr) {
+            printf("Pointer already exists in temp_ptrs[%d]: %p\n", i, temp_ptrs[i]);
+            return;
+        }
+    }
+
+    void *tmp = NULL;
+    tmp = realloc(temp_ptrs, (*temp_ptrs_num + 1) * sizeof(void *));
+    if (tmp == NULL) {
+        perror("Error reallocating memory for temp_ptrs");
+        exit(EXIT_FAILURE);
+    }
+    temp_ptrs = tmp;
+    
+    temp_ptrs[*temp_ptrs_num] = ptr; // Store the address of the pointer
+    printf("  temp_ptrs[%d] = %p -> %p\n", *temp_ptrs_num, temp_ptrs[*temp_ptrs_num], *(void **)temp_ptrs[*temp_ptrs_num]);
+    temp_ptrs_num++;
+    
+}
+
+void update_ptr_no_global(void *old_ptr, void *new_ptr, void** temp_ptrs, int temp_ptrs_num) {
+    // Check if the old pointer exists in the array
+    for (int i = 0; i < temp_ptrs_num; i++) {
+        if (temp_ptrs[i] == old_ptr) {
+            printf("Updating temp_ptrs[%d] from %p to %p\n", i, temp_ptrs[i], new_ptr);
+            temp_ptrs[i] = new_ptr;
+            return; // Exit the function once the pointer is found and updated
+        }
+    }
+    
+    // If the old pointer is not found, add the new pointer to the array
+    add_ptr_no_global((void **)&new_ptr, temp_ptrs, &temp_ptrs_num);
+}
+
 
 static int config_ini_handler(void* user, const char* section, const char* name, const char* value) {
     Config* pconfig = (Config*)user;
@@ -293,83 +330,83 @@ void read_clr_freq_bin(char *filename, freq_band *clr_bands, int *clr_start, int
  * @param  **clear_freq_range:  Range for the Clear Freq
  * @param  ***raw_samples:      14x2500 complex sample array
  * @retval None
- */
-void read_input_data(const char *filename, sample_meta_data *meta_data, double **clear_freq_range, fftw_complex ***raw_samples, int test_clr_range, int test_samples) {
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        file_access_error(filename);
-        exit(EXIT_FAILURE);
-    }
-
-    char line[256];
-    int antenna_list_size = 0;
-
-    while (fgets(line, sizeof(line), file)) {
-        if (sscanf(line, "number_of_samples: %d", &meta_data->number_of_samples) == 1) continue;
-        if (sscanf(line, "usrp_rf_rate: %d", &meta_data->usrp_rf_rate) == 1) continue;
-        // if (sscanf(line, "usrp_fcenter: %d", &meta_data->usrp_fcenter) == 1) continue;
-        // if (sscanf(line, "x_spacing: %lf", &meta_data->x_spacing) == 1) continue;
-        // if (strncmp(line, "clear_freq_range:", 15) == 0 && test_clr_range) {
-        //     clear_freq_range = realloc(clear_freq_range, 2 * sizeof(double));
-        //     int i = 0;
-        //     char *token = strtok(line + 16, ",");
-        //     while (token != NULL) {
-        //         (*clear_freq_range)[i] = atof(token);
-        //         i++;
-        //     }
-        //     continue;
-        // }
-        
-        // Antenna List Data
-        if (strncmp(line, "antenna_list:", 13) == 0) {
-            char *token = strtok(line + 14, ",");
-            while (token != NULL) {
-                // Remove any leading or trailing whitespace from token
-                while (isspace(*token)) token++;
-                char *end = token + strlen(token) - 1;
-                while (end > token && isspace(*end)) end--;
-                *(end + 1) = '\0';
-
-                meta_data->antenna_list = realloc(meta_data->antenna_list, (++antenna_list_size) * sizeof(int));
-                meta_data->antenna_list[antenna_list_size - 1] = atoi(token);
-
-                token = strtok(NULL, ",");
-            }
-            meta_data->num_antennas = antenna_list_size;
-            continue;
-        }
-
-        // Raw Sample Data
-        // if (strncmp(line, "raw_samples:", 12) == 0 && test_samples) {
-        //     printf("[Clear Freq Search] Aquiring test four_spectrums from pickle files...\n");
-        //     // Allocate mem
-        //     *raw_samples = (fftw_complex **)fftw_malloc(meta_data->num_antennas * sizeof(fftw_complex *));
-        //     for (int i = 0; i < meta_data->num_antennas; i++) {
-        //         (*raw_samples)[i] = (fftw_complex *)fftw_malloc(meta_data->number_of_samples * sizeof(fftw_complex));
-        //     }
-        //     if (*raw_samples == NULL) {
-        //         perror("Error allocating memory for raw four_spectrums");
-        //         exit(EXIT_FAILURE);
-        //     }
-            
-        //     // Store data
-        //     for (int i = 0; i < meta_data->num_antennas; i++) {
-        //         fftw_complex *ant_samples = (*raw_samples)[i];
-
-        //         for (int j = 0; j < meta_data->number_of_samples; j++) {
-        //             double real, imag;
-        //             fgets(line, sizeof(line), file);
-        //             sscanf(line, "%lf,%lf", &real, &imag);
-                    
-        //             ant_samples[j] = real + I * imag;
-        //         }
-        //     }
-        //     break;
-        // }
-    }
-
-    fclose(file);
-}
+//  */
+// void read_input_data(const char *filename, sample_meta_data *meta_data, double **clear_freq_range, fftw_complex ***raw_samples, int test_clr_range, int test_samples) {
+//     FILE *file = fopen(filename, "r");
+//     if (file == NULL) {
+//         file_access_error(filename);
+//         exit(EXIT_FAILURE);
+//     }
+// 
+//     char line[256];
+//     int antenna_list_size = 0;
+// 
+//     while (fgets(line, sizeof(line), file)) {
+//         if (sscanf(line, "number_of_samples: %d", &meta_data->number_of_samples) == 1) continue;
+//         if (sscanf(line, "usrp_rf_rate: %d", &meta_data->usrp_rf_rate) == 1) continue;
+//         // if (sscanf(line, "usrp_fcenter: %d", &meta_data->usrp_fcenter) == 1) continue;
+//         // if (sscanf(line, "x_spacing: %lf", &meta_data->x_spacing) == 1) continue;
+//         // if (strncmp(line, "clear_freq_range:", 15) == 0 && test_clr_range) {
+//         //     clear_freq_range = realloc(clear_freq_range, 2 * sizeof(double));
+//         //     int i = 0;
+//         //     char *token = strtok(line + 16, ",");
+//         //     while (token != NULL) {
+//         //         (*clear_freq_range)[i] = atof(token);
+//         //         i++;
+//         //     }
+//         //     continue;
+//         // }
+// 
+//         // Antenna List Data
+//         if (strncmp(line, "antenna_list:", 13) == 0) {
+//             char *token = strtok(line + 14, ",");
+//             while (token != NULL) {
+//                 // Remove any leading or trailing whitespace from token
+//                 while (isspace(*token)) token++;
+//                 char *end = token + strlen(token) - 1;
+//                 while (end > token && isspace(*end)) end--;
+//                 *(end + 1) = '\0';
+// 
+//                 meta_data->antenna_list = realloc(meta_data->antenna_list, (++antenna_list_size) * sizeof(int));
+//                 meta_data->antenna_list[antenna_list_size - 1] = atoi(token);
+// 
+//                 token = strtok(NULL, ",");
+//             }
+//             meta_data->num_antennas = antenna_list_size;
+//             continue;
+//         }
+// 
+//         // Raw Sample Data
+//         // if (strncmp(line, "raw_samples:", 12) == 0 && test_samples) {
+//         //     printf("[Clear Freq Search] Aquiring test four_spectrums from pickle files...\n");
+//         //     // Allocate mem
+//         //     *raw_samples = (fftw_complex **)fftw_malloc(meta_data->num_antennas * sizeof(fftw_complex *));
+//         //     for (int i = 0; i < meta_data->num_antennas; i++) {
+//         //         (*raw_samples)[i] = (fftw_complex *)fftw_malloc(meta_data->number_of_samples * sizeof(fftw_complex));
+//         //     }
+//         //     if (*raw_samples == NULL) {
+//         //         perror("Error allocating memory for raw four_spectrums");
+//         //         exit(EXIT_FAILURE);
+//         //     }
+//  
+//         //     // Store data
+//         //     for (int i = 0; i < meta_data->num_antennas; i++) {
+//         //         fftw_complex *ant_samples = (*raw_samples)[i];
+// 
+//         //         for (int j = 0; j < meta_data->number_of_samples; j++) {
+//         //             double real, imag;
+//         //             fgets(line, sizeof(line), file);
+//         //             sscanf(line, "%lf,%lf", &real, &imag);
+//  
+//         //             ant_samples[j] = real + I * imag;
+//         //         }
+//         //     }
+//         //     break;
+//         // }
+//     }
+// 
+//     fclose(file);
+// }
 
 /**
  * @brief  Loads in the beam configuration from array_config.ini. 
@@ -391,7 +428,7 @@ void read_array_config(const char *config_path, int *n_beams, double *beam_sep){
     *beam_sep = config.array_info.beam_sep;
 }
 
-void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num) {
+void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num, void **temp_ptrs, int temp_ptrs_num) {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
         perror("Error opening Restrict.dat file");
@@ -412,29 +449,45 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
             // printf("Storing r1 & r2...\n");
 
             // Reallocate Mem if exceeded
-            if (*restricted_num < i) {
-                i++;
-                restricted_freq = realloc(restricted_freq, (*restricted_num * 2) * sizeof(freq_band));
-                *restricted_num = i;
-                if (restricted_freq == NULL) {
+            if (*restricted_num <= i) {
+                freq_band *tmp = realloc(restricted_freq, ((*restricted_num) * 2) * sizeof(freq_band));
+                if (tmp == NULL) {
                     perror("Error allocating memory for restricted_freq");
                     exit(EXIT_FAILURE);
                 }
-            } else i++;
+                *restricted_num = 2 * (*restricted_num);
+                update_ptr_no_global((void**)&restricted_freq, tmp, temp_ptrs, temp_ptrs_num);
+                restricted_freq = tmp;
+            } 
 
-            // Store freq band
-            restricted_freq[i].f_start  = r1 * 1000;
-            restricted_freq[i].f_end    = r2 * 1000; 
-            // printf("Restricted[%d]: %d -- %d\n", i, restricted_freq[i].f_start, restricted_freq[i].f_end);
+            // Check for valid freq
+            if (r1  < r2 && r1 > 0 && r2 > 0) {
+                // Store freq band
+                restricted_freq[i].f_start  = r1 * 1000;
+                restricted_freq[i].f_end    = r2 * 1000; 
+                printf("Restricted[%d]: %d -- %d\n", i, restricted_freq[i].f_start, restricted_freq[i].f_end);
+                i++;
+            } 
+            
+            else {
+                printf("Invalid freq band: %d -- %d\n", r1, r2);
+                continue;
+            }
         }
     }
-
+    
+    *restricted_num = i;    
+    printf("[CFS] Number of restricted bands: %d\n", *restricted_num);
+    
     // Trim excess memory 
-    restricted_freq = realloc(restricted_freq, (i) * sizeof(freq_band));
+    freq_band *tmp = NULL;
+    tmp = realloc(restricted_freq, (*restricted_num) * sizeof(freq_band));
     if (restricted_freq == NULL) {
         perror("Error allocating memory for restricted_freq");
         exit(EXIT_FAILURE);
     }
-    
+    update_ptr_no_global((void**)&restricted_freq, tmp, temp_ptrs, temp_ptrs_num);
+    restricted_freq = tmp;
+
     fclose(file);
 }
