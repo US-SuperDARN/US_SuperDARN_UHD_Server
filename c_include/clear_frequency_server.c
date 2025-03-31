@@ -787,7 +787,6 @@ int main() {
 
                 // If new num_antennas, Reallocate meta SHM 
                 if (meta_data.num_antennas != old_antenna_num) {
-                    old_antenna_num = meta_data.num_antennas;
                     printf("num of antenna: %d\n", meta_data.num_antennas);
                     
                     // Set Size of Shared Memory Object
@@ -842,6 +841,7 @@ int main() {
                         fftw_free(temp_samples);
                         temp_samples = NULL;
                     }
+                    printf("[Frequency Server] Freed old temp_samples memory...\n");
                     
                     // Allocate new memory for temp_samples
                     temp_samples = (fftw_complex **)fftw_malloc(meta_data.num_antennas * sizeof(fftw_complex *));
@@ -856,6 +856,9 @@ int main() {
                             exit(EXIT_FAILURE);
                         }
                     } 
+                    printf("[Frequency Server] Allocated new temp_samples memory...\n");
+
+                    old_antenna_num = meta_data.num_antennas;
                 }
                 
                 // Read Meta Data 
