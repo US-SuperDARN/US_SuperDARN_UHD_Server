@@ -565,7 +565,6 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num) {
 }
 
 void flag_debug() {
-    sample_meta_data meta_data = {0};
 
     printf("[FLAG DEBUGGING] All functionality except for semaphore flags is absent!\n");
     printf("[FLAG DEBUGGING] Comment out the flag_debug() function to revert to standard functionality.\n\n");
