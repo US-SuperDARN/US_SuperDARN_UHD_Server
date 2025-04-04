@@ -1449,6 +1449,9 @@ class scanManager():
         print(f"fcenter:    {int(metaData['usrp_fcenter'])}")
         print(f"beamNo:     {int(beamNo)}")
         print(f"antenna sample sets: { len(rawData) }")
+        if len(rawData) != len(metaData['antenna_list']):
+            self.logger.error("Mismatch in number of ant samples and ant length.")
+        self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
         clearFreq, noise = self.clearFreqService.request_clr_freq(rawData, clear_freq_range, int(metaData['usrp_fcenter']), int(beamNo), int(self.channel.raw_export_data['smsep']), meta_data=metaData)
         
         
