@@ -385,7 +385,7 @@ void read_meta_data(sample_meta_data *result, void *shm_ptr, int ant_num) {
     // Read in antenna_list elements
     for (int i = META_ELEM; i < (ant_num + META_ELEM); i++) {
         if (VERBOSE) printf("    reading antenna_list: %d\n", antenna_ptr[i - META_ELEM]);
-        if (VERBOSE) printf("    reading ref_ptr     : %d\n", ref_ptr[i]);
+        if (VERBOSE) printf("    reading ref_ptr     : %d\n", (int) ref_ptr[i]);
         antenna_ptr[i - META_ELEM] = (int) ref_ptr[i];
     }
 }
@@ -708,13 +708,17 @@ int main() {
     }
 
     int restricted_num = RESTRICT_NUM;      // Number of Restricted Freqs at runtime varies depending on site
-    freq_band *restricted_freq = NULL;
-    restricted_freq = (freq_band *)malloc(restricted_num * sizeof(freq_band));
-    if (restricted_freq == NULL) {
-        perror("Error allocating memory for restricted_freq elements");
-        exit(EXIT_FAILURE);
+    freq_band restricted_freq[restricted_num];
+    for (int i = 0; i < restricted_num; i++) {
+        restricted_freq[i].f_start = 0;
+        restricted_freq[i].f_end = 0;
     }
-    add_ptr((void **)&restricted_freq);
+    // restricted_freq = (freq_band *)malloc(restricted_num * sizeof(freq_band));
+    // if (restricted_freq == NULL) {
+    //     perror("Error allocating memory for restricted_freq elements");
+    //     exit(EXIT_FAILURE);
+    // }
+    // add_ptr((void **)&restricted_freq);
 
     freq_band *clr_bands = NULL;
     clr_bands = (freq_band *)malloc(CLR_BANDS_MAX * sizeof(freq_band));

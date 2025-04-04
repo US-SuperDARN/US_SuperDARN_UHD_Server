@@ -257,7 +257,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
 
     // Scan Search range w/ Bandpass Filter (BPF) to find Clear Freq Band
     // printf("[find_clear_freqs()] Scanning Search Range w/ Bandpass...\n");
-    int *bpf = (int *) malloc(sizeof(int) * clear_sample_bw);
+    int bpf[clear_sample_bw];
+    // bpf = (int *) malloc(sizeof(int) * clear_sample_bw);
     for (int band_i = 0; band_i < clear_sample_bw; band_i++) {
         bpf[band_i] = 1;
     }
@@ -265,7 +266,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
 
     // Convolve BPF with Search Range
     int convolve_bw = clr_search_sample_bw - clear_sample_bw;
-    double *convolve_result = calloc(convolve_bw, sizeof(double));
+    double *convolve_result = NULL;
+    convolve_result = calloc(convolve_bw, sizeof(double));
     convolve(clr_search_band, clr_search_sample_bw, bpf, clear_sample_bw, convolve_result);
     printf("    Convolved Scan Band and BPF...\n");
 
@@ -289,7 +291,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
         curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * delta_f;
         curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * delta_f;
         curr_band.noise = convolve_result[i];
-        if (i < 10) printf("[%d] | %d -- %f -- %d|\n", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
+        // if (i < 10) printf("[%d] | %d -- %f -- %d|\n", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         int insert_idx = -1;
         int intersect_idx = -1;
@@ -356,9 +358,9 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
             min_idx[insert_idx] = i;
 
             // Debug: verify shifting @ sample   
-            if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
+            // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
                 // printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
-            }
+            // }
         }
     }
 
@@ -370,7 +372,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
 
     // Free allocated memory
     free(convolve_result);
-    free(bpf);
+    // free(bpf);
 
     printf("[find_clear_freqs()] Exiting find_clear_freqs()...\n");
 }
@@ -392,16 +394,19 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     }
 
     // Allocate memory for Variables
-    fftw_complex *phasing_vector = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
-    fftw_complex *beamformed_samples = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
-    double *freq_vector = (double*) malloc(sizeof(double) * num_samples);
+    fftw_complex *phasing_vector = NULL;
+    fftw_complex *beamformed_samples = NULL;
+    phasing_vector = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * meta_data->num_antennas);
+    beamformed_samples = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
+    double freq_vector[num_samples];
+    memset(freq_vector, 0, num_samples * sizeof(double));
     sample_im = (int**) malloc(sizeof(int*) * meta_data->num_antennas);
     sample_re = (int**) malloc(sizeof(int*) * meta_data->num_antennas);
     for (int i = 0; i < meta_data->num_antennas; i++) {
         sample_im[i] = (int *)malloc(meta_data->number_of_samples * sizeof(int));
         sample_re[i] = (int *)malloc(meta_data->number_of_samples * sizeof(int));
     }   
-    if (!phasing_vector || !beamformed_samples || !freq_vector) {
+    if (phasing_vector == NULL || beamformed_samples == NULL) {
         perror("Error allocating memory.\n");
         exit(EXIT_FAILURE);
     }
@@ -440,7 +445,12 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     printf("[SpectAvg] done with avg freq vector\n");
 
     double *avg_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
-    fftw_complex *fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
+    fftw_complex *fft_spectrum = NULL;
+    fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
+    if (fft_spectrum == NULL) {
+        perror("Error allocating memory.\n");
+        exit(EXIT_FAILURE);
+    }
     if (VERBOSE) printf("num_avg_sample: %d\navg_freq_ratio: %d\n", num_avg_samples, avg_freq_ratio);
     
   
@@ -534,10 +544,20 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
 
     printf("Finished Clear Freq Search!\n");
     
+    // Free allocated mem 
     fftw_free(phasing_vector);
     fftw_free(beamformed_samples);
+    fftw_cleanup();
+    printf("freed allocated fftw & its ptrs\n");
+    free(freq_vector_avg);
     free(avg_spectrum);
-    free(freq_vector);
+    for (int i = 0; i < meta_data->num_antennas; i++) {
+        free(sample_im[i]);
+        free(sample_re[i]);
+    }
+    free(sample_im);
+    free(sample_re);
+    printf("freed allocated ptrs \n");
 }
 
 void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_meta_data *meta_data, fftw_complex *phasing_vector, int *antennas, int num_samples, fftw_complex **raw_samples, int **sample_im, int **sample_re, fftw_complex *beamformed_samples)
@@ -577,10 +597,10 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
             imag_sum += real_sample * imag_phase + imag_sample * real_phase;
 
             // Store for debugging/logging
-            sample_im[aidx][i] = cimag(raw_samples[aidx][i]);
-            sample_re[aidx][i] = creal(raw_samples[aidx][i]);
+            sample_im[aidx][i] = (int) cimag(raw_samples[aidx][i]);
+            sample_re[aidx][i] = (int) creal(raw_samples[aidx][i]);
         }
-        beamformed_samples[i] = real_sum + I * imag_sum;
+        beamformed_samples[i] = (fftw_complex) (real_sum + I * imag_sum);
 
         if (VERBOSE && i == 2499)
             printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));

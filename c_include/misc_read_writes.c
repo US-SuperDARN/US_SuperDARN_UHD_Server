@@ -29,6 +29,7 @@ void add_ptr_no_global(void **ptr, void **temp_ptrs, int *temp_ptrs_num) {
         perror("Error reallocating memory for temp_ptrs");
         exit(EXIT_FAILURE);
     }
+    free(temp_ptrs);
     temp_ptrs = tmp;
     
     temp_ptrs[*temp_ptrs_num] = ptr; // Store the address of the pointer
@@ -245,7 +246,8 @@ void write_clr_freq_bin(char *filename, freq_band *clr_bands) {
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), filename, timestamp, "bin");
 
-    FILE *file = fopen(name, "wb");
+    FILE *file = NULL;
+    file = fopen(name, "wb");
     if (file == NULL) {
         file_access_error(name);
         return;
@@ -276,7 +278,8 @@ void write_clr_freq_bin(char *filename, freq_band *clr_bands) {
  * @retval None
  */
 void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_vector, sample_meta_data *meta_data) {
-    FILE *file = fopen(filename, "w");
+    FILE *file = NULL;
+    file = fopen(filename, "w");
     if (file == NULL) {
         file_access_error(filename);
         return;
@@ -294,7 +297,8 @@ void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_ve
 void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector) {
     int num_samples = 0;
     
-    FILE *file = fopen(filename, "rb");
+    FILE *file = NULL;
+    file = fopen(filename, "rb");
     if (file == NULL) {
         file_access_error(filename);
         return;
@@ -308,7 +312,8 @@ void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector
 }
 
 void read_clr_freq_bin(char *filename, freq_band *clr_bands, int *clr_start, int *clr_end) {
-    FILE *file = fopen(filename, "rb");
+    FILE *file = NULL;
+    file = fopen(filename, "rb");
     if (file == NULL) {
         file_access_error(filename);
         return;
@@ -448,18 +453,6 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
         else {
             // printf("Storing r1 & r2...\n");
 
-            // Reallocate Mem if exceeded
-            if (*restricted_num <= i) {
-                freq_band *tmp = realloc(restricted_freq, ((*restricted_num) * 2) * sizeof(freq_band));
-                if (tmp == NULL) {
-                    perror("Error allocating memory for restricted_freq");
-                    exit(EXIT_FAILURE);
-                }
-                *restricted_num = 2 * (*restricted_num);
-                update_ptr_no_global((void**)&restricted_freq, tmp, temp_ptrs, temp_ptrs_num);
-                restricted_freq = tmp;
-            } 
-
             // Check for valid freq
             if (r1  < r2 && r1 > 0 && r2 > 0) {
                 // Store freq band
@@ -479,15 +472,5 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
     *restricted_num = i;    
     printf("[CFS] Number of restricted bands: %d\n", *restricted_num);
     
-    // Trim excess memory 
-    freq_band *tmp = NULL;
-    tmp = realloc(restricted_freq, (*restricted_num) * sizeof(freq_band));
-    if (restricted_freq == NULL) {
-        perror("Error allocating memory for restricted_freq");
-        exit(EXIT_FAILURE);
-    }
-    update_ptr_no_global((void**)&restricted_freq, tmp, temp_ptrs, temp_ptrs_num);
-    restricted_freq = tmp;
-
     fclose(file);
 }
