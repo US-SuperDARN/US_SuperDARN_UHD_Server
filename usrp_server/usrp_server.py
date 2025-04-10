@@ -456,7 +456,7 @@ class ClearFrequencyService():
     DOUBLE_SIZE = 8
     
     # Shared Memory Object and Semaphores Constants
-    SAMPLES_NUM  = 10000
+    SAMPLES_NUM  = 5000
     ANTENNA_NUM = 16
     RESTRICT_NUM = 20
     META_ELEM    = 3                                    # 3 = 4 - 1 (fcenter has unique obj)
@@ -918,7 +918,7 @@ class ClearFrequencyService():
             shm_ant_num = self.read_m_data(self.shm_objects[7])[0]
             print("SHM Antenna_num:  ", shm_ant_num)
             print("Meta Antenna num: ", len(meta_data['antenna_list']))
-            if shm_ant_num != self.cur_antenna_num or self.cur_antenna_num != len(meta_data['antenna_list']):
+            if shm_ant_num != self.cur_antenna_num or self.cur_antenna_num != len(meta_data['antenna_list']) or self.shm_objects[0]['elem_num'] != (len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2):
                 print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
                 self.cur_antenna_num = len(meta_data['antenna_list'])
                 
@@ -930,7 +930,7 @@ class ClearFrequencyService():
                 
                 # Update samples SHM values
                 samples_obj = self.shm_objects[0]
-                samples_obj['elem_num'] = len(meta_data['antenna_list']) * self.SAMPLES_NUM * 2
+                samples_obj['elem_num'] = len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2
                 samples_obj['size'] = samples_obj['elem_num'] * self.INT_SIZE
                 os.ftruncate(samples_obj['shm_fd'], samples_obj['size'])
                         
@@ -1091,8 +1091,8 @@ class ClearFrequencyService():
                     self.old_meta_data = meta_data_list
                     shm_ant_num = self.read_m_data(self.shm_objects[7])
                     
-                    # If antenna length has changed, send, set, and sync with server
-                    if self.cur_antenna_num != len(meta_data['antenna_list']):
+                    # If antenna length or sample_num has changed, send, set, and sync with server
+                    if self.cur_antenna_num != len(meta_data['antenna_list']) or self.shm_objects[0]['elem_num'] != (len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2):
                         print(f"[Frequency Client] Antenna_num changed. Reallocating memory")
                         self.cur_antenna_num = len(meta_data['antenna_list'])
                         
@@ -1109,7 +1109,7 @@ class ClearFrequencyService():
                         
                         # Reallocate samples SHM
                         samples_obj = self.shm_objects[0]
-                        samples_obj['elem_num'] = len(meta_data['antenna_list']) * self.SAMPLES_NUM * 2
+                        samples_obj['elem_num'] = len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2
                         samples_obj['size'] = samples_obj['elem_num'] * self.INT_SIZE
                         os.ftruncate(samples_obj['shm_fd'], samples_obj['size'])
                         samples_obj['shm_ptr'] = mmap.mmap(samples_obj['shm_fd'], samples_obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
