@@ -902,7 +902,7 @@ class ClearFrequencyService():
                 noise_data.append(noise)
             return packed_data, noise_data 
         
-    def premap_shm(self):
+    def premap_shm(self, meta_data=None):
         """Premaps all shared memory objects' pointers to their memory addresses.  
         """
         # If no SHM mapping, map all SHM objects
@@ -1397,7 +1397,6 @@ class clearFrequencyRawDataManager():
         # self.metaData['usrp_fcenter'] = self.center_freq 
         # self.metaData['number_of_samples'] = len(self.rawData[0])
         # self.metaData['usrp_rf_rate'] = self.sampling_rate 
-        # self.metaData['antenna_list'] = self.antennaList
 
     def record_new_data(self):
         assert self.usrp_socks != None, "no usrp drivers assigned to clear frequency search data manager"
@@ -1416,9 +1415,9 @@ class clearFrequencyRawDataManager():
             self.rawData, self.antennaList = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(), self.number_of_samples, self.center_freq, self.sampling_rate)
             self.logger.debug('end record_clrfreq_raw_samples')
             
-            self.CFS.send_samples(self.rawData, self.center_freq, meta_data=self.metaData)
-
             self.metaData['antenna_list'] = self.antennaList
+            self.CFS.send_samples(self.rawData, int(self.center_freq), meta_data=self.metaData)
+
             self.logger.debug("recorded clear samples for clear frequency search, antenna list: {}".format(self.antennaList))
     
             # so, self.rawData is np.array(complex(nantennas, nsamples)
@@ -1657,7 +1656,7 @@ class scanManager():
         if len(rawData) != len(metaData['antenna_list']):
             self.logger.error("Mismatch in number of ant samples and ant length.")
         self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
-        clearFreq, noise = self.clearFreqService.request_clr_freq(int(beamNo), int(self.channel.raw_export_data['smsep']))
+        clearFreq, noise = self.clearFreqService.request_clr_freq(int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range)
         
         
         self.logger.debug('end calc_clear_freq_on_raw_samples')
