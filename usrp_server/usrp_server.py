@@ -444,7 +444,6 @@ class ClearFrequencyService():
     # TODO: Look into loading Constants by .ini or .env
     # from dotenv import load_dotenv
     # load_dotenv(".env")
-    
 
     # Program Flags
     CLEAN_ON_INACTIVE   = False           # Cleans all semaphores and shared memory objects when there are no Active Clients
@@ -456,7 +455,7 @@ class ClearFrequencyService():
     DOUBLE_SIZE = 8
     
     # Shared Memory Object and Semaphores Constants
-    SAMPLES_NUM  = 5000
+    SAMPLES_NUM  = 2500
     ANTENNA_NUM = 16
     RESTRICT_NUM = 20
     META_ELEM    = 3                                    # 3 = 4 - 1 (fcenter has unique obj)
@@ -529,7 +528,7 @@ class ClearFrequencyService():
         
         try:
             # Skip Initialization if SHMs exists
-            if (ClearFrequencyService.semaphores and ClearFrequencyService.shm_objects):
+            if (len(ClearFrequencyService.semaphores) > 0 and len(ClearFrequencyService.shm_objects) > 0):
                 print("[clearFrequencyService] Existing Shared Memory Objects and Semaphores found. Skipping Initialization...")
                 return
             
@@ -905,8 +904,8 @@ class ClearFrequencyService():
     def premap_shm(self, meta_data=None):
         """Premaps all shared memory objects' pointers to their memory addresses.  
         """
-        # If no SHM mapping, map all SHM objects
-        if self.shm_objects[0]['shm_ptr'] == None:
+        # If no SHM mapping and meta_data exist, map all SHM objects
+        if self.shm_objects[0]['shm_ptr'] == None and meta_data != None:
             
             ## Check for Premapped antenna num
             # Map shared memory object pointer for antenna num
@@ -945,7 +944,7 @@ class ClearFrequencyService():
                 if obj['name'] == '/antenna_num':
                     continue
                 print(f"Mapping {obj['name']}")
-                obj['shm_ptr'] = mmap.mmap(obj['shm_fd'], obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)   
+                obj['shm_ptr'] = mmap.mmap(obj['shm_fd'], obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) 
     
     # def update_init(self, sample_sep=None, meta_data=None):
     #     """Updates initialization variables (sample_sep, meta_data) for Clear Frequency Service. Note that it requests a server response on call end.
@@ -1073,7 +1072,7 @@ class ClearFrequencyService():
         print(f"[clearFrequencyService] Active clients count: {active_clients}\n")
         
         try:
-            self.premap_shm()
+            self.premap_shm(meta_data)
                                         
             # Await for a Client Request
             print("[clearFrequencyService] Awaiting Client Request...\n")

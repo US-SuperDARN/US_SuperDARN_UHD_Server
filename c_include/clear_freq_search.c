@@ -8,6 +8,7 @@
 #include <time.h>
 #include <signal.h>
 #include "clear_freq_search.h"
+#include "log.h"
 
 
 // Define Constants
@@ -70,8 +71,8 @@ double calc_beam_angle(int n_beams, int beam_num, double beam_sep) {
     // Calculate Beam Azimuth
     double b_azi = ((beam_num - center_beam) * beam_sep) * PI / 180;
     if (VERBOSE){
-        printf("n_beams: %d, beam_num: %d, beam_sep: %lf\n", n_beams, beam_num, beam_sep);
-        printf("    beam = %lf degree", (b_azi / PI * 180));
+        log_trace("n_beams: %d, beam_num: %d, beam_sep: %lf", n_beams, beam_num, beam_sep);
+        log_trace("    beam = %lf degree", (b_azi / PI * 180));
     }
     return b_azi;
 }
@@ -91,7 +92,7 @@ float calc_phase_increment(float beam_angle, double center_frequency, double x_s
     double wavelength = C / center_frequency;
     double phase_shift = (2 * PI * x_spacing * sin(beam_angle)) / wavelength;
     if (VERBOSE) {
-        printf("search_center_freq: %lf\nx_spacing: %lf\nphase_shift: %lf degree\n", center_frequency, x_spacing, phase_shift * 180 / PI);
+        log_trace("search_center_freq: %lfx_spacing: %lfphase_shift: %lf degree", center_frequency, x_spacing, phase_shift * 180 / PI);
     }
     return phase_shift; 
 }
@@ -155,10 +156,10 @@ void convolve(double* u, int u_size, int* v, int v_size, double* result) {
  * @retval None
  */
 void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, int num_samples, freq_band *restricted_bands, int restricted_num) { 
-    printf("    [mask_restricted] Masking restricted bands...\n");
+    log_debug("    [mask_restricted] Masking restricted bands...");
     bool is_applied = false;
 
-    // printf("spect range | %f -- %f |\n",  freq_vector[0], freq_vector[num_samples - 1]);
+    // log_trace("spect range | %f -- %f |",  freq_vector[0], freq_vector[num_samples - 1]);
 
     // Mask each restricted band
     for (int i = 0; i < restricted_num; i++) {
@@ -170,7 +171,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
         if (( mask_end <= freq_vector[num_samples - 1] && mask_end > freq_vector[0] ) ||
             ( mask_start < freq_vector[num_samples - 1] && mask_start >= freq_vector[0])) {
                 // Debug: Show masks applied
-                if (VERBOSE) printf("    [MASK] Applying...  | %d -- %d|\n", mask_start, mask_end);
+                if (VERBOSE) log_trace("    [MASK] Applying...  | %d -- %d|", mask_start, mask_end);
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
                 int mask_sample_start, mask_sample_end;
@@ -179,22 +180,22 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
                 
                 if (mask_end >= freq_vector[num_samples - 1]) mask_sample_end = num_samples - 1;
                 else mask_sample_end = (mask_end - freq_vector[0]) / delta_f;
-                // printf("            Sample bounds... | %d -- %d|\n", mask_sample_start, mask_sample_end);
+                // log_trace("            Sample bounds... | %d -- %d|", mask_sample_start, mask_sample_end);
                
                 // Apply mask
                 for (int j = mask_sample_start; j <= mask_sample_end && j <= num_samples; j++) spectrum[j] = RAND_MAX;
-                if (VERBOSE) printf("    [MASK]              | %d -- %d|\n", mask_sample_start, mask_sample_end);
+                if (VERBOSE) log_trace("    [MASK]              | %d -- %d|", mask_sample_start, mask_sample_end);
 
 
                 is_applied = true;
         }
     }
-    if (is_applied) printf("    [mask_restricted] Mask(s) applied!\n");
-    else printf("    [mask_restricted] No masks applied\n");
+    if (is_applied) log_info("    [mask_restricted] Mask(s) applied!");
+    else log_info("    [mask_restricted] No masks applied");
 
     // // Debug: Print Restricted Freqs
     // for (int i = 0; i < restricted_num; i++) {
-    //     printf("Restricted[%d]: %d -- %d\n", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
+    //     log_trace("Restricted[%d]: %d -- %d", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
     // }      
 }
 
@@ -223,7 +224,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
  */
 void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta_f, double f_start, double f_end, int clear_bw, freq_band *clr_bands) {
     
-    printf("[find_clear_freqs()] Entered find_clear_freqs()...\n");
+    log_debug("[find_clear_freqs()] Entered find_clear_freqs()...");
     if (clear_bw == 0) clear_bw = 5e3;
     clear_bw *= GB_MULT;
     int clear_sample_bw = (clear_bw) / CLRFREQ_RES; 
@@ -239,7 +240,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     if (clr_search_sample_end < 0) clr_search_sample_end = 0;
     else if (clr_search_sample_end > spectrum_sample_end) clr_search_sample_end = spectrum_sample_end;
 
-    printf("[Debug] spectrum_sample_start: %d\n     f_start: %f\n", spectrum_sample_start, f_start);
+    log_trace("spectrum_sample_start: %d     f_start: %f", spectrum_sample_start, f_start);
 
     // Trim Spectrum Data to only Clear Search Range (Used for convolving)
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
@@ -250,31 +251,31 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
 
         // Debug: Check the Clear Search Range 
         // if (i < 2  || i > clr_search_sample_bw - 2) {
-        //     printf("clr_search_band[%d]: %f\n", i, clr_search_band[i]);
-        //     printf("                   : %f \n", spectrum[i + clr_search_sample_start]);
+        //     log_trace("clr_search_band[%d]: %f", i, clr_search_band[i]);
+        //     log_trace("                   : %f ", spectrum[i + clr_search_sample_start]);
         // }
     }
 
     // Scan Search range w/ Bandpass Filter (BPF) to find Clear Freq Band
-    // printf("[find_clear_freqs()] Scanning Search Range w/ Bandpass...\n");
+    // log_debug("[find_clear_freqs()] Scanning Search Range w/ Bandpass...");
     int bpf[clear_sample_bw];
     // bpf = (int *) malloc(sizeof(int) * clear_sample_bw);
     for (int band_i = 0; band_i < clear_sample_bw; band_i++) {
         bpf[band_i] = 1;
     }
-    if (VERBOSE) printf("    clr_search_sample_start: %d\n    clr_search_sample_end: %d\n    clr_search_sample_bw: %d\n", clr_search_sample_start, clr_search_sample_end, clr_search_sample_bw);
+    if (VERBOSE) log_trace("    clr_search_sample_start: %d    clr_search_sample_end: %d    clr_search_sample_bw: %d", clr_search_sample_start, clr_search_sample_end, clr_search_sample_bw);
 
     // Convolve BPF with Search Range
     int convolve_bw = clr_search_sample_bw - clear_sample_bw;
     double *convolve_result = NULL;
     convolve_result = calloc(convolve_bw, sizeof(double));
     convolve(clr_search_band, clr_search_sample_bw, bpf, clear_sample_bw, convolve_result);
-    printf("    Convolved Scan Band and BPF...\n");
+    log_debug("    Convolved Scan Band and BPF...");
 
     // Debug: Check convolve result
     // for (int i = 0; i < clr_search_sample_bw; i++)
     // {
-    //     if (i < 10) printf("convolve[%d]: %f\n", i, convolve_result[i]);
+    //     if (i < 10) log_trace("convolve[%d]: %f", i, convolve_result[i]);
     // }
     
     // Initialize Clear Freq Bands
@@ -291,7 +292,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
         curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * delta_f;
         curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * delta_f;
         curr_band.noise = convolve_result[i];
-        // if (i < 10) printf("[%d] | %d -- %f -- %d|\n", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
+        // if (i < 10) log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         int insert_idx = -1;
         int intersect_idx = -1;
@@ -310,8 +311,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
             }
             // Continue Intersection Search 
         }
-        // printf("    Intersection Search finished...\n");
-        // printf("    intersect_idx: %d\n    insert_idx: %d\n", intersect_idx, insert_idx);
+        // log_debug("    Intersection Search finished...");
+        // log_trace("    intersect_idx: %d    insert_idx: %d", intersect_idx, insert_idx);
 
         // Insertion Point was Found...
         if (insert_idx != -1) {
@@ -319,19 +320,19 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
             if (intersect_idx != -1) {
                 // Special: If Intersect has worse noise, do not place/skip
                 if (insert_idx > intersect_idx) continue;
-                // printf("    Intersecting Insertion found w/...\n");
+                // log_trace("    Intersecting Insertion found w/...");
                 freq_band inter_band = clr_bands[intersect_idx];
 
-                // printf("        i-band = | %d -- %f -- %d|\n", inter_band.f_start, inter_band.noise, inter_band.f_end);
+                // log_trace("        i-band = | %d -- %f -- %d|", inter_band.f_start, inter_band.noise, inter_band.f_end);
 
                 // Special: Shift right till the Intersecting band is overwritten 
                 if (insert_idx < intersect_idx) {
                     // Debug: verify bands shift properly @ sample
                     // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                    //     printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
+                    //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
                     // }
                     
-                    // printf("        shifting clr_bands for intersect...\n");
+                    // log_trace("        shifting clr_bands for intersect...");
                     for (int j = intersect_idx - 1; j >= insert_idx; j--) {
                         if (j + 1 < CLR_BANDS_MAX) {
                             clr_bands[j + 1] = clr_bands[j];
@@ -342,10 +343,10 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
             } 
             // Only Insertion Point Found...
             else {
-                // printf("    Insertion found...\n");
+                // log_trace("    Insertion found...");
                 // Special: Keep pre-existing bands by shifting them to right
                 for (int j = CLR_BANDS_MAX - 2; j >= insert_idx; j--) {
-                    // printf("        shifting clr_bands for insert...\n");
+                    // log_trace("        shifting clr_bands for insert...");
                     if (j + 1 < CLR_BANDS_MAX) {
                         clr_bands[j + 1] = clr_bands[j];
                         min_idx[j + 1] = min_idx[j];
@@ -359,22 +360,22 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
 
             // Debug: verify shifting @ sample   
             // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                // printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
+                // log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
             // }
         }
     }
 
-    // printf("    Convolution Results packed up...\n");
+    // log_debug("    Convolution Results packed up...");
 
     // Debug: Output Final Clear Freq Bands
     // for (int i = 0; i < CLR_BANDS_MAX; i++)
-    //     printf("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |\n", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+    //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
 
     // Free allocated memory
     free(convolve_result);
     // free(bpf);
 
-    printf("[find_clear_freqs()] Exiting find_clear_freqs()...\n");
+    log_info("[find_clear_freqs()] Exiting find_clear_freqs()...");
 }
 
 
@@ -389,7 +390,7 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
 
     // Ensure inputs exist
     if (!raw_samples || !meta_data || !antennas) {
-        fprintf(stderr, "Error: Null input detected.\n");
+        log_fatal(stderr, "Error: Null input detected.");
         exit(EXIT_FAILURE);
     }
 
@@ -407,20 +408,20 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
         sample_re[i] = (int *)malloc(meta_data->number_of_samples * sizeof(int));
     }   
     if (phasing_vector == NULL || beamformed_samples == NULL) {
-        perror("Error allocating memory.\n");
+        perror("Error allocating memory.");
         exit(EXIT_FAILURE);
     }
 
     // if (VERBOSE) {   
     //     for (int i = 0; i < num_samples; i++) if (i < 5) {
-    //         printf("raw_samples[0][%d]: %f + %fi\n", i, creal(raw_samples[0][i]), cimag(raw_samples[0][i]));
-    //         printf("raw_samples[1][%d]: %f + %fi\n", i, creal(raw_samples[1][i]), cimag(raw_samples[1][i]));
+    //         log_trace("raw_samples[0][%d]: %f + %fi", i, creal(raw_samples[0][i]), cimag(raw_samples[0][i]));
+    //         log_trace("raw_samples[1][%d]: %f + %fi", i, creal(raw_samples[1][i]), cimag(raw_samples[1][i]));
     //     }
     // }
 
     phasing_and_beamforming(beam_angle, clear_freq_range, meta_data, phasing_vector, antennas, num_samples, raw_samples, sample_im, sample_re, beamformed_samples);
 
-    // if (VERBOSE) {for (int i = 0; i < num_samples; i++) if (i < 5) printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));}
+    // if (VERBOSE) {for (int i = 0; i < num_samples; i++) if (i < 5) log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));}
     
     // Frequency Vector Calculation
     double delta_f = meta_data->usrp_rf_rate / num_samples;
@@ -432,7 +433,7 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     /// Spectrum Calculation and Averaging; delinate Transmitters and filter out noise
     // Spectrum Averging (avg of 4 fft)
     // if (SPECTRAL_AVGING) {
-    printf("=----Starting Spectral Average----=\n");
+    log_debug("=----Starting Spectral Average----=");
     int avg_freq_ratio = 4;     //(int) delta_f / CLRFREQ_RES;
     int num_avg_samples = num_samples / avg_freq_ratio; 
 
@@ -442,16 +443,16 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     delta_f = delta_f_avg;
     for (int i = 0; i < num_avg_samples; i++) freq_vector_avg[i] = i * delta_f_avg + f_start;
 
-    printf("[SpectAvg] done with avg freq vector\n");
+    log_debug("[SpectAvg] done with avg freq vector");
 
     double *avg_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
     fftw_complex *fft_spectrum = NULL;
     fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
     if (fft_spectrum == NULL) {
-        perror("Error allocating memory.\n");
+        perror("Error allocating memory.");
         exit(EXIT_FAILURE);
     }
-    if (VERBOSE) printf("num_avg_sample: %d\navg_freq_ratio: %d\n", num_avg_samples, avg_freq_ratio);
+    if (VERBOSE) log_trace("num_avg_sample: %davg_freq_ratio: %d", num_avg_samples, avg_freq_ratio);
     
   
     clock_t t_avg_curr, t_avg;
@@ -473,16 +474,16 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
             avg_spectrum[k] += sqrt(re + im);
 
             // if (k == 9) {
-            //     printf("sample[%d][%d][%d]: %f + j%f\n", k, j, k + j, creal(fft_spectrum[k + j]), cimag(fft_spectrum[k + j]));
+            //     log_trace("sample[%d][%d][%d]: %f + j%f", k, j, k + j, creal(fft_spectrum[k + j]), cimag(fft_spectrum[k + j]));
             // }
         }
         avg_spectrum[k] /= avg_freq_ratio;
 
-        if (k == 9 && VERBOSE) printf("avg_spectrum[%d]: %f\n", k, avg_spectrum[k]);
+        if (k == 9 && VERBOSE) log_trace("avg_spectrum[%d]: %f", k, avg_spectrum[k]);
     }
     t_avg = clock() - t_avg_curr;
-    if (VERBOSE) printf("====> Spectral Avg took (s): %lf\n", ((double) (t_avg)) / (CLOCKS_PER_SEC));
-    if (VERBOSE) printf("avg_spectrum[0]: %f\n", avg_spectrum[0]);
+    if (VERBOSE) log_info("====> Spectral Avg took (s): %lf", ((double) (t_avg)) / (CLOCKS_PER_SEC));
+    if (VERBOSE) log_info("avg_spectrum[0]: %f", avg_spectrum[0]);
 
 
     // Dispose of temp variables
@@ -491,21 +492,21 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
 
     /// END of Spectrum Calculations
     
-    // if (VERBOSE) printf("delta_f: %f\nnum_samples: %d\nfcenter: %d\n", delta_f, num_samples, meta_data->usrp_fcenter * 1000);
+    // if (VERBOSE) log_trace("delta_f: %fnum_samples: %dfcenter: %d", delta_f, num_samples, meta_data->usrp_fcenter * 1000);
 
 
     // Mask restricted frequencies
     if (restricted_bands != NULL) mask_restricted_freq(avg_spectrum, freq_vector_avg, delta_f_avg, num_avg_samples, restricted_bands, restricted_num);
-    printf("------f_start: %f\n      f_end: %f\n",freq_vector_avg[0], freq_vector_avg[num_avg_samples - 1]);
+    log_trace("------f_start: %f      f_end: %f",freq_vector_avg[0], freq_vector_avg[num_avg_samples - 1]);
 
     // Define Clear Freq Range from Hz to sample index
     int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f);
     int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f);
-    printf("clear_range: | %d -- %d |\n", clear_freq_range[0], clear_freq_range[1]);
-    printf("    samples: | %d -- %d |\n", clear_sample_start, clear_sample_end);
+    log_trace("clear_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
+    log_trace("    samples: | %d -- %d |", clear_sample_start, clear_sample_end);
     // if (VERBOSE){ for (int i = clear_sample_start; i < clear_sample_end; i++) {
     //     // if (i < 2 + clear_sample_start || i > clear_sample_end - 3) 
-    //     printf("spectrum_pow[%d]: %f\n", i, avg_spectrum[i]);   
+    //     log_trace("spectrum_pow[%d]: %f", i, avg_spectrum[i]);   
     // }}
 
     // Find clear frequency
@@ -515,15 +516,15 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     t1 = clock();
     find_clear_freqs(avg_spectrum, *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_bands);
     t2 = clock();
-    if (VERBOSE) printf("find_clear_freqs (s): %lf\n", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
+    if (VERBOSE) log_info("find_clear_freqs (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
     // Debug: Output results
     for (int i = 0; i < CLR_BANDS_MAX; i++)
-        printf("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |\n", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+        log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
     
     // // Debug: Print Restricted Freqs
     // for (int i = 0; i < restricted_num; i++) {
-    //     printf("Restricted[%d]: %d -- %d\n", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
+    //     log_trace("Restricted[%d]: %d -- %d", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
     // }      
     
 
@@ -539,16 +540,16 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
             write_spectrum_mag_csv(SPECTRUM_FILE, avg_spectrum, freq_vector_avg, num_avg_samples);  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
             write_clr_freq_csv(CLR_FREQ_FILE, clr_bands);
         }
-        printf("[CFS] \'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
-    } else printf("[CFS] \'save_spectra\' not found. Not logging spectra nor clr_frequency.\n");
+        log_warn("\'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
+    } else log_warn("\'save_spectra\' not found. Not logging spectra nor clr_frequency.");
 
-    printf("Finished Clear Freq Search!\n");
+    log_debug("Finished Clear Freq Search!");
     
     // Free allocated mem 
     fftw_free(phasing_vector);
     fftw_free(beamformed_samples);
     fftw_cleanup();
-    printf("freed allocated fftw & its ptrs\n");
+    log_trace("freed allocated fftw & its ptrs");
     free(freq_vector_avg);
     free(avg_spectrum);
     for (int i = 0; i < meta_data->num_antennas; i++) {
@@ -557,14 +558,14 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
     }
     free(sample_im);
     free(sample_re);
-    printf("freed allocated ptrs \n");
+    log_trace("freed allocated ptrs ");
 }
 
 void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_meta_data *meta_data, fftw_complex *phasing_vector, int *antennas, int num_samples, fftw_complex **raw_samples, int **sample_im, int **sample_re, fftw_complex *beamformed_samples)
 {
     // Calculate and Apply phasing vector
     float phase_increment = calc_phase_increment(beam_angle, (clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
-    if (VERBOSE) printf("phase_increment: %lf\n", phase_increment);
+    if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
 
     for (int aidx = 0; aidx < meta_data->num_antennas; aidx++) {
         if (antennas[aidx] <= IDX_LAST_MA || antennas[aidx] > IDX_LAST_IA) {
@@ -573,8 +574,8 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         else phasing_vector[aidx] = 0;
 
         if (VERBOSE) {
-            // printf("ant[%d]: %d", i, antennas[i]);
-            printf("phasing vec[%d]: %f + %fi\n", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
+            // log_trace("ant[%d]: %d", i, antennas[i]);
+            log_trace("phasing vec[%d]: %f + %fi", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
         }
     }
 
@@ -589,8 +590,8 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
             double real_phase = creal(phasing_vector[aidx]);
             double imag_phase = cimag(phasing_vector[aidx]);
             if (VERBOSE && i == 2499) {
-                printf("sample[%d][2499]    = %f + %fi\n", aidx, real_sample, imag_sample);
-                printf("phase[%d]           = %f + %fi\n", aidx, real_phase, imag_phase);
+                log_trace("sample[%d][2499]    = %f + %fi", aidx, real_sample, imag_sample);
+                log_trace("phase[%d]           = %f + %fi", aidx, real_phase, imag_phase);
             }
 
             real_sum += real_sample * real_phase - imag_sample * imag_phase;
@@ -603,7 +604,7 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         beamformed_samples[i] = (fftw_complex) (real_sum + I * imag_sum);
 
         if (VERBOSE && i == 2499)
-            printf("beamformed[%d]    = %f + %fi\n", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
+            log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
     }
 }
 
@@ -639,15 +640,15 @@ clear_freq clear_freq_search(
     double beam_angle = calc_beam_angle(n_beams, beam_num, beam_sep);  
 
     // Debug: Display parameters
-    printf("\n[Frequency Server] =--- Clear Freq Variables ---=\n");
-    printf("num_samples: %d\nnum_antennas: %d\nx_spacing: %lf\nusrp_rf_rate: %d\nusrp_fcenter: %d\n",
+    log_trace("=--- Clear Freq Variables ---=");
+    log_trace("num_samples: %dnum_antennas: %dx_spacing: %lfusrp_rf_rate: %dusrp_fcenter: %d",
         meta_data.number_of_samples,
         meta_data.num_antennas,
         meta_data.x_spacing,
         meta_data.usrp_rf_rate,
         meta_data.usrp_fcenter
     );       
-    printf("n_beams: %d\nbeam_sep: %f\nbeam_num: %d\nbeam_angle: %f\n", n_beams, beam_sep, beam_num, beam_angle);
+    log_trace("n_beams: %dbeam_sep: %fbeam_num: %dbeam_angle: %f", n_beams, beam_sep, beam_num, beam_angle);
 
 
     // Stopwatch Start
@@ -668,5 +669,5 @@ clear_freq clear_freq_search(
     
     // Print processing time; Stopwatch End
     t2 = clock();
-    printf("clear_freq_search (s): %lf\n", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
+    log_info("clear_freq_search (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 };

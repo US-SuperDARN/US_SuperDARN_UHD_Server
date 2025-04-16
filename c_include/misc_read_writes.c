@@ -8,9 +8,13 @@
 #include <time.h>
 #include "clear_freq_search.h"
 #include <ctype.h>
+#include <sys/stat.h>
+#include "log.h"
 
 void file_access_error(const char *filepath) {
-    printf("[CFS] ERROR: accessing filepath: %s\n", filepath);
+    log_error("[ERROR: accessing filepath: %s\n", filepath);
+    perror("Error");
+    exit(EXIT_FAILURE);
 }
 
 
@@ -18,7 +22,7 @@ void add_ptr_no_global(void **ptr, void **temp_ptrs, int *temp_ptrs_num) {
     // Check for pre-existing ptr
     for (int i = 0; i < *temp_ptrs_num; i++) {
         if (temp_ptrs[i] == ptr) {
-            printf("Pointer already exists in temp_ptrs[%d]: %p\n", i, temp_ptrs[i]);
+            log_trace("Pointer already exists in temp_ptrs[%d]: %p\n", i, temp_ptrs[i]);
             return;
         }
     }
@@ -33,7 +37,7 @@ void add_ptr_no_global(void **ptr, void **temp_ptrs, int *temp_ptrs_num) {
     temp_ptrs = tmp;
     
     temp_ptrs[*temp_ptrs_num] = ptr; // Store the address of the pointer
-    printf("  temp_ptrs[%d] = %p -> %p\n", *temp_ptrs_num, temp_ptrs[*temp_ptrs_num], *(void **)temp_ptrs[*temp_ptrs_num]);
+    log_trace("  temp_ptrs[%d] = %p -> %p\n", *temp_ptrs_num, temp_ptrs[*temp_ptrs_num], *(void **)temp_ptrs[*temp_ptrs_num]);
     temp_ptrs_num++;
     
 }
@@ -42,7 +46,7 @@ void update_ptr_no_global(void *old_ptr, void *new_ptr, void** temp_ptrs, int te
     // Check if the old pointer exists in the array
     for (int i = 0; i < temp_ptrs_num; i++) {
         if (temp_ptrs[i] == old_ptr) {
-            printf("Updating temp_ptrs[%d] from %p to %p\n", i, temp_ptrs[i], new_ptr);
+            log_trace("Updating temp_ptrs[%d] from %p to %p\n", i, temp_ptrs[i], new_ptr);
             temp_ptrs[i] = new_ptr;
             return; // Exit the function once the pointer is found and updated
         }
@@ -189,7 +193,7 @@ void write_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vecto
     fwrite(spectrum, sizeof(double), num_samples, file);
 
 
-    printf("  ********************************************   Bytes of spectrum_mag: %ld, %ld, %ld\n", sizeof(num_samples), sizeof(freq_vector), sizeof(spectrum));
+    log_trace("  ********************************************   Bytes of spectrum_mag: %ld, %ld, %ld\n", sizeof(num_samples), sizeof(freq_vector), sizeof(spectrum));
     fclose(file);
 }
 
@@ -424,7 +428,7 @@ void read_array_config(const char *config_path, int *n_beams, double *beam_sep){
     Config config;
 
     if (ini_parse(config_path, config_ini_handler, &config) < 0) {
-        printf("Can't load 'config.ini'\n");
+        log_error("Can't load 'config.ini'\n");
         return;
     }
 
@@ -436,7 +440,7 @@ void read_array_config(const char *config_path, int *n_beams, double *beam_sep){
 void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num, void **temp_ptrs, int temp_ptrs_num) {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
-        perror("Error opening Restrict.dat file");
+        file_access_error(filepath);
         exit(EXIT_FAILURE);
     }
 
@@ -451,26 +455,74 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
         // Skip non-frequency band lines
         if (r1 == 0 || r2 == 0) continue;
         else {
-            // printf("Storing r1 & r2...\n");
+            // log_trace("Storing r1 & r2...\n");
 
             // Check for valid freq
             if (r1  < r2 && r1 > 0 && r2 > 0) {
                 // Store freq band
                 restricted_freq[i].f_start  = r1 * 1000;
                 restricted_freq[i].f_end    = r2 * 1000; 
-                printf("Restricted[%d]: %d -- %d\n", i, restricted_freq[i].f_start, restricted_freq[i].f_end);
+                log_trace("Restricted[%d]: %d -- %d", i, restricted_freq[i].f_start, restricted_freq[i].f_end);
                 i++;
             } 
             
             else {
-                printf("Invalid freq band: %d -- %d\n", r1, r2);
+                log_trace("Invalid freq band: %d -- %d", r1, r2);
                 continue;
             }
         }
     }
     
     *restricted_num = i;    
-    printf("[CFS] Number of restricted bands: %d\n", *restricted_num);
+    log_trace("Number of restricted bands: %d", *restricted_num);
     
     fclose(file);
+}
+
+void get_timestamp( char* buffer){
+	time_t rawtime;
+	struct tm *timeinfo;
+	time(&rawtime);
+	timeinfo = localtime (&rawtime);
+	strftime (buffer,32,"%G.%m%d.%H%M%S",timeinfo);
+}
+
+void get_file_name(char* filename, char* filepath){
+    char timestamp[32];
+    get_timestamp(timestamp);
+    sprintf(filename, filepath, timestamp);
+}
+
+FILE* get_log_file( char *filepath) {
+    // Create logs directory if it doesn't exist
+    struct stat st = {0};
+	if (stat("log/", &st) == -1) {
+		mkdir("log", 0700);
+	}
+    if (stat("log/cfs", &st) == -1) {
+        mkdir("log/cfs", 0700);
+    }
+
+    char filename[128];
+    get_file_name(filename, filepath);
+
+    // Create log file with timestamp
+	FILE* file = NULL;
+	if (file == NULL){
+		file = fopen(filename, "w");
+	}
+    return file;
+}
+
+FILE* init_log(int level, char *filepath) {
+    log_set_level(level);
+	log_set_quiet(0);
+	FILE *file = get_log_file(filepath);
+	int result = log_add_fp(file, 0);
+	if (result == 0){
+		log_info("CFS Logger initialized...\n");
+		return file;
+	}
+	perror("Failed to initialize Log File");
+	exit(EXIT_FAILURE);
 }
