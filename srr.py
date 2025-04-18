@@ -30,7 +30,7 @@
 #     rtserver                     : real time display server (no restart)
 #   
 #     uaf_fix (or uafscan_fix)     : starts uafscan fast with fixfreq 14000 (only start)
-#     uaf_fix ch_No                : starts uaf_fix on channel cd_No (1-4)
+#     uaf_fix ch_No                : starts uaf_fix on channel ch_No (1-4)
 #     uaf_fix_onesec [ch_No]       : starts uafscan (onsec, fixfreq) default ch_No=1
 #
 #  Available PROCESS GROUPS:
@@ -236,7 +236,7 @@ def remote_stop_all():
         print(respond)
 
 def get_known_processes(processList):
-    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd", "normalscan", "onebeamscan", "uafscan", "pcodescan", "interleavescan", "normalsound"]
+    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd", "normalscan", "onebeamscan", "uafscan", "pcodescan", "interleavescan", "normalsound", "themisscan"]
     srrProcesses = []
     for line in processList:
         wordList = [word for word in line.split(" " ) if word != ""]
