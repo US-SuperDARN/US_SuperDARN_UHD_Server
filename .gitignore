@@ -15,6 +15,7 @@ driver_config.ini
 usrp_config.ini
 
 cf_server
+usrp_driver
 save_spectrum
 
 
