@@ -1083,10 +1083,11 @@ int main() {
                 log_error( "msync failed");
                 perror("msync failed");
             }
-            if (*(int*) (beam_num_obj.shm_ptr) < 0) {
+            if (*(int*) (beam_num_obj.shm_ptr) >= 0) {
                 log_debug( "Beam Number reading...");
                 read_single_int(&beam_num, beam_num_obj.shm_ptr);
                 log_debug("    beam_num: %d", beam_num);
+                log_debug("    old_beam_num: %d", old_beam_num);
             }
 
             // Read Sample Separation
@@ -1105,7 +1106,7 @@ int main() {
 
 
             // Special: If current beam_num is not diff and clr_band is ready, write old clrfreq
-            if (old_beam_num == beam_num || clr_bands[0].noise != 0 || clr_bands[2].noise != 0) {
+            if (old_beam_num == beam_num && (clr_bands[0].noise != 0 && clr_bands[2].noise != 0)) {
                 log_info( "Writing a prior client's clrfreq\n");
                 for (int i = 0; i < CLR_BANDS_MAX; i++)
                     log_info("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
@@ -1145,7 +1146,7 @@ int main() {
                 write_clrfreq_shm(clr_bands, clrfreq_obj.shm_ptr);
 
                 
-                // Log prior clear freq band sets
+                // Log clear freq band sets
                 memcpy(clr_bands_storage[clr_storage_i], clr_bands, CLR_BANDS_MAX * sizeof(freq_band));
                 clr_storage_i++;
                 log_info( "Clr Freq Log Batch: %d/%d", clr_storage_i, CLR_STORAGE_NUM);
@@ -1153,7 +1154,6 @@ int main() {
                     write_clr_log_csv(clr_bands_storage, clr_storage_i);
                     clr_storage_i = 0;
                 }
-
             }
             if (msync(clrfreq_obj.shm_ptr, CLR_BANDS_SHM_SIZE, MS_SYNC) == -1) {    // Synchronize data writes with program counter
                 log_fatal( "msync failed");
