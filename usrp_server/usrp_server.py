@@ -2241,7 +2241,7 @@ class RadarChannelHandler:
             self.parent_RadarHardwareManager.clearFreqRawDataManager.outstanding_request = True
             self.logger.debug("RequestClearFreqSearchHandler: setting request CLR_FREQ flag in clearFreqRawDataManager (caused by ch {})".format(self.cnum))
         else:
-            self.logger.debug("RequestClearFreqSearchHandler: ignoring because of fixfreq ( ch {})".format(self.cnum))
+            self.logger.debug("RequestClearFreqSearchHandler: ignoring because of fixfreq (ch {})".format(self.cnum))
 
         return RMSG_SUCCESS
 
@@ -2585,9 +2585,9 @@ class RadarChannelHandler:
         # period not yet triggered
         if self.state[current_swing] == CS_INACTIVE:# or self.active_state == CS_READY:#  not needed with change of site.c
 
-           self.logger.debug("Ch {} waiting for Parameter semaphore...".format(self.cnum)) 
+           self.logger.debug("Ch {}: waiting for Parameter semaphore...".format(self.cnum))
            RHM.set_par_semaphore.acquire()
-           self.logger.debug("Ch {} acquired semaphore, setting parameter".format(self.cnum)) 
+           self.logger.debug("Ch {}: acquired semaphore, setting parameter".format(self.cnum))
            
            if self.state[current_swing] == CS_READY:
               self.logger.debug("Channel already initialized, but not triggered, Reinitializing it...")
@@ -2608,7 +2608,7 @@ class RadarChannelHandler:
               self.logger.debug("Ch {} already in newChannelList ".format(self.cnum))
 
            RHM.set_par_semaphore.release()
-           self.logger.debug("Ch {} released semaphore".format(self.cnum)) 
+           self.logger.debug("Ch {}: released semaphore".format(self.cnum))
  
         # in middle of scan, period already triggered. only compare with prediction
         elif self.state[current_swing] == CS_PROCESSING or self.state[current_swing] == CS_LAST_SWING: 
@@ -2620,7 +2620,7 @@ class RadarChannelHandler:
            self.ctrlprm_struct.receive(self.conn)
            for key in ctrlprm_old.keys():
               if np.any(ctrlprm_old[key] != self.ctrlprm_struct.payload[key]):
-                  self.logger.debug("ch {} received new ctrl_prm {} ({}) old ctrl_prm ({})".format(self.cnum, key, self.ctrlprm_struct.payload[key], ctrlprm_old[key] ))
+                  self.logger.debug("ch {}: received new ctrl_prm {} ({}) old ctrl_prm ({})".format(self.cnum, key, self.ctrlprm_struct.payload[key], ctrlprm_old[key] ))
                   if key == "tfreq" and self.ctrlprm_struct.payload[key] == 12000: # control program always sends 2 SET_PAR. 1st one with tfreq 12MHz
                       continue
                   self.logger.error("ch {}: received ctrlprm_struct for {} ({}) is not equal with prediction ({})".format(self.cnum, key,self.ctrlprm_struct.payload[key], ctrlprm_old[key] ))
