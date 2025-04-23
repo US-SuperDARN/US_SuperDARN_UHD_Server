@@ -18,7 +18,7 @@ def initLogging(logFileName):
     logFileName = os.path.join(logDir, logFileName)
     # set up logging to file
     logging.basicConfig(level=logfileOutputLevel,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        format='%(asctime)s %(name)-14s %(levelname)-8s %(message)s',
                         filename=logFileName, 
                         filemode='w')    # new file for every start
     # handler for console output
@@ -27,9 +27,9 @@ def initLogging(logFileName):
     if useColor:
         colorFilt = ColorFilter()
         console.addFilter(colorFilt)
-        consoleFormatter = logging.Formatter('%(name)-12s: %(preLevel)s%(levelname)-8s%(postLevel)s %(message)s')
+        consoleFormatter = logging.Formatter('%(name)-14s: %(preLevel)s%(levelname)-8s%(postLevel)s %(message)s')
     else:
-        consoleFormatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+        consoleFormatter = logging.Formatter('%(name)-14s: %(levelname)-8s %(message)s')
 
     console.setFormatter(consoleFormatter)
     logging.getLogger('').addHandler(console) # add the handler to the root logger
