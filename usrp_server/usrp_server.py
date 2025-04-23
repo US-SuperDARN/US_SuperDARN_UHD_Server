@@ -291,7 +291,7 @@ class usrpSockManager():
               memory = posix_ipc.SharedMemory(name)
               mapfile = mmap.mmap(memory.fd, memory.size)
               mapfile.seek(0)
-              for iBlock in  range(nFullBlocks): # TODO speed up by wrining more that one byte at a time?
+              for iBlock in  range(nFullBlocks): # TODO speed up by writing more than one byte at a time?
                  mapfile.write(zeros_block)
               mapfile.write(zeros_block[0:int(2*nInts_rem)])
               memory.close_fd()
@@ -643,7 +643,7 @@ class scanManager():
         self.scan_beam_list = scan_beam_list
         self.camping = len(scan_beam_list) == 1
 
-        # sync paramater
+        # sync parameter
         if scan_times_list is None:
             self.syncBeams = None
         else:
@@ -654,7 +654,7 @@ class scanManager():
     
         self.fixFreq = fixFreq
 
-        # reset all other parameter
+        # reset all other parameters
         self.current_period         = start_period
         self.current_clrFreq_result = None
         self.next_clrFreq_result    = None 
@@ -670,7 +670,7 @@ class scanManager():
         return nSec_left
 
 
-    # XXX store current freqencies in clrfreq manager,
+    # XXX store current frequencies in clrfreq manager,
     # add to restricted
     def period_finished(self):
       #  print("swing manager period finished... ")
@@ -735,7 +735,7 @@ class scanManager():
         return self.next_clrFreq_result        
         
     def evaluate_clear_freq(self, iPeriod, beamNo):
-        # TODO make sure this is function is only called once at a time
+        # TODO make sure this function is only called once at a time
      ### rawData, metaData, recordTime = self.get_clr_freq_raw_data()
         RHM = self.RHM
         rawData, metaData, recordTime = RHM.clearFreqRawDataManager.get_raw_data()
@@ -861,13 +861,13 @@ class RadarHardwareManager:
                    break
 
                 # set start time of integration period (will be overwriten if not triggered)
-                self.starttime_period = time.time() # TODO change this to refence clock and scan times
+                self.starttime_period = time.time() # TODO change this to reference clock and scan times
 
-                # check if there are any disconnected URSPs
+                # check if there are any disconnected USRPs
                 if len(self.usrpManager.addressList_inactive):
                     self.usrpManager.restore_lost_connections()
 
-                # CLEAR FREQ SEARCH: recoring when ever requested (independent of swing, state or channel)
+                # CLEAR FREQ SEARCH: recording when ever requested (independent of swing, state or channel)
                 if self.clearFreqRawDataManager.outstanding_request:
                     controlLoop_logger.debug('start self.clearFreqRawDataManager.record_new_data()')
                     self.clearFreqRawDataManager.record_new_data()
@@ -880,7 +880,7 @@ class RadarHardwareManager:
                     controlLoop_logger.debug('end self.clearFreqRawDataManager.record_new_data()')
 
 
-                # FRIST CUDA_ADD FOR NEW CHANNELS
+                # FIRST CUDA_ADD FOR NEW CHANNELS
                 if len(self.newChannelList) != 0:                   
                    self.logger.debug("active_channel list: {}".format([active_ch.cnum for active_ch in self.active_channels]))
                    self.logger.debug("channel list: {}".format([ch.cnum for ch in self.channels]))
@@ -1206,7 +1206,7 @@ class RadarHardwareManager:
            self.newChannelList.remove(channelObject)
 
         if channelObject in self.channels:
-       # this is only called if something went wrong or crtl program quit => so don't care about channel states ? 
+       # this is only called if something went wrong or ctrl program quit => so don't care about channel states ?
        #    # don't delete channel in middle of trigger, pretrigger, or ....
        #     channelObject._waitForState([CS_READY, CS_INACTIVE])  
             self.logger.info('unregister_channel_from_HardwareManager() removing channel {} from HardwareManager'.format(self.channels.index(channelObject)))
@@ -1333,11 +1333,11 @@ class RadarHardwareManager:
 
         self.nsamples_per_sequence     = pulse_sequence_period * self.usrp_rf_tx_rate
 
-        # then calculate sample indicies at which pulse sequences start within a pulse sequence
+        # then calculate sample indices at which pulse sequences start within a pulse sequence
         nPulses_per_sequence           = self.commonChannelParameter['npulses_per_sequence']
         pulse_sequence_offsets_samples = self.commonChannelParameter['pulse_sequence_offsets_vector'] * self.usrp_rf_tx_rate
 
-        # then, calculate sample indicies at which pulses start within an integration period (all possible for cuda, only trasmitted for usrp_driver) 
+        # then, calculate sample indices at which pulses start within an integration period (all possible for cuda, only trasmitted for usrp_driver)
         # TODO if the pulse offsets change in one scan, this has to be changed (calc next pulse period for cuda, current for usrp driver)
         all_possible_integration_period_pulse_sample_offsets = np.zeros(nPulses_per_sequence *  nSequences_per_period_max, dtype=np.uint64)
         for iSequence in range(nSequences_per_period_max):
@@ -1851,7 +1851,7 @@ class RadarHardwareManager:
                 for iAntenna in range(nAntennas_main):
                     if antenna_scale_factors[iChannel][RHM.antenna_idx_list_main[iAntenna]]:
                         curr_variance =   np.var(np.real(main_samples[iChannel][iAntenna][rx_idx]))
-                    else: # don't calculated if antenna is muted 
+                    else: # don't calculate if antenna is muted
                         curr_variance = 1
 
                     var_list.append(curr_variance)
@@ -1864,7 +1864,7 @@ class RadarHardwareManager:
                 for iAntenna in range(nAntennas_back):
                     if antenna_scale_factors[iChannel][RHM.antenna_idx_list_back[iAntenna]]:
                         curr_variance =   np.var(np.real(back_samples[iChannel][iAntenna][rx_idx]))
-                    else: # don't calculated if antenna is muted 
+                    else: # don't calculate if antenna is muted
                         curr_variance = 1
                     var_list.append(curr_variance)
 
@@ -2237,7 +2237,7 @@ class RadarChannelHandler:
     def RequestClearFreqSearchHandler(self, rmsg):
         self.clrfreq_struct.receive(self.conn)
         if self.scanManager.fixFreq <= 0:
-            # set request flat from RadarHardwareManager:clearFreqRawDatamanager
+            # set request flag from RadarHardwareManager:clearFreqRawDatamanager
             self.parent_RadarHardwareManager.clearFreqRawDataManager.outstanding_request = True
             self.logger.debug("RequestClearFreqSearchHandler: setting request CLR_FREQ flag in clearFreqRawDataManager (caused by ch {})".format(self.cnum))
         else:
@@ -2582,7 +2582,7 @@ class RadarChannelHandler:
         # wait if RHM.trigger_next_swing() is slower... 
         self._waitForState(current_swing, [CS_INACTIVE, CS_PROCESSING, CS_LAST_SWING])   
 
-        # period not jet triggered
+        # period not yet triggered
         if self.state[current_swing] == CS_INACTIVE:# or self.active_state == CS_READY:#  not needed with change of site.c
 
            self.logger.debug("Ch {} waiting for Parameter semaphore...".format(self.cnum)) 
@@ -2610,7 +2610,7 @@ class RadarChannelHandler:
            RHM.set_par_semaphore.release()
            self.logger.debug("Ch {} released semaphore".format(self.cnum)) 
  
-        # in middle of scan, period already triggerd. only compare with prediction
+        # in middle of scan, period already triggered. only compare with prediction
         elif self.state[current_swing] == CS_PROCESSING or self.state[current_swing] == CS_LAST_SWING: 
            # TODO something here is wrong: uafscan with --onesec has CS_LAST_SWING but --fast not
            self.update_ctrlprm_class("current")
@@ -2939,7 +2939,7 @@ class RadarChannelHandler:
         integration_time = integration_time_sec + integration_time_us/1e6
         scan_time = scan_time_sec + scan_time_us/1e6 
 
-        if scan_num_beams == 1: # make sure this variables are list even for one beam per scan
+        if scan_num_beams == 1: # make sure these variables are lists even for one beam per scan
            clrfreq_start_list = [clrfreq_start_list]
            clrfreq_bandwidth_list = [clrfreq_bandwidth_list]
            scan_beam_list = [scan_beam_list]
