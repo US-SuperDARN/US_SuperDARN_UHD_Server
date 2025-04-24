@@ -176,7 +176,7 @@ class ctrlprm_struct(driver_command):
         self.queue(ctrlprm_dict['tbeam'], np.int32, 'tbeam')
         self.queue(ctrlprm_dict['tbeamcode'], np.uint32, 'tbeamcode')
 
-        self.queue(ctrlprm_dict['tbeamazm'], np.float32, 'teambeamazm')
+        self.queue(ctrlprm_dict['tbeamazm'], np.float32, 'tbeamazm')
         self.queue(ctrlprm_dict['tbeamwidth'], np.float32, 'tbeamwidth')
 
         self.queue(ctrlprm_dict['tfreq'], np.int32, 'tfreq')
