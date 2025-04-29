@@ -1039,7 +1039,7 @@ class ProcessingGPU(object):
     def txsamples_host_to_shm(self, swing):
         for (iAntenna, ant_number) in enumerate(self.antenna_index_list):
             tx_shm_list[swing][iAntenna].seek(0)
-            self.logger.debug('copy tx samples to shm (swing {}, ant {}): {}'.format( ant_number,swing, tx_shm_list[swing][iAntenna]))
+            self.logger.debug('copy tx samples to shm (swing {}, ant {}): {}'.format( swing, ant_number, tx_shm_list[swing][iAntenna]))
             tx_shm_list[swing][iAntenna].write(self.tx_rf_outdata[iAntenna].tobytes())
             tx_shm_list[swing][iAntenna].flush()
 
