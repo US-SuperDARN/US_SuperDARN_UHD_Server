@@ -22,7 +22,7 @@
 // Logging Vars
 #define LOG_LEVEL 2                         // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
 #define LOG_PREFIX "[CFS] %s"               // *Unused* Prefix for log messages
-#define LOG_FILEPATH "log/cfs/cfs.%s.log"
+#define LOG_FILEPATH "/data/log/cfs/cfs.%s.log"
 
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM     10000
@@ -36,7 +36,7 @@
 #define CLR_BANDS_MAX   6
 #endif
 #define CLR_STORAGE_NUM 10
-#define CLR_STORE_FILEPATH "log/clr_band_storage/"
+#define CLR_STORE_FILEPATH "/data/log/clr_band_storage/"
 #define SITE_ID_ELEM    3                   // 3 = 3-letter identifier 
 
 #define SAMPLES_SHM_SIZE        (ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int)) 
@@ -536,7 +536,7 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num) {
     time(&raw_time);
     time_info = localtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-    snprintf(name, sizeof(name), "log/clr_freq/clrlog_%s.csv", timestamp);
+    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.csv", timestamp);
 
     // Generate clear log file
     FILE *file = fopen(name, "w");
@@ -939,9 +939,9 @@ int main() {
 
                 // Get site specific restrict file and join with path
                 if (strcmp(new_site_id,"lab") != 0) {
-                    log_info( "Using /site.%s/restrict.dat.inst in ststr\n", ststr);
+                    log_info( "Using /site.%s/restrict.dat.%s in ststr\n", ststr, ststr);
                     // str_f_result = asprintf(&restrict_file,"%s/tables/superdarn/site/site.%s/restrict.dat.inst",rst_path,ststr);
-                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, ststr);
+                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr, ststr);
                     if (str_f_result < 1) {
                         log_error( " site path format failed");
                         return 1;
@@ -951,7 +951,12 @@ int main() {
                 // Default: Get lab testing restrict file
                 else {
                     log_warn("WARNING: Parameter \'ststr\' is missing or set to a \"lab\" setting!");
-                    strcpy(restrict_file, "/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.sys/restrict.dat.inst\0");
+                    //str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.lab/restrict.dat.lab", rst_path);
+                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.cve/restrict.dat.cve", rst_path);
+                    if (str_f_result < 1) {
+                        log_error( " site path format failed");
+                        return 1;
+                    }
                 }
 
                 log_info("Using restrict file path: %s\n", restrict_file);
@@ -1106,14 +1111,14 @@ int main() {
 
 
             // Special: If current beam_num is not diff and clr_band is ready, write old clrfreq
-            if (old_beam_num == beam_num && (clr_bands[0].noise != 0 && clr_bands[2].noise != 0)) {
-                log_info( "Writing a prior client's clrfreq\n");
-                for (int i = 0; i < CLR_BANDS_MAX; i++)
-                    log_info("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
-                write_clrfreq_shm(clr_bands, clrfreq_obj.shm_ptr);
-            } 
+            //if (old_beam_num == beam_num && (clr_bands[0].noise != 0 && clr_bands[2].noise != 0)) {
+            //    log_info( "Writing a prior client's clrfreq\n");
+            //    for (int i = 0; i < CLR_BANDS_MAX; i++)
+            //        log_info("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+            //    write_clrfreq_shm(clr_bands, clrfreq_obj.shm_ptr);
+            //} 
             // General: Requires a beam-specific clrfreq
-            else {
+            //else {
                 log_info( "Processing beam #%d clrfreq", beam_num);
                 old_beam_num = beam_num;
                 
@@ -1154,7 +1159,7 @@ int main() {
                     write_clr_log_csv(clr_bands_storage, clr_storage_i);
                     clr_storage_i = 0;
                 }
-            }
+            //}
             if (msync(clrfreq_obj.shm_ptr, CLR_BANDS_SHM_SIZE, MS_SYNC) == -1) {    // Synchronize data writes with program counter
                 log_fatal( "msync failed");
                 perror("msync failed");
