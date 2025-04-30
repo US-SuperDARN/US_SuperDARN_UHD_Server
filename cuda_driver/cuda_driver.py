@@ -1071,7 +1071,7 @@ class ProcessingGPU(object):
                fc = self.sequences[swing][channel].ctrlprm['tfreq'] * 1000      
                for iAntenna in range(self.nAntennas):
                    self.phase_delays[channel][iAntenna] = np.float32(np.mod(2 * np.pi  * self.tdelays[iAntenna] * fc +self.phase_offsets[iAntenna]/180*np.pi , 2 * np.pi)) 
-               cuda.memcpy_htod(self.cu_txoffsets_rads, self.phase_delays)
+        cuda.memcpy_htod(self.cu_txoffsets_rads, self.phase_delays)
    
     # plot filters 
     def _plot_filter(self):
