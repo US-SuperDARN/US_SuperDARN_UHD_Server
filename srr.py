@@ -236,7 +236,7 @@ def remote_stop_all():
         print(respond)
 
 def get_known_processes(processList):
-    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd", "normalscan", "onebeamscan", "uafscan", "pcodescan", "interleavescan", "normalsound", "themisscan"]
+    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd", "normalscan", "onebeamscan", "uafscan", "pcodescan", "interleavescan", "normalsound", "themisscan", "cf_server"]
     srrProcesses = []
     for line in processList:
         wordList = [word for word in line.split(" " ) if word != ""]
@@ -707,13 +707,13 @@ def restart_all():
    waitFor(delay_between_driver_and_server)
    myPrint("done  waiting.... starting server")
    start_usrp_server()
-   
+
 def restart_clear_frequency_service():
    server_was_running = stop_clear_frequency_service()
    if server_was_running:
       waitFor(nSecs_restart_pause)
    stop_clear_frequency_service()
-   start_clear_frequency_server()   
+   start_clear_frequency_server()
 
 def stop_clear_frequency_service():
     myPrint(" Stopping clear frequency service...")
@@ -790,6 +790,7 @@ def main():
             myPrint("Starting all...")
             start_cuda_driver()
             start_usrp_driver()
+            start_clear_frequency_server()
             waitFor(delay_between_driver_and_server)
             start_usrp_server()
          elif inputArg[1].lower() in ["usrp_driver", "usrps"]:
