@@ -547,12 +547,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
     std::string usrpargs(as_host->sval[0]);
     usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6";
-//    usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6,recv_frame_size=50000000";
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-  //  usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
-  //  usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
     boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
     uhd::stream_args_t stream_args("sc16", "sc16");
     
@@ -1061,19 +1058,23 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 case AUTOCLRFREQ: {
                     // has to be called after GET_DATA and before USRP_SETUP
                     DEBUG_PRINT("entering getting auto clear freq command\n");
-//                    uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
 
-                    iSide = 0;// TODO both sides!
                     if (auto_clear_freq_available) {
-                        DEBUG_PRINT("AUTOCLRFREQ samples sending %ld samples for antenna %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide]);
-                        sock_send_int32(driverconn, (int32_t) antennaVector[iSide]); 
-                        sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[iSide].size());
 
-                        // send samples                   
-                        send(driverconn, &rx_auto_clear_freq[iSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[iSide].size() , 0);
+                      DEBUG_PRINT("AUTOCLRFREQ samples sending %ld samples for antenna %d usrp side %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide],iSide);
+
+                      sock_send_int32(driverconn, (int32_t) nSides );
+
+                      for( int jSide=0; jSide<(int)nSides; jSide++ ){
+                        sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
+                        sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[jSide].size());
+                      // send samples
+                        send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[jSide].size() , 0);
+                      }
+
                     }
                     else {
-                        sock_send_int32(driverconn, (int32_t) -1); 
+                        sock_send_int32(driverconn, (int32_t) -1);
                         
                     }
 
@@ -1132,12 +1133,16 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 
 
+                    sock_send_int32(driverconn, (int32_t) nSides);
                     DEBUG_PRINT("CLRFREQ received samples, relaying %d samples back...\n", num_clrfreq_samples);
-                    sock_send_int32(driverconn, (int32_t) antennaVector[0]); // TODO both sides?
-                    sock_send_float64(driverconn, clrfreq_rate);
+                    for( int jSide = 0; jSide < (int) nSides; jSide++ ){
 
-                    // send back samples                   
-                    send(driverconn, &clrfreq_data_buffer[0][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                      sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
+                      sock_send_float64(driverconn, clrfreq_rate);
+
+                    // send back samples
+                      send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                    }
 
                     //for(uint32_t i = 0; i < num_clrfreq_samples; i++) {
                         //DEBUG_PRINT("sending %d - %d\n", i, clrfreq_data_buffer[0][i]);

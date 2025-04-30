@@ -72,7 +72,7 @@ def calc_clear_freq_on_raw_samples(raw_samples, sample_meta_data, restricted_fre
         spectrum_power = mask_spectrum_power_with_restricted_freqs(spectrum_power, freq_vector, restricted_frequencies)
    
     # search for a clear frequency within the given frequency range
-    clear_bw = 2e6/smsep
+    clear_bw = 4e6/smsep
     tfreq, noise = find_clrfreq_from_spectrum(spectrum_power, freq_vector, clear_freq_range[0] * 1e3, clear_freq_range[1] * 1e3, clear_bw = clear_bw)
     
     if SAVE_CLEAR_FREQUENCY_SEARCH:
@@ -154,17 +154,21 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
     # grab raw samples
     for usrpsock in usrp_sockets:
         try:
-            antenna_no_tmp = recv_dtype(usrpsock, np.int32)
-            clrfreq_rate_actual = recv_dtype(usrpsock, np.float64)
-            assert clrfreq_rate_actual == clrfreq_rate_requested
+            nSides=recv_dtype(usrpsock, np.int32)
 
-            #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
-            dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
+            for j in range(nSides):
+               antenna_no_tmp = recv_dtype(usrpsock, np.int32)
+               clrfreq_rate_actual = recv_dtype(usrpsock, np.float64)
+               assert clrfreq_rate_actual == clrfreq_rate_requested
+
+               #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
+               dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
            
-            sample_buf = recv_dtype(usrpsock, np.int16, nitems = int(2 * num_clrfreq_samples))
+               sample_buf = recv_dtype(usrpsock, np.int16, nitems = int(2 * num_clrfreq_samples))
 
-            output_samples_list.append(sample_buf[0::2] + 1j * sample_buf[1::2])
-            output_antenna_idx_list.append(antenna_no_tmp)
+               output_samples_list.append(sample_buf[0::2] + 1j * sample_buf[1::2])
+               output_antenna_idx_list.append(antenna_no_tmp)
+               
         except:
             dbPrint("CLRFREQ response from {} failed.".format(usrpsock))
 

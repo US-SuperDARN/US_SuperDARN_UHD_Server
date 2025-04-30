@@ -45,10 +45,12 @@ def calc_beamforming_phase_rect(antenna, pshift):
 def beamform_uhd_samples(samples, phasing_matrix, n_samples, antennas, pack_uint32):
     beamformed_samples = np.ones(n_samples, dtype=np.complex_)
 
+    # For each sample...
     for i in range(int(n_samples)):
         itemp = 0
         qtemp = 0
 
+        # Pack real and imaginary values
         for aidx in range(len(antennas)):
             itemp += np.real(samples[aidx][i]) * np.real(phasing_matrix[aidx]) - \
                 np.imag(samples[aidx][i]) * np.imag(phasing_matrix[aidx])
