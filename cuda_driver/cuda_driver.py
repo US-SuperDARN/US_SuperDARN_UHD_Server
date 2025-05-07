@@ -37,7 +37,6 @@ import dsp_filters
 from phasing_utils import *
 import logging_usrp
 
-
 # import pycuda stuff
 SWING0 = 0
 SWING1 = 1
@@ -50,7 +49,7 @@ RXDIR = 'rx'
 TXDIR = 'tx'
 
 DEBUG = False
-verbose = 1
+verbose = 0
 
 C = 3e8
 nAntennas_per_polarization = 20 # used to reset (modulo) the tx phasing input antenna number 
@@ -74,7 +73,7 @@ sem_list = []
 
 # python3 or greater is needed for direct transfers between shm and gpu memory
 if sys.hexversion < 0x030300F0:
-    loggin.error('this code requires python 3.3 or greater')
+    logging.error('this code requires python 3.3 or greater')
     sys.exit(0)
 
 
@@ -168,7 +167,7 @@ class cuda_generate_pulse_handler(cudamsg_handler):
         assert tpulse < int(self.hardware_limits['max_tpulse']) / 1e6, 'pulse length is too long for hardware'
 
         if not (tx_center_freq >= int(self.hardware_limits['minimum_tfreq'])):
-            self.logger.error('transmit center frequency too low for hardware')
+            self.logger.error('transmit center frequency ({}) too low for hardware'.format(tx_center_freq))
 
         if tx_center_freq > int(self.hardware_limits['maximum_tfreq']):
             self.logger.error('transmit center frequency too high for hardware')
@@ -279,7 +278,7 @@ class cuda_add_channel_handler(cudamsg_handler):
            self.logger.debug("  channel number {}  (cuda index: {})".format(channelNumber, chIdx))
            self.logger.debug("  tx channel freq {} kHz".format(self.gpu.sequences[swing][chIdx].ctrlprm['tfreq'] ))
            self.logger.debug("  rx channel freq {} kHz".format(self.gpu.sequences[swing][chIdx].ctrlprm['rfreq'] ))
-           self.logger.debug("  tx pulse offset   "+ str(  self.gpu.sequences[swing][chIdx].pulse_offsets_vector) )
+           # self.logger.debug("  tx pulse offset   "+ str(  self.gpu.sequences[swing][chIdx].pulse_offsets_vector) )
 
         # TODO: think if this has to move to rx/tx handler...
 #        this is the next step
@@ -320,7 +319,7 @@ class cuda_remove_channel_handler(cudamsg_handler):
 # take copy and process BB data from shared memory, send to usrp_server via socks 
 class cuda_get_data_handler(cudamsg_handler):
     def process(self):
-        self.logger.debug('entering cuda_get_data handler')
+        self.logger.debug('entering cuda_get_data handler on {}'.format(os.uname().nodename))
 
         cmd = cuda_get_data_command([self.sock])
         cmd.receive(self.sock)
@@ -371,6 +370,7 @@ class cuda_get_if_data_handler(cudamsg_handler):
         # transmit requested channels
         channel = recv_dtype(self.sock, np.int32) 
         while (channel != -1):
+            self.logger.debug('received channel number ={} swing={})'.format(channel,swing))
             channelIndex = self.gpu.channelNumbers[swing].index(channel)
             self.logger.debug('received channel number ={}(cuda index: {}))'.format(channel, channelIndex))
 
@@ -394,7 +394,7 @@ class cuda_process_handler(cudamsg_handler):
         transmit_dtype(self.sock, self.command, np.uint8)
 
         swing = cmd.payload['swing']
-        self.logger.debug('enter cuda_process_handler (swing {})'.format(swing))
+        self.logger.debug('enter cuda_process_handler (swing {}) on {}'.format(swing,os.uname().nodename))
 #        pdb.set_trace()
 
 #        acquire_sem(rx_sem_list[swing])
@@ -587,7 +587,7 @@ class ProcessingGPU(object):
 
     # add a USRP with some constant calibration time delay and phase offset (should be frequency dependant?)
     # instead, calibrate VNA on one path then measure S2P of other paths, use S2P file as calibration?
-    def addUSRP(self, usrp_hostname = '', driver_hostname = '', mainarray = True, array_idx = -1, x_position = None, tdelay = 0, side = 'a', phase_offset = None):
+    def addUSRP(self, usrp_hostname = '', driver_hostname = '', mainarray = True, radar = 0, array_idx = -1, x_position = None, tdelay = 0, side = 'a', phase_offset = None):
         iAntenna =  self.antenna_index_list.tolist().index(int(array_idx))
         self.tdelays[iAntenna] = tdelay
         if phase_offset == None:
@@ -1071,7 +1071,7 @@ class ProcessingGPU(object):
                fc = self.sequences[swing][channel].ctrlprm['tfreq'] * 1000      
                for iAntenna in range(self.nAntennas):
                    self.phase_delays[channel][iAntenna] = np.float32(np.mod(2 * np.pi  * self.tdelays[iAntenna] * fc +self.phase_offsets[iAntenna]/180*np.pi , 2 * np.pi)) 
-               cuda.memcpy_htod(self.cu_txoffsets_rads, self.phase_delays)
+        cuda.memcpy_htod(self.cu_txoffsets_rads, self.phase_delays)
    
     # plot filters 
     def _plot_filter(self):
@@ -1162,7 +1162,7 @@ def main():
     cmd_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     cmd_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     cmd_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    cmd_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)    
+    cmd_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
     cmd_sock.bind((network_settings.get('ServerHost'), network_settings.getint('CUDADriverPort')))
    
     # get size of shared memory buffer per-antenna in bytes from cudadriver_config.ini

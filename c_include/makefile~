@@ -1,0 +1,12 @@
+CFLAGS= -O3 -pthread 
+
+LIBS= -lfftw3 -lm 
+
+.c.o:
+	icx $(CFLAGS) $(INCLUDE) -c -o $@ $<
+
+OBJS=clear_frequency_server.o 
+
+cf_server:	$(OBJS)
+	gcc -o ../cf_server $(CFLAGS) $(OBJS) $(LIBS)
+

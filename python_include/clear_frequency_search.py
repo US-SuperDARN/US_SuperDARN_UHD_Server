@@ -13,6 +13,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal
+import time
 from drivermsg_library import *
 from rosmsg import *
 from phasing_utils import calc_beam_azm_rad, calc_phase_increment, rad_to_rect, beamform_uhd_samples
@@ -25,7 +26,7 @@ SAVE_CLEAR_FREQUENCY_SEARCH = False
 CLEAR_FREQUENCY_DUMP_DIR = '/data/logs/clearfreq_logs/'
 
 
-DEBUG = 0
+DEBUG = 1
 def dbPrint(msg):
    if DEBUG:
      print("clear_frequency_search.py : " + msg)
@@ -150,29 +151,39 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
     clrfreq_cmd = usrp_clrfreq_command(usrp_sockets, num_clrfreq_samples, clrfreq_time, center_freq, clrfreq_rate_requested)
     clrfreq_cmd.transmit()
 
+    # if usrp_sockets[0].getpeername()[0] != '127.0.0.1':
+    #    time.sleep(0.01)
+    
     dbPrint("CLRFREQ command sent, waiting for raw samples")
     # grab raw samples
     for usrpsock in usrp_sockets:
         try:
-            nSides=recv_dtype(usrpsock, np.int32)
+           nSides=recv_dtype(usrpsock, np.int32)
 
-            for j in range(nSides):
-               antenna_no_tmp = recv_dtype(usrpsock, np.int32)
-               clrfreq_rate_actual = recv_dtype(usrpsock, np.float64)
-               assert clrfreq_rate_actual == clrfreq_rate_requested
-
-               #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
-               dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
-           
-               sample_buf = recv_dtype(usrpsock, np.int16, nitems = int(2 * num_clrfreq_samples))
-
-               output_samples_list.append(sample_buf[0::2] + 1j * sample_buf[1::2])
-               output_antenna_idx_list.append(antenna_no_tmp)
-               
+           dbPrint("CLRFREQ nSides {}".format(nSides))
+             
+           for j in range(nSides):
+              antenna_no_tmp = recv_dtype(usrpsock, np.int32)
+              clrfreq_rate_actual = recv_dtype(usrpsock, np.float64)
+              assert clrfreq_rate_actual == clrfreq_rate_requested
+              
+              #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
+              dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
+              
+              if usrpsock.getpeername()[0] != '127.0.0.1':
+                 time.sleep(0.01)
+                 
+              sample_buf = recv_dtype(usrpsock, np.int16, nitems = int(2 * num_clrfreq_samples))
+              
+              dbPrint("CLRFREQ number samples {}".format(len(sample_buf)))
+              
+              output_samples_list.append(sample_buf[0::2] + 1j * sample_buf[1::2])
+              output_antenna_idx_list.append(antenna_no_tmp)
+              
         except:
-            dbPrint("CLRFREQ response from {} failed.".format(usrpsock))
-
-    
+           dbPrint("CLRFREQ response from {} failed.".format(usrpsock))
+           
+           
     try:
         clrfreq_cmd.client_return()
         dbPrint("record sample command completed")

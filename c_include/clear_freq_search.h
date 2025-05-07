@@ -8,7 +8,7 @@
 #define VERBOSE 1
 
 typedef struct sample_meta_data {
-    int *antenna_list;
+    int antenna_list[30];
     int num_antennas;
     int number_of_samples;
     double x_spacing;

@@ -56,7 +56,8 @@ class driver_command(object):
             self.data = dtype(data)
         
         def transmit(self, sock):
-     #       print('\t driverMSG transmitting: {}, value: {}, type {}'.format(self.name, self.data, self.dtype))
+            # print('\t driverMSG transmitting: {}, value: {}, type {}'.format(self.name, self.data, self.dtype))
+            # logger.debug("transmitting to sock: {}".format(sock))
             return transmit_dtype(sock, self.data, self.dtype)
 
         def receive(self, sock):
@@ -332,6 +333,7 @@ class usrp_ready_data_command(driver_command):
     def receive_all_metadata(self):
        payloadList = []
        for sock in self.clients:
+           print(sock)
            try:
               payload = {}
               payload['status']   = recv_dtype(sock, np.int32)
@@ -339,6 +341,7 @@ class usrp_ready_data_command(driver_command):
               payload['nsamples'] = recv_dtype(sock, np.int32)
               payload['fault']    = recv_dtype(sock, np.bool_)
               payloadList.append(payload)
+              print("usrp_ready_data_command: ",payload)
            except:
               payloadList.append(CONNECTION_ERROR)
               self.logger.error("Connection error.")
@@ -387,7 +390,10 @@ class usrp_get_auto_clear_freq_command(driver_command):
             else:
                 nSamples = recv_dtype(sock, np.uint32)
                 print("clear search number of samples:",nSamples)
-
+                
+                if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
+                    time.sleep(0.002)
+                    
                 time.sleep(0.001)
                 sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))                
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]

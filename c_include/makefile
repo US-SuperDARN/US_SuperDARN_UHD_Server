@@ -1,10 +1,10 @@
-CFLAGS= -O3 -pthread 
+CFLAGS= -O3 -pthread -DLOG_USE_COLOR
 
 LIBS= -lfftw3 -lm -lrt
 
 INCLUDE= 
 
-OBJS=clear_frequency_server.o clear_freq_search.o ini_parser.o misc_read_writes.o read_config.o
+OBJS=clear_freq_search.o ini_parser.o misc_read_writes.o read_config.o log.o clear_frequency_server.o 
 
 TARGET= ../cf_server
 
@@ -19,3 +19,5 @@ build:	$(OBJS)
 
 clean:
 	-rm -rf $(OBJS) $(TARGET)
+
+.PHONY: all build clean

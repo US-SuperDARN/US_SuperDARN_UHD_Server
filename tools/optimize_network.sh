@@ -12,42 +12,17 @@ sudo sysctl -w net.core.netdev_max_backlog=300000
 sudo sysctl -w net.core.netdev_budget=600
 
 
+eth_nics=`sudo lshw -class network | grep logical | cut -d ":" -f 2`
 
-# disable cpu throttling
-sudo cpufreq-set -g PERFORMANCE
+for nic in $eth_nics;
+do
+    echo $nic
+    sudo ethtool -C $nic adaptive-tx off
+    sudo ethtool -C $nic adaptive-rx off
+done
 
 # disable interrupt coallesing:
-sudo ethtool -C enp180s0f0 adaptive-tx off
-sudo ethtool -C enp180s0f1 adaptive-tx off
-sudo ethtool -C enp180s0f2 adaptive-tx off
-sudo ethtool -C enp180s0f3 adaptive-tx off
-
-sudo ethtool -C enp180s0f0 adaptive-rx off
-sudo ethtool -C enp180s0f1 adaptive-rx off
-sudo ethtool -C enp180s0f2 adaptive-rx off
-sudo ethtool -C enp180s0f3 adaptive-rx off
-
-sudo ethtool -C enp23s0f0 adaptive-tx off
-sudo ethtool -C enp23s0f1 adaptive-tx off
-sudo ethtool -C enp23s0f2 adaptive-tx off
-sudo ethtool -C enp23s0f3 adaptive-tx off
-
-sudo ethtool -C enp23s0f0 adaptive-rx off
-sudo ethtool -C enp23s0f1 adaptive-rx off
-sudo ethtool -C enp23s0f2 adaptive-rx off
-sudo ethtool -C enp23s0f3 adaptive-rx off
-
-sudo ethtool -C enp2s0f0 adaptive-tx off
-sudo ethtool -C enp2s0f1 adaptive-tx off
-sudo ethtool -C enp2s0f2 adaptive-tx off
-sudo ethtool -C enp2s0f3 adaptive-tx off
-
-sudo ethtool -C enp2s0f0 adaptive-rx off
-sudo ethtool -C enp2s0f1 adaptive-rx off
-sudo ethtool -C enp2s0f2 adaptive-rx off
-sudo ethtool -C enp2s0f3 adaptive-rx off
-
-sudo /home/radar/repos/SuperDARN_UHD_Server/tools/change_priority_by_name.sh ksoftirqd 60
+#sudo /home/radar/repos/SuperDARN_UHD_Server/tools/change_priority_by_name.sh ksoftirqd 60
 
 
 

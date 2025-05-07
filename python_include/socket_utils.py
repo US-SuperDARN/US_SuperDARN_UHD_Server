@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 import socket
 
-verbose = False 
+verbose = False
 # DEL
 # pack i/q samples into uint32 for sending samples over the network
 # between usrp_server and arbyserver
