@@ -1,6 +1,6 @@
 CFLAGS= -O3 -pthread -DLOG_USE_COLOR
 
-LIBS= -lfftw3 -lm -lrt
+LIBS= -lfftw3_threads -lfftw3 -lm -lrt
 
 INCLUDE= 
 

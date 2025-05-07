@@ -437,7 +437,7 @@ void read_array_config(const char *config_path, int *n_beams, double *beam_sep){
     *beam_sep = config.array_info.beam_sep;
 }
 
-void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num, void **temp_ptrs, int temp_ptrs_num) {
+void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num) {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
         file_access_error(filepath);

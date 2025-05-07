@@ -25,11 +25,7 @@ ssh radar@$RADAR_2 'python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_wat
 python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py server &
 
 sleep 5
-ssh radar@$RADAR_2 '/home/radar/repos/SuperDARN_UHD_Server/launch_second_radar.sh &' &
-schedule -l /data/ros/scdlog/mcm.a.scdlog -f /data/ros/scd/mcm.a.scd & 
-
-
-
-
+# ssh radar@$RADAR_2 '/home/radar/repos/SuperDARN_UHD_Server/launch_second_radar.sh &' &
+# schedule -l /data/ros/scdlog/mcm.a.scdlog -f /data/ros/scd/mcm.a.scd & 
 #/home/radar/ros.3.6/bin/schedule -l /data/ros/scdlog/mcm.b.scdlog -f /data/ros/scd/mcm.b.scd & 
 

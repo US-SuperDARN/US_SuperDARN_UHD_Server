@@ -754,7 +754,7 @@ class ClearFrequencyService():
             active_clients -= 1
             m.seek(0)
             m.write(struct.pack('i', active_clients))
-            print(f"[clearFrequencyService] Decremented Active Clients Counter: {active_clients}")
+            print(f"[clearFrequencyService] Decremented Active Clients Counter: {active_clients}\n")
             return active_clients
       
               
@@ -1018,6 +1018,8 @@ class ClearFrequencyService():
         """ Waits for client requests, then processes server data, writes client 
             data, and requests server to process new data. When process is 
             terminated, the try/finally block cleans up.
+            
+            Note: fcenter and meta_data can be None after being passed as arguments on the first send_samples() method call.
         """
         input_data = [
             raw_samples, 
@@ -1038,7 +1040,7 @@ class ClearFrequencyService():
                 
         # Get in Queue
         active_clients = self.increment_active_clients()
-        print(f"[clearFrequencyService] Active clients count: {active_clients}\n")
+        print(f"[clearFrequencyService] Active clients count: {active_clients}")
         
         try:
             self.premap_shm(meta_data)
@@ -1161,7 +1163,7 @@ class ClearFrequencyService():
                 
         # Get in Queue
         active_clients = self.increment_active_clients()
-        print(f"[clearFrequencyService] Active clients count: {active_clients}\n")
+        print(f"[clearFrequencyService] Active clients count: {active_clients}")
         
         try:
             self.premap_shm()

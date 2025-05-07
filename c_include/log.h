@@ -20,10 +20,17 @@ typedef struct {
   const char *fmt;
   const char *file;
   struct tm *time;
+  int time_ms;
   void *udata;
   int line;
   int level;
 } log_Event;
+
+typedef struct {
+  time_t tv_sec;   /* seconds */
+  long   tv_nsec;  /* nanoseconds */
+} timespec;
+
 
 typedef void (*log_LogFn)(log_Event *ev);
 typedef void (*log_LockFn)(bool lock, void *udata);
