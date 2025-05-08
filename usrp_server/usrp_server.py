@@ -57,6 +57,7 @@ RADAR_STATE_TIME = .0001
 CHANNEL_STATE_TIMEOUT = 120
 # TODO: move this out to a config file
 RESTRICT_FILE = '/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.mcm/restrict.dat.inst'
+ThisRadar="mcm"
 nSwings = 2 
 
 debug = True 
@@ -230,7 +231,7 @@ class usrpSockManager():
                idx_usrp = self.hostnameList_inactive[jrad].index(usrpConfig['usrp_hostname'])
                self.antennaList_inactive[jrad][idx_usrp].append(usrpConfig['array_idx'])
             else:   
-               self.addressList_inactive[jrad].append((usrpConfig['driver_hostname'], port ))
+               self.addressList_inactive[jrad].append(connectPar)
                self.antennaList_inactive[jrad].append([usrpConfig['array_idx']])
                self.hostnameList_inactive[jrad].append(usrpConfig['usrp_hostname'])
                self.driverHostnameList_inactive[jrad].append(usrpConfig['driver_hostname'])
@@ -242,8 +243,6 @@ class usrpSockManager():
          if len(self.socks[jrad]) != 0:
             SomeActiveUSRPs = True
 
-      self.logger.debug("SomeActiveUSRPs: {}".format(SomeActiveUSRPs))
-               
       if not SomeActiveUSRPs:
          self.logger.error("No connection to USRPs. Exit usrp_server.")
          RHM.exit() 
@@ -294,12 +293,12 @@ class usrpSockManager():
             if singleReturn == CONNECTION_ERROR:
 
                if jrad is None:
-                  socks = np.concatenate(self.socks).to_list()
+                  socks = np.concatenate(self.socks).tolist()
                   badsock=socks[iSock-offset]
                   for jjrad in range(N_RADARs):
                      if badsock in self.socks[jjrad]:
                         jrad = jjrad
-                        index = socks[jrad].index(badsock)
+                        index = self.socks[jrad].index(badsock)
                else:
                   index=iSock-offset
                   
@@ -403,8 +402,8 @@ class usrpSockManager():
             except ConnectionRefusedError:
                self.logger.warning('reconnection to usrp {} failed'.format(tmp_driverHostname_list[jrad][iUSRP]))
                self.addressList_inactive[jrad].append(usrp)
-               self.antennaList_inactive[jrad].append(tmp_antenna_list[iUSRP]) 
-               self.hostnameList_inactive[jrad].append(tmp_hostname_list[iUSRP])
+               self.antennaList_inactive[jrad].append(tmp_antenna_list[jrad][iUSRP]) 
+               self.hostnameList_inactive[jrad].append(tmp_hostname_list[jrad][iUSRP])
                self.driverHostnameList_inactive[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
 
 
@@ -754,7 +753,7 @@ class ClearFrequencyService():
             active_clients -= 1
             m.seek(0)
             m.write(struct.pack('i', active_clients))
-            print(f"[clearFrequencyService] Decremented Active Clients Counter: {active_clients}")
+            print(f"[clearFrequencyService] Decremented Active Clients Counter: {active_clients}\n")
             return active_clients
       
               
@@ -1018,6 +1017,8 @@ class ClearFrequencyService():
         """ Waits for client requests, then processes server data, writes client 
             data, and requests server to process new data. When process is 
             terminated, the try/finally block cleans up.
+            
+            Note: fcenter and meta_data can be None after being passed as arguments on the first send_samples() method call.
         """
         input_data = [
             raw_samples, 
@@ -1038,7 +1039,7 @@ class ClearFrequencyService():
                 
         # Get in Queue
         active_clients = self.increment_active_clients()
-        print(f"[clearFrequencyService] Active clients count: {active_clients}\n")
+        print(f"[clearFrequencyService] Active clients count: {active_clients}")
         
         try:
             self.premap_shm(meta_data)
@@ -1161,7 +1162,7 @@ class ClearFrequencyService():
                 
         # Get in Queue
         active_clients = self.increment_active_clients()
-        print(f"[clearFrequencyService] Active clients count: {active_clients}\n")
+        print(f"[clearFrequencyService] Active clients count: {active_clients}")
         
         try:
             self.premap_shm()
@@ -1320,7 +1321,7 @@ class clearFrequencyRawDataManager():
         self.center_freq = [None for jrad in range(N_RADARs)]
         self.sampling_rate = [None for jrad in range(N_RADARs)]
         self.number_of_samples = None
-        self.CFS = ClearFrequencyService()
+        self.CFS = ClearFrequencyService(sid=ThisRadar)
          
         self.metaData = {}
 
@@ -1402,9 +1403,9 @@ class clearFrequencyRawDataManager():
         if self.rawData[jrad] is None: 
            self.record_new_data(jrad)
         else:
-           print("clearFreqDataManager: recordTime {} ".format(self.recordTime[jrad]))
-           print("clearFreqDataManager: length rawData {} ".format(len(self.rawData[jrad])))
-           print("clearFreqDataManager: provide raw data (age {}), setting raw_rec request ".format(time.time() - self.recordTime[jrad]))
+           self.logger.debug("clearFreqDataManager: recordTime {} ".format(self.recordTime[jrad]))
+           self.logger.debug("clearFreqDataManager: length rawData {} ".format(len(self.rawData[jrad])))
+           self.logger.debug("clearFreqDataManager: provide raw data (age {}), setting raw_rec request ".format(time.time() - self.recordTime[jrad]))
            self.outstanding_request[jrad] = True
           
         self.get_raw_data_semaphore.release()
@@ -1450,7 +1451,7 @@ class scanManager():
        
         self.channel = channel
         self.RHM = channel.parent_RadarHardwareManager
-        self.clearFreqService = ClearFrequencyService()
+        self.clearFreqService = ClearFrequencyService(sid=ThisRadar)
         self.beamSep = self.RHM.array_beam_sep
         self.numBeams = self.RHM.array_nBeams
 
@@ -1751,8 +1752,10 @@ class RadarHardwareManager:
                 self.starttime_period = time.time() # TODO change this to refence clock and scan times
 
                 # check if there are any disconnected URSPs
-                if len(np.concatenate(self.usrpManager.addressList_inactive).tolist()):
-                    self.usrpManager.restore_lost_connections()
+                
+                for jrad in range(N_RADARs):
+                   if len(self.usrpManager.addressList_inactive[jrad]):
+                      self.usrpManager.restore_lost_connections()
 
                 # CLEAR FREQ SEARCH: recoring when ever requested (independent of swing, state or channel)
                 for jrad in range(N_RADARs):                   
@@ -2021,12 +2024,13 @@ class RadarHardwareManager:
 
             # loop over jradar
             
-            cmd = usrp_rxfe_setup_command(self.usrpManager.socks, amp1, amp2, att*2) # *2 since LSB is 0.5 dB 
-            cmd.transmit()
-            cmd.client_return()
-            self.logger.warning("Current settings: Amp1={}, Amp2={}, Attenuation={} dB".format(amp1, amp2, att)) 
-            #npt = input('  Press Enter for next chage... ')
-            time.sleep(2)
+            for jrad in range(N_RADARs):
+               cmd = usrp_rxfe_setup_command(self.usrpManager.socks[jrad], amp1, amp2, att*2) # *2 since LSB is 0.5 dB 
+               cmd.transmit()
+               cmd.client_return()
+               self.logger.warning("Current settings: Amp1={}, Amp2={}, Attenuation={} dB".format(amp1, amp2, att)) 
+               #npt = input('  Press Enter for next chage... ')
+               time.sleep(2)
 
         print("Finished testing RXFE!")
 
@@ -2317,7 +2321,6 @@ class RadarHardwareManager:
         self.apply_channel_scaling() # currently does nothing
         
         self._calc_period_details()
-        self.logger.debug('After calc_period_details sequences {}'.format(self.nSequences_per_period))
         trigger_next_period = self.nSequences_per_period != 0 # don't triger if no time left
 
         nSamples_per_pulse = int(np.round((self.commonChannelParameter['pulseLength'] / 1e6 * self.usrp_rf_tx_rate) + 2 * (self.commonChannelParameter['tr_to_pulse_delay']/1e6 * self.usrp_rf_tx_rate)))
@@ -2337,7 +2340,6 @@ class RadarHardwareManager:
               continue
            
            for tmpChannel in self.channels[jrad]:
-              self.logger.debug("Checking radar {} channel {} is available for transmitting {}".format(tmpChannel.rnum,tmpChannel.cnum, tmpChannel.scanManager.isLastPeriod))
               if (tmpChannel is not None) and (not tmpChannel.scanManager.isLastPeriod): 
                  channel = tmpChannel
                  transmittingChannelAvailable[jrad] = True
@@ -2440,8 +2442,6 @@ class RadarHardwareManager:
                     resultDict['pulse_lens']                  = channel.pulse_lens    
                     channel.resultDict_list.insert(0,copy.deepcopy(resultDict))
                     
-              self.logger.debug('Writing resultDict sequences {}'.format(self.nSequences_per_period))
-                    
               if trigger_next_period: 
                  # broadcast the start of the next integration period to all usrp
                  self.logger.debug('start USRP_TRIGGER')
@@ -2526,7 +2526,6 @@ class RadarHardwareManager:
                           for iAntenna in range(nAntennas):
                              antIdx = recv_dtype(cudasock, np.uint16)
                              nSamples_bb = int(recv_dtype(cudasock, np.uint32) / 2)
-                             # self.logger.debug("Receiving {} bb samples. (Channel {}, ant idx {})".format(nSamples_bb, channel.cnum, antIdx))
                              if main_samples is None:
                                 main_samples = np.zeros((len(np.concatenate(self.channels).tolist()), nMainAntennas, nSamples_bb), dtype=np.complex64)
                                 back_samples = np.zeros((len(np.concatenate(self.channels).tolist()), nBackAntennas, nSamples_bb), dtype=np.complex64)
@@ -2705,6 +2704,7 @@ class RadarHardwareManager:
     
               cmd = usrp_ready_data_command(self.usrpManager.socks[jrad], self.swingManager.activeSwing)
               cmd.transmit()
+              time.sleep(0.002)
               
               # check status of usrp drivers
               self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
