@@ -12,37 +12,32 @@ sudo sysctl -w net.core.netdev_max_backlog=300000
 sudo sysctl -w net.core.netdev_budget=600
 
 
-
 # disable cpu throttling
 sudo cpufreq-set -g PERFORMANCE
 
 # disable interrupt coallesing:
-sudo ethtool -C ens1f0 adaptive-tx off
-sudo ethtool -C ens1f1 adaptive-tx off
-sudo ethtool -C ens1f2 adaptive-tx off
-sudo ethtool -C ens1f3 adaptive-tx off
+sudo ethtool -C ens102f0np0 adaptive-tx off
+sudo ethtool -C ens102f1np1 adaptive-tx off
+sudo ethtool -C ens102f2np2 adaptive-tx off
+sudo ethtool -C ens102f3np3 adaptive-tx off
 
-sudo ethtool -C ens1f0 adaptive-rx off
-sudo ethtool -C ens1f1 adaptive-rx off
-sudo ethtool -C ens1f2 adaptive-rx off
-sudo ethtool -C ens1f3 adaptive-rx off
+sudo ethtool -C ens102f0np0 adaptive-rx off
+sudo ethtool -C ens102f1np1 adaptive-rx off
+sudo ethtool -C ens102f2np2 adaptive-rx off
+sudo ethtool -C ens102f3np3 adaptive-rx off
 
-sudo ethtool -C ens2f0 adaptive-tx off
-sudo ethtool -C ens2f1 adaptive-tx off
-sudo ethtool -C ens2f2 adaptive-tx off
-sudo ethtool -C ens2f3 adaptive-tx off
+sudo ethtool -C ens106f0np0 adaptive-tx off
+sudo ethtool -C ens106f1np1 adaptive-tx off
+sudo ethtool -C ens106f2np2 adaptive-tx off
+sudo ethtool -C ens106f3np3 adaptive-tx off
 
-sudo ethtool -C ens2f0 adaptive-rx off
-sudo ethtool -C ens2f1 adaptive-rx off
-sudo ethtool -C ens2f2 adaptive-rx off
-sudo ethtool -C ens2f3 adaptive-rx off
+sudo ethtool -C ens106f0np0 adaptive-rx off
+sudo ethtool -C ens106f1np1 adaptive-rx off
+sudo ethtool -C ens106f2np2 adaptive-rx off
+sudo ethtool -C ens106f3np3 adaptive-rx off
 
-sudo ethtool -C ens3f0 adaptive-tx off
-sudo ethtool -C ens3f1 adaptive-tx off
-sudo ethtool -C ens3f2 adaptive-tx off
-sudo ethtool -C ens3f3 adaptive-tx off
+sudo ethtool -C ens81f0np0 adaptive-tx off
+sudo ethtool -C ens81f1np1 adaptive-tx off
 
-sudo ethtool -C ens3f0 adaptive-rx off
-sudo ethtool -C ens3f1 adaptive-rx off
-sudo ethtool -C ens3f2 adaptive-rx off
-sudo ethtool -C ens3f3 adaptive-rx off
+sudo ethtool -C ens81f0np0 adaptive-rx off
+sudo ethtool -C ens81f1np1 adaptive-rx off
