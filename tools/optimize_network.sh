@@ -12,42 +12,32 @@ sudo sysctl -w net.core.netdev_max_backlog=300000
 sudo sysctl -w net.core.netdev_budget=600
 
 
-
 # disable cpu throttling
 sudo cpufreq-set -g PERFORMANCE
 
 # disable interrupt coallesing:
-sudo ethtool -C enp180s0f0 adaptive-tx off
-sudo ethtool -C enp180s0f1 adaptive-tx off
-sudo ethtool -C enp180s0f2 adaptive-tx off
-sudo ethtool -C enp180s0f3 adaptive-tx off
+sudo ethtool -C ens102f0np0 adaptive-tx off
+sudo ethtool -C ens102f1np1 adaptive-tx off
+sudo ethtool -C ens102f2np2 adaptive-tx off
+sudo ethtool -C ens102f3np3 adaptive-tx off
 
-sudo ethtool -C enp180s0f0 adaptive-rx off
-sudo ethtool -C enp180s0f1 adaptive-rx off
-sudo ethtool -C enp180s0f2 adaptive-rx off
-sudo ethtool -C enp180s0f3 adaptive-rx off
+sudo ethtool -C ens102f0np0 adaptive-rx off
+sudo ethtool -C ens102f1np1 adaptive-rx off
+sudo ethtool -C ens102f2np2 adaptive-rx off
+sudo ethtool -C ens102f3np3 adaptive-rx off
 
-sudo ethtool -C enp23s0f0 adaptive-tx off
-sudo ethtool -C enp23s0f1 adaptive-tx off
-sudo ethtool -C enp23s0f2 adaptive-tx off
-sudo ethtool -C enp23s0f3 adaptive-tx off
+sudo ethtool -C ens106f0np0 adaptive-tx off
+sudo ethtool -C ens106f1np1 adaptive-tx off
+sudo ethtool -C ens106f2np2 adaptive-tx off
+sudo ethtool -C ens106f3np3 adaptive-tx off
 
-sudo ethtool -C enp23s0f0 adaptive-rx off
-sudo ethtool -C enp23s0f1 adaptive-rx off
-sudo ethtool -C enp23s0f2 adaptive-rx off
-sudo ethtool -C enp23s0f3 adaptive-rx off
+sudo ethtool -C ens106f0np0 adaptive-rx off
+sudo ethtool -C ens106f1np1 adaptive-rx off
+sudo ethtool -C ens106f2np2 adaptive-rx off
+sudo ethtool -C ens106f3np3 adaptive-rx off
 
-sudo ethtool -C enp2s0f0 adaptive-tx off
-sudo ethtool -C enp2s0f1 adaptive-tx off
-sudo ethtool -C enp2s0f2 adaptive-tx off
-sudo ethtool -C enp2s0f3 adaptive-tx off
+sudo ethtool -C ens81f0np0 adaptive-tx off
+sudo ethtool -C ens81f1np1 adaptive-tx off
 
-sudo ethtool -C enp2s0f0 adaptive-rx off
-sudo ethtool -C enp2s0f1 adaptive-rx off
-sudo ethtool -C enp2s0f2 adaptive-rx off
-sudo ethtool -C enp2s0f3 adaptive-rx off
-
-sudo /home/radar/repos/SuperDARN_UHD_Server/tools/change_priority_by_name.sh ksoftirqd 60
-
-
-
+sudo ethtool -C ens81f0np0 adaptive-rx off
+sudo ethtool -C ens81f1np1 adaptive-rx off
