@@ -431,7 +431,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
 }
 
 
-void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data *meta_data, freq_band *restricted_bands, int restricted_num, int *clear_freq_range, double beam_angle, double smsep, freq_band *clr_bands) {
+void calc_clear_freq_on_raw_samples(fftw_complex *raw_samples, sample_meta_data *meta_data, freq_band *restricted_bands, int restricted_num, int *clear_freq_range, double beam_angle, double smsep, freq_band *clr_bands) {
     // int **sample_re = NULL;
     // int **sample_im = NULL;
     
@@ -618,7 +618,7 @@ void calc_clear_freq_on_raw_samples(fftw_complex **raw_samples, sample_meta_data
  * @param  *beamformed_samples: Output array for the beamformed samples.
  * @retval None
  */
-void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_meta_data *meta_data, fftw_complex *phasing_vector, int *antennas, int num_samples, fftw_complex **raw_samples, fftw_complex *beamformed_samples)
+void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_meta_data *meta_data, fftw_complex *phasing_vector, int *antennas, int num_samples, fftw_complex *raw_samples, fftw_complex *beamformed_samples)
 {
     // Calculate and Apply phasing vector
     float phase_increment = 0;
@@ -643,8 +643,8 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         double imag_sum = 0.0;
 
         for (int aidx = 0; aidx < meta_data->num_antennas; aidx++) {
-            double real_sample = creal(raw_samples[aidx][i]);
-            double imag_sample = cimag(raw_samples[aidx][i]);
+            double real_sample = creal(raw_samples[aidx * num_samples + i]);
+            double imag_sample = cimag(raw_samples[aidx * num_samples + i]);
             double real_phase = creal(phasing_vector[aidx]);
             double imag_phase = cimag(phasing_vector[aidx]);
             if (VERBOSE && i == 2499) {
@@ -676,13 +676,13 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
  * @retval None
  */
 void process_all_beamformed_spectras(
-        fftw_complex **raw_samples, 
+        fftw_complex *raw_samples, 
         int clear_freq_range[],
         int smsep,
         freq_band *restricted_bands, 
         int restrict_num,
         sample_meta_data *meta_data,
-        int beam_total,
+        Config config,
         fftw_complex *beamformed_spectra
     ) {
     log_debug("Entered process_all_beamformed_spectras()...");
@@ -691,7 +691,8 @@ void process_all_beamformed_spectras(
     const char *config_path = "../SuperDARN_UHD_Server/array_config.ini";              //"../Freq_Server/utils/clear_freq_input/array_config.ini";
 
     // Initial Data Variables
-    double beam_sep = 0;
+    int beam_total = config.array_info.nbeams;
+    double beam_sep = config.array_info.beam_sep;
     // int **sample_re = NULL;
     // int **sample_im = NULL;
     int num_samples = meta_data->number_of_samples;
@@ -733,7 +734,6 @@ void process_all_beamformed_spectras(
 
 
     // Beam Angle Calculation
-    read_array_config(config_path, &beam_total, &beam_sep);
     double beam_angle[beam_total];
     memset(beam_angle, 0, sizeof(beam_angle));
     for (int cur_beam = 0; cur_beam < beam_total; cur_beam++) {
@@ -781,102 +781,6 @@ void process_all_beamformed_spectras(
     fftw_free(beamformed_samples);
     fftw_cleanup();
 }
-
-/**
- * @brief  Averages the collected beam spectrum data. Depreciated.
- * @deprecated
- * @note   By DF
- * @param  ***beamformed_spectra: Beamformed spectra to be averaged.
- * @param  avg_ratio: Ratio for averaging the spectra.
- * @param  num_samples: Number of samples in the spectra.
- * @param  beam_num: Number of beams.
- * @param  spectra_num: Number of spectra in the min of stored spectra.
- * @param  *meta_data: Metadata containing sample information.
- * @param  **avg_beam_spectra: Output array for the averaged beam spectra.
- * @param  *avg_freq_vector: Frequency vector for the averaged spectra.
- * @retval None
- */
-// void process_all_avg_beam_spectras(
-//         fftw_complex ***beamformed_spectra, 
-//         int avg_ratio,
-//         int num_samples, 
-//         int beam_num, 
-//         int spectra_num,
-//         sample_meta_data *meta_data,
-//         double **avg_beam_spectra,
-//         double *avg_freq_vector
-//     ) {
-//     // Frequency Vector and Spectral Avg Constants
-//     int num_avg_samples = num_samples / avg_ratio; 
-//     double delta_f = meta_data->usrp_rf_rate / num_samples;
-//     double f_start = meta_data->usrp_fcenter * 1000 - (meta_data->usrp_rf_rate / 2);
-    
-//     // Determine Avg Freq Vector; used in Clear Freq Calculation
-//     avg_freq_vector = (double*) malloc(sizeof(double) * num_avg_samples);
-//     int delta_f_avg = delta_f * avg_ratio;
-//     delta_f = delta_f_avg;
-//     for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = i * delta_f_avg + f_start;
-    
-//     if (avg_beam_spectra == NULL) {
-//         avg_beam_spectra = (double**) fftw_malloc(sizeof(double*) * beam_num);
-//         for (int cur_beam = 0; cur_beam < beam_num; cur_beam++) {
-//             avg_beam_spectra[cur_beam] = (double*) fftw_malloc(sizeof(double) * num_avg_samples);
-//             memset(avg_beam_spectra[cur_beam], 0, sizeof(double) * num_avg_samples);
-//         } 
-//     }
-    
-//     log_trace("avg freq vector ready");
-//     if (VERBOSE) log_trace("num_avg_sample: %davg_freq_ratio: %d", num_avg_samples, avg_ratio);
-        
-    
-//     log_trace("Starting Spectral Averaging");
-//     clock_t t_avg_curr, t_avg;
-//     t_avg_curr = clock();
-
-//     // Spectral Averaging 
-//     // In every beam's spectra, ...
-//     for (int cur_beam = 0; cur_beam < beam_num; cur_beam++) {
-//         // (0, 1, 2, 3 -> avg[0]), ..., (n-4, n-3, n-2, n-1 -> avg[n/4])
-//         // Process n/4 averaged elements ...
-//         for (int k = 0; k < num_avg_samples; k++) {
-//             // Across each descrete spectra stored by ... 
-//             for (int cur_spectra = 0; cur_spectra < spectra_num; cur_spectra++) {
-//                 // Sum the magnitude of four spectrum samples in a row 
-//                 for (int j = 0; j < avg_ratio; j++) {
-//                     double re = creal(beamformed_spectra[cur_spectra][cur_beam][k * avg_ratio + j]) * creal(beamformed_spectra[cur_spectra][cur_beam][k * avg_ratio + j]);
-//                     double im = cimag(beamformed_spectra[cur_spectra][cur_beam][k * avg_ratio + j]) * cimag(beamformed_spectra[cur_spectra][cur_beam][k * avg_ratio + j]);
-//                     avg_beam_spectra[cur_beam][k] += sqrt(re + im);
-
-//                     // if (k == 9) {
-//                     //     log_trace("sample[%d][%d][%d]: %f + j%f", k, j, k + j, creal(fft_spectrum[k + j]), cimag(fft_spectrum[k + j]));
-//                     // }
-//                 }   
-//             }
-
-//             // Div by the total num of spectra samples summed (default: 4 avg ratio * 20 3sec spectra)
-//             avg_beam_spectra[cur_beam][k] /= (avg_ratio * spectra_num);
-//             if (k == 9 && VERBOSE) log_trace("beamformed_spectra[%d][%d]: %f", cur_beam, k, avg_beam_spectra[cur_beam][k]);
-//         }
-//     }
-//     t_avg = clock() - t_avg_curr;
-//     if (VERBOSE) log_trace("====> Min Spectral Avg took (s): %lf", ((double) (t_avg)) / (CLOCKS_PER_SEC));
-//     if (VERBOSE) log_trace("beamformed_spectra[0][0]: %f", avg_beam_spectra[0][0]);
-
-//     // Save data to csv
-//     // if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
-//     //     // Write logs if its folder accessable
-//     //     if (BIN_OR_CSV_LOG == 0) {
-//     //         write_spectrum_mag_bin(SPECTRUM_FILE, avg_spectrum, avg_freq_vector, num_avg_samples);
-//     //         write_clr_freq_bin(CLR_FREQ_FILE, clr_bands);                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
-//     //     } else {
-//     //         // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);                                                     // Used to check complex Samples after Beamforming; ...
-//     //         // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);                                                     // Plot w/ sample_plot.py
-//     //         write_spectrum_mag_csv(SPECTRUM_FILE, avg_spectrum, avg_freq_vector, num_avg_samples);  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
-//     //         write_clr_freq_csv(CLR_FREQ_FILE, clr_bands);
-//     //     }
-//     //     log_trace("[CFS] \'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
-//     // } else log_trace("[CFS] \'save_spectra\' not found. Not logging spectra nor clr_frequency.");
-// }
 
 /**
  * @brief  Averages the collected beamformed spectrum data for a single beam direction.
@@ -1116,20 +1020,20 @@ void process_beam_clr_freq(
  * @retval None
  */
 clear_freq clear_freq_search(
-        fftw_complex **raw_samples, 
+        fftw_complex *raw_samples, 
         int clear_freq_range[],
         int cur_beam,
         int smsep,
         freq_band *restricted_bands, 
         int restrict_num,
         sample_meta_data meta_data,
+        Config config,
         freq_band *clr_bands
     ) {
-    const char *config_path = "../SuperDARN_UHD_Server/array_config.ini";              //"../Freq_Server/utils/clear_freq_input/array_config.ini";
 
     // Initial Data Variables
-    int n_beams;
-    double beam_sep;
+    int n_beams = config.array_info.nbeams;
+    double beam_sep = config.array_info.beam_sep;
 
     // Scale parameters to Hz and ms
     smsep = smsep / 1000000;
@@ -1139,7 +1043,6 @@ clear_freq clear_freq_search(
     }
 
     // Beam Angle Calculation
-    read_array_config(config_path, &n_beams, &beam_sep);
     double beam_angle = calc_beam_angle(n_beams, cur_beam, beam_sep);  
 
     // Debug: Display parameters

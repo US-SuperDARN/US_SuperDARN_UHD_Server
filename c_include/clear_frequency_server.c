@@ -12,6 +12,8 @@
 #include <signal.h>
 #include <time.h>
 #include "clear_freq_search.h"
+#include "ini_parser.h"
+#include "read_config.c"
 #include "log.h"
 
 
@@ -28,10 +30,14 @@
 #define AVG_RATIO 4             // Number of samples to average during spectral averaging (4 = 4 samples avg-ed per beam)
 #define FFTW_THREADS 2          // Number of threads to use for FFTW
 
+// Filepaths Vars
+#define ARRAY_CONFIG_FILEPATH "array_config.ini"
+
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500
 #define ANTENNA_NUM             16
 #define STATIC_ANTENNA_NUM      30 
+#define STATIC_RADAR_NUM        10                  // Max Number of possible radars in an array
 #define BEAM_NUM                16                  // Number of beams to process
 #define SAMPLE_TIME             3                   // Time per Sample (in seconds)
 #define STORAGE_TIME            60                  // Total time per Sample Storage Batch (in seconds)
@@ -42,7 +48,6 @@
 #define CLR_BANDS_MAX           6
 #endif
 #define CLR_STORAGE_NUM         10
-#define CLR_STORE_FILEPATH 	"log/clr_band_storage/"
 #define SITE_ID_ELEM            3                   // 3 = 3-letter identifier 
 
 #define SAMPLES_SHM_SIZE        (ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int)) 
@@ -55,6 +60,7 @@
 #define ANTENNA_SHM_SIZE        (1 * sizeof(int))
 #define CLR_BANDS_SHM_SIZE      (1 * sizeof(int) * 3)    
 #define SITE_ID_SHM_SIZE        (SITE_ID_ELEM * sizeof(char))
+#define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
 #define ACTIVE_CLIENTS_SHM_SIZE (1 * sizeof(int))
 
 // Shared Memory and Semaphore Names 
@@ -68,11 +74,12 @@
 #define ANTENNA_SHM_NAME        "/antenna_num"
 #define CLRFREQ_SHM_NAME        "/clear_freq"
 #define SITE_ID_SHM_NAME        "/site_id"
+#define RADAR_ID_SHM_NAME       "/radar_id"
 #define ACTIVE_CLIENTS_SHM_NAME "/active_clients"   // For debugging
 
 #define SAMPLE_PARAM_NUM 4
 #define RESTRICT_PARAM_NUM 2
-#define PARAM_NUM 11
+#define PARAM_NUM 12
 
 #define SEM_F_CLIENT    "/sf_client"                // For Sync and reserving client and server roles during data transfer
 #define SEM_F_SERVER    "/sf_server"    
@@ -134,6 +141,7 @@ shm_obj meta_obj        = {META_DATA_SHM_NAME, NULL, -1, META_DATA_SHM_SIZE};
 shm_obj antenna_obj     = {ANTENNA_SHM_NAME, NULL, -1, ANTENNA_SHM_SIZE};
 shm_obj clrfreq_obj     = {CLRFREQ_SHM_NAME, NULL, -1, CLR_BANDS_SHM_SIZE};
 shm_obj site_id_obj     = {SITE_ID_SHM_NAME, NULL, -1, SITE_ID_SHM_SIZE};
+shm_obj radar_id_obj    = {RADAR_ID_SHM_NAME, NULL, -1, RADAR_ID_SHM_SIZE};
 shm_obj client_num_obj  = {ACTIVE_CLIENTS_SHM_NAME, NULL, -1, ACTIVE_CLIENTS_SHM_SIZE};
 struct shm_obj *objects[PARAM_NUM] = {
     &samples_obj,
@@ -146,6 +154,7 @@ struct shm_obj *objects[PARAM_NUM] = {
     &antenna_obj,
     &clrfreq_obj,
     &site_id_obj,
+    &radar_id_obj,
     &client_num_obj,
 };
 
@@ -153,12 +162,7 @@ struct shm_obj *objects[PARAM_NUM] = {
 int temp_ptrs_num = 0;
 void **temp_ptrs;
 
-fftw_complex **temp_samples = NULL;
-int temp_sample_sizes[] = {
-    ANTENNA_NUM,
-    SAMPLES_NUM,
-};
-fftw_complex *samples_storage = NULL;
+fftw_complex *temp_samples = NULL;
 fftw_complex *spectra_storage = NULL;
 double **avg_beam_spectrum = NULL;
 int avg_beam_spectrum_sizes[] = {
@@ -166,10 +170,10 @@ int avg_beam_spectrum_sizes[] = {
     SAMPLES_NUM / AVG_RATIO,
 };
 double *avg_freq_vector = NULL;
-int tcs_storage_i = 0;
-freq_band **clr_bands_storage = NULL;
-int clr_storage_i = 0;
+// int *tcs_storage_i = NULL;
+freq_band ***clr_bands_storage = NULL;
 int clr_storage_sizes[] = {
+    1, 
     CLR_STORAGE_NUM,
     CLR_BANDS_MAX,
 };
@@ -295,14 +299,14 @@ void print_temp_ptrs() {
     }
 }
 
-void read_sample_shm(fftw_complex **temp_samples, void *samples_shm_ptr, int antenna_num, int samples_num) {
+void read_sample_shm(fftw_complex *temp_samples, void *samples_shm_ptr, int antenna_num, int samples_num) {
     int *s_ptr = (int *) samples_shm_ptr;
     
     // Store sample data into complex form
     for (int i = 0; i < antenna_num; i++)
     {
         for (int j = 0; j < samples_num; j++) {
-            temp_samples[i][j] = s_ptr[i * samples_num + j * 2] + I * s_ptr[i * samples_num + j * 2 + 1];
+            temp_samples[i * samples_num + j] = s_ptr[i * samples_num + j * 2] + I * s_ptr[i * samples_num + j * 2 + 1];
 
             // Debug: Print 5 complex of each antenna batch
             // if (j < 4 || j > samples_num - 4 || j == 2499) {
@@ -479,11 +483,9 @@ void cleanup() {
     log_info( "Cleaned all objects ...");
     
     // Cleanup fftw ptrs
-    free_nested_fftw_ptr(temp_samples, 2, temp_sample_sizes);
+    // free_nested_fftw_ptr(temp_samples, 2, temp_sample_sizes);
+    fftw_free(temp_samples);
     log_debug( "Cleaned temp_samples ...");
-    // free_nested_fftw_ptr(samples_storage, 3, samples_storage_sizes);
-    fftw_free(samples_storage);
-    log_debug( "Cleaned samples_storage ...");
     fftw_free(spectra_storage);
     log_debug( "Cleaned spectra_storage ...");
     // cleanup_storage_fft();
@@ -492,7 +494,7 @@ void cleanup() {
     log_info( "Cleaned all fftw pointers ...");
     
     // Cleanup ptrs
-    free_nested_ptr(clr_bands_storage, 2, clr_storage_sizes);
+    free_nested_ptr(clr_bands_storage, 3, clr_storage_sizes);
     log_debug( "Cleaned clr_bands_storage ...");
     free_nested_ptr(avg_beam_spectrum, 2, avg_beam_spectrum_sizes);
     log_debug( "Cleaned avg_beam_spectrum ...");
@@ -535,19 +537,20 @@ void handle_sig(int sig) {
     exit(sig);
 }
 
-void write_clr_log_csv(freq_band **clr_storage, int clr_num) {
+void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id) {
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
-    int buffer_size = 100;
+    int buffer_size = 128;
     char timestamp[buffer_size];
     char name[buffer_size]; 
 
     // Generate timestamp
+    log_trace("Generating timestamp...");
     time(&raw_time);
     time_info = localtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-    snprintf(name, sizeof(name), "log/clr_freq/clrlog_%s.csv", timestamp);
+    snprintf(name, sizeof(name), "log/clr_freq/clrlog_%s.r%d.csv", timestamp, radar_id);
 
     // Generate clear log file
     FILE *file = fopen(name, "w");
@@ -646,77 +649,18 @@ void flag_debug() {
 };
 
 /**
- * @brief  Reallocates all dynamic memory for CFS reliant on samples_num.
+ * @brief  Reallocates the long-term dynamic memory for storage variables, which is reliant on samples_num.
  * @note   
  * @param  samples_num: Number of Samples
  * @param  total_beams: Total number of beams to process
  * @retval None
  */
-void realloc_samples_num(int samples_num, int total_beams) {
-    log_info( "Samples Num Reallocation in progress...");
-    
-    log_trace( "Freeing Sample SHM Cache...");
-    munmap(samples_obj.shm_ptr, samples_obj.size);
-
-    // Set Size of Shared Memory Object
-    samples_obj.size = (meta_data.num_antennas) * samples_num * 2 * sizeof(int);
-    if (ftruncate(samples_obj.shm_fd, samples_obj.size) == -1) {
-        log_fatal( " ftruncate failed");
-        perror("ftruncate failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Request Block of Memory
-    log_trace( "Requesting Sample SHM Cache...");                    
-    samples_obj.shm_ptr = mmap(0, samples_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED, samples_obj.shm_fd, 0);
-    if (samples_obj.shm_ptr == MAP_FAILED) {
-        log_fatal( "Memory Mapping failed for %s", samples_obj.name);
-        perror("Memory Mapping failed");
-        exit(EXIT_FAILURE);
-    }                    
-    log_trace( "Sample SHM successfully cached...");    
-
-
-    // Free previously allocated memory for temp_samples
-    free_nested_fftw_ptr(temp_samples, 2, temp_sample_sizes);
-    temp_sample_sizes[0] = meta_data.num_antennas;
-    temp_sample_sizes[1] = samples_num;
-    log_trace( "Freed old temp_samples memory...");
-    
-    // Reallocate temp_samples
-    temp_samples = (fftw_complex **)fftw_malloc(meta_data.num_antennas * sizeof(fftw_complex *));
-    if (temp_samples == NULL) {
-        log_fatal( "Error reallocating memory for temp_samples pointers");
-        perror("Error reallocating memory for temp_samples pointers");
-        exit(EXIT_FAILURE);
-    }
-    for (int i = 0; i < meta_data.num_antennas; i++) {
-        temp_samples[i] = (fftw_complex *)fftw_malloc(samples_num * sizeof(fftw_complex));
-        if (temp_samples[i] == NULL) {
-            log_fatal( "Error allocating memory for temp_samples elements");
-            perror("Error allocating memory for temp_samples elements");
-            exit(EXIT_FAILURE);
-        }
-        memset(temp_samples[i], 0, samples_num * sizeof(fftw_complex));
-    } 
-    log_trace( "Allocated new temp_samples memory...");
-
-    // If num_antennas or samples_num changed, Reallocate samples_storage
-    fftw_free(samples_storage);
-    log_trace( "Freed old samples_storage memory...");
-
-    // Reallocate samples_storage
-    samples_storage = fftw_alloc_complex(STORAGE_NUM * STATIC_ANTENNA_NUM * samples_num);
-    if (samples_storage == NULL) {
-        log_fatal("Error allocating memory for samples_storage");
-        perror("Error allocating memory for samples_storage");
-        exit(EXIT_FAILURE);
-    }
-    log_trace( "Allocated new samples_storage memory...");
+void realloc_storage(int samples_num, int total_beams, int radar_num) {
+    log_info( "samples_num Reallocation in progress...");
 
     // Realloc spectra_storage
     fftw_free(spectra_storage);
-    spectra_storage = fftw_alloc_complex(STORAGE_NUM * total_beams * samples_num);
+    spectra_storage = fftw_alloc_complex(radar_num * STORAGE_NUM * total_beams * samples_num);
     if (spectra_storage == NULL) {
         log_fatal("Error allocating memory for spectra_storage");
         perror("Error allocating memory for spectra_storage");
@@ -736,13 +680,14 @@ void realloc_samples_num(int samples_num, int total_beams) {
         exit(EXIT_FAILURE);
     }
     for (int i = 0; i < total_beams; i++) {
-        avg_beam_spectrum[i] = (double *)malloc((samples_num / AVG_RATIO) * sizeof(double));
+        avg_beam_spectrum[i] = calloc((samples_num / AVG_RATIO), sizeof(double));
+        // (double *)malloc((samples_num / AVG_RATIO) * sizeof(double));
         if (avg_beam_spectrum[i] == NULL) {
             log_fatal( "Error reallocating memory for avg_beam_spectrum elements");
             perror("Error reallocating memory for avg_beam_spectrum elements");
             exit(EXIT_FAILURE);
         }
-        memset(avg_beam_spectrum[i], 0, (samples_num / AVG_RATIO) * sizeof(double));
+        // memset(avg_beam_spectrum[i], 0, (samples_num / AVG_RATIO) * sizeof(double));
     }
     log_trace( "Allocated new avg_beam_spectrum memory...");
 
@@ -759,6 +704,48 @@ void realloc_samples_num(int samples_num, int total_beams) {
     log_info( "Samples Num Reallocation completed...");
 }
 
+
+void realloc_samples(int samples_num)
+{
+    log_trace( "Freeing Sample SHM Cache...");
+    munmap(samples_obj.shm_ptr, samples_obj.size);
+
+    // Set Size of Shared Memory Object
+    samples_obj.size = (meta_data.num_antennas) * samples_num * 2 * sizeof(int);
+    if (ftruncate(samples_obj.shm_fd, samples_obj.size) == -1)
+    {
+        log_fatal(" ftruncate failed");
+        perror("ftruncate failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Request Block of Memory
+    log_trace("Requesting Sample SHM Cache...");
+    samples_obj.shm_ptr = mmap(0, samples_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED, samples_obj.shm_fd, 0);
+    if (samples_obj.shm_ptr == MAP_FAILED)
+    {
+        log_fatal("Memory Mapping failed for %s", samples_obj.name);
+        perror("Memory Mapping failed");
+        exit(EXIT_FAILURE);
+    }
+    log_trace("Sample SHM successfully cached...");
+
+    // Free previously allocated memory for temp_samples
+    fftw_free(temp_samples);
+    log_trace("Freed old temp_samples memory...");
+
+    // Reallocate temp_samples
+    temp_samples = fftw_alloc_complex(meta_data.num_antennas * samples_num);
+    if (temp_samples == NULL)
+    {
+        log_fatal("Error reallocating memory for temp_samples pointers");
+        perror("Error reallocating memory for temp_samples pointers");
+        exit(EXIT_FAILURE);
+    }
+    log_trace("Allocated new temp_samples memory...");
+}
+
+
 /* @brief  Checks if the TCS parameters have changed and updates them if necessary.
  * @note   
  * @param  old_tcs_param: Old TCS parameters
@@ -769,8 +756,8 @@ bool has_tcs_param_changed(int old_tcs_param[3], int new_tcs_param[3]) {
     // Check if any of the parameters have changed
     bool has_changed = false;
     for (int i = 0; i < 3; i++) {
-        log_debug("TCS Param[%d]: %d vs %d", i, old_tcs_param[i], new_tcs_param[i]);
         if (old_tcs_param[i] != new_tcs_param[i]) {
+            log_debug("TCS Param[%d]: %d vs %d", i, old_tcs_param[i], new_tcs_param[i]);
             has_changed = true;
             old_tcs_param[i] = new_tcs_param[i]; // Update the old parameter
         }
@@ -872,38 +859,67 @@ int main() {
             exit(EXIT_FAILURE);    
         } 
     }
-    log_info( "Done Initializing...\n");
-    
+    log_info( "Done Initializing SHM...\n");
+
+
+    // Initialize Array Configuration
+    log_info( "Initializing Array Configuration...");
+    if (access(ARRAY_CONFIG_FILEPATH, F_OK) == -1) {
+        perror("Error: Config file does not exist");
+        exit(EXIT_FAILURE);
+    }
+    if (access(ARRAY_CONFIG_FILEPATH, R_OK) == -1) {
+        perror("Error: Config file is not readable");
+        exit(EXIT_FAILURE);
+    }
+
+
+    Config array_config = {0}; 
+    ini_parse(ARRAY_CONFIG_FILEPATH, config_ini_handler, &array_config);
+    if (array_config.array_info.beam_sep == 0) {
+        log_fatal( "Error reading array configuration file");
+        perror("Error reading array configuration file");
+        exit(EXIT_FAILURE);
+    }
+    int radar_num = array_config.array_info.nradars;
+    int beam_total = array_config.array_info.nbeams;
+    int cur_radar_id = 0;
+    log_info( "Done initializing Array Configuration...");
+
 
     // Allocate temp mem for shm varibles
-    temp_samples = (fftw_complex **)fftw_malloc(ANTENNA_NUM * sizeof(fftw_complex *));
+    // temp_samples = (fftw_complex **)fftw_malloc(ANTENNA_NUM * sizeof(fftw_complex *));
+    temp_samples = fftw_alloc_complex(ANTENNA_NUM * SAMPLES_NUM);
     if (temp_samples == NULL) {
         log_fatal("Error allocating memory for temp_samples pointers");
         perror("Error allocating memory for temp_samples pointers");
         exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < ANTENNA_NUM; i++) {
-        temp_samples[i] = (fftw_complex *)fftw_malloc(SAMPLES_NUM * sizeof(fftw_complex));
-        if (temp_samples[i] == NULL) {
-            log_fatal("Error allocating memory for temp_samples elements");
-            perror("Error allocating memory for temp_samples elements");
-            exit(EXIT_FAILURE);
-        }
-        memset(temp_samples[i], 0, SAMPLES_NUM * sizeof(fftw_complex));
-    }
 
-    samples_storage = fftw_alloc_complex(STORAGE_NUM * STATIC_ANTENNA_NUM * SAMPLES_NUM);
-    if (samples_storage == NULL) {
-        log_fatal("Error allocating memory for samples_storage");
-        perror("Error allocating memory for samples_storage");
-        exit(EXIT_FAILURE);
-    }
-
-    spectra_storage = fftw_alloc_complex(STORAGE_NUM * BEAM_NUM * SAMPLES_NUM);
+    spectra_storage = fftw_alloc_complex(radar_num * STORAGE_NUM * beam_total * SAMPLES_NUM);
     if (spectra_storage == NULL) {
         log_fatal("Error allocating memory for spectra_storage");
         perror("Error allocating memory for spectra_storage");
         exit(EXIT_FAILURE);
+    }
+
+    avg_beam_spectrum_sizes[0] = beam_total;
+    avg_beam_spectrum_sizes[1] = SAMPLES_NUM / AVG_RATIO;
+    avg_beam_spectrum = (double **)malloc(beam_total * sizeof(double *));
+    if (avg_beam_spectrum == NULL) {
+        log_fatal( "Error reallocating memory for avg_beam_spectrum pointers");
+        perror("Error reallocating memory for avg_beam_spectrum pointers");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < beam_total; i++) {
+        avg_beam_spectrum[i] = calloc((SAMPLES_NUM / AVG_RATIO), sizeof(double));
+        // (double *)malloc((samples_num / AVG_RATIO) * sizeof(double));
+        if (avg_beam_spectrum[i] == NULL) {
+            log_fatal( "Error reallocating memory for avg_beam_spectrum elements");
+            perror("Error reallocating memory for avg_beam_spectrum elements");
+            exit(EXIT_FAILURE);
+        }
+        // memset(avg_beam_spectrum[i], 0, (samples_num / AVG_RATIO) * sizeof(double));
     }
 
     int restricted_num = RESTRICT_NUM;
@@ -914,39 +930,48 @@ int main() {
     }
 
     freq_band clr_bands[CLR_BANDS_MAX];
-    for (int i = 0; i < CLR_BANDS_MAX; i++) {
-        clr_bands[i].f_start = 0;
-        clr_bands[i].f_end = 0;
-        clr_bands[i].noise = 0;
-        clr_bands[i].is_selected = false;
+    for (int clr_idx = 0; clr_idx < CLR_BANDS_MAX; clr_idx++) {
+        clr_bands[clr_idx].f_start = 0;
+        clr_bands[clr_idx].f_end = 0;
+        clr_bands[clr_idx].noise = 0;
+        clr_bands[clr_idx].is_selected = false;
     }
-
-    clr_bands_storage = (freq_band **)malloc(CLR_STORAGE_NUM * sizeof(freq_band *));
+    
+    clr_storage_sizes[0] = radar_num;
+    clr_bands_storage = (freq_band ***)malloc(radar_num * sizeof(freq_band **));
     if (clr_bands_storage == NULL) {
-        log_fatal( "Error allocating memory for clr_bands_storage pointers");
-        perror("Error allocating memory for clr_bands_storage pointers");
+        log_fatal( "Error allocating memory for clr_bands_storage radar pointers");
+        perror("Error allocating memory for clr_bands_storage radar pointers");
         exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < CLR_STORAGE_NUM; i++) {
-        clr_bands_storage[i] = (freq_band *)malloc(CLR_BANDS_MAX * sizeof(freq_band));
+    for (int i = 0; i < radar_num; i++) {
+        clr_bands_storage[i] = (freq_band **)malloc(CLR_STORAGE_NUM * sizeof(freq_band *));
         if (clr_bands_storage[i] == NULL) {
-            log_fatal( "Error allocating memory for clr_bands_storage elements");
-            perror("Error allocating memory for clr_bands_storage elements");
+            log_fatal( "Error allocating memory for clr_bands_storage pointers");
+            perror("Error allocating memory for clr_bands_storage pointers");
             exit(EXIT_FAILURE);
         }
-        memset(clr_bands_storage[i], 0, CLR_BANDS_MAX * sizeof(freq_band));
+        for (int j = 0; j < CLR_STORAGE_NUM; j++) {
+            clr_bands_storage[i][j] = (freq_band *)malloc(CLR_BANDS_MAX * sizeof(freq_band));
+            if (clr_bands_storage[i][j] == NULL) {
+                log_fatal( "Error allocating memory for clr_bands_storage elements");
+                perror("Error allocating memory for clr_bands_storage elements");
+                exit(EXIT_FAILURE);
+            }
+            memset(clr_bands_storage[i][j], 0, CLR_BANDS_MAX * sizeof(freq_band));
+        }
     }
 
+
+    
     int clr_range[2] = {0};
     int cur_beam = 0;
     int sample_sep = -1;
     int old_antenna_num = ANTENNA_NUM;
     int samples_num = SAMPLES_NUM;
-    int old_samples_num = -1;
-    int beam_total = BEAM_NUM;
-    int old_beam_total = -1;
+    // int old_samples_num = -1;
+    // int old_usrp_fcenter = -1;
     int old_usrp_rf_rate = -1;
-    int old_usrp_fcenter = -1;
     int old_tcs_param[3] = {
         samples_num,
         beam_total,
@@ -957,16 +982,18 @@ int main() {
         beam_total,
         0
     };
-    bool is_tcs_ready = false;
-
+    int clr_storage_i[STATIC_RADAR_NUM] = {0};
+    int tcs_storage_i[STATIC_RADAR_NUM] = {0};
+    bool is_tcs_ready[STATIC_RADAR_NUM] = {false};
+    
     // Initialize FFTW for fast spectra storage
     // initialize_fftw_threads(FFTW_THREADS);
     // init_storage_fft(samples_num, beam_total);
     
     // Parameters for Reading Restricted Frequencies
     char restrict_file[255] = "";
-    char ststr[SITE_ID_ELEM + 1] = {0}; //(char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
-    char new_site_id[SITE_ID_ELEM + 1] = {0}; // = (char*) malloc((SITE_ID_ELEM + 1) * sizeof(char));
+    char ststr[SITE_ID_ELEM + 1] = {0}; 
+    char new_site_id[SITE_ID_ELEM + 1] = {0};
     char *rst_path = getenv("RSTPATH");
     if (rst_path == NULL) {
         log_fatal( "$RSTPATH not found. Restrict Freq file is inaccessible.\n");
@@ -984,7 +1011,6 @@ int main() {
         log_info( "Awaiting client response...");
         sem_wait(sf_server.sem);   
         log_info( "Processing CF Client...");
-
 
 
         double t1,t2;
@@ -1036,10 +1062,11 @@ int main() {
                     read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                     samples_num = meta_data.number_of_samples;
 
-
+                    
                     // Reallocate Samples SHM
                     log_info( "Reallocating Sample related Memory due to change in Antenna Num...");
-                    realloc_samples_num(samples_num, beam_total);
+                    realloc_samples(samples_num);
+                    
 
                     old_antenna_num = meta_data.num_antennas;
                     log_info( "Reallocation due to change in Antenna Num done...");
@@ -1053,15 +1080,18 @@ int main() {
 
                 }
                 
-                // Update TCS Parameters and Active Antennas
+                // If critical TCS parameters have changed, reset TCS
                 new_tcs_param[0] = samples_num;
                 new_tcs_param[1] = beam_total;
                 new_tcs_param[2] = meta_data.usrp_rf_rate;
                 if (has_tcs_param_changed(old_tcs_param, new_tcs_param) == true) {
                     log_info( "TCS Parameters changed...");
-                    is_tcs_ready = false;
-                    tcs_storage_i = 0;
-                    old_samples_num = samples_num;
+                    for (int r_idx = 0; r_idx < radar_num; r_idx++) {
+                        is_tcs_ready[r_idx] = false;
+                        tcs_storage_i[r_idx] = 0;
+                    }
+                    
+                    realloc_storage(samples_num, beam_total, radar_num);
 
                     // log_info( "Reinitializing TCS FFTW plan...");
                     // cleanup_storage_fft();
@@ -1141,27 +1171,31 @@ int main() {
             read_sample_shm(temp_samples, samples_obj.shm_ptr, meta_data.num_antennas, samples_num);
             log_trace( "Samples done...");
 
+            // Read Center Frequency
             if (*(int*) (fcenter_obj.shm_ptr) != 0) {
                 log_debug( "Freq Center reading...");
                 read_single_int( &(meta_data.usrp_fcenter), fcenter_obj.shm_ptr);
                 log_debug("    fcenter: %d", meta_data.usrp_fcenter);
             }
 
+            // Read Radar ID
+            if (*(int*) (radar_id_obj.shm_ptr) >= 0) {
+                log_debug( "Radar ID reading...");
+                read_single_int(&cur_radar_id, radar_id_obj.shm_ptr);
+                log_debug("    cur_radar_id: %d", cur_radar_id);
+                if (cur_radar_id >= radar_num) {
+                    log_error( "ERROR: Radar ID out of range");
+                    log_error( "ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
+                    perror("ERROR: Radar ID out of range");
+                    exit(EXIT_FAILURE);
+                }
+            }
+
             sem_post(sl_samples.sem);
 
-            // Store Sample Data
-            log_info( "Storing Sample Data...");
-            if (tcs_storage_i < STORAGE_NUM) {
-                // Store Samples
-                for (int aidx = 0; aidx < meta_data.num_antennas; aidx++) {
-                    // log_debug("    antenna_list[%d]: %d", aidx, meta_data.antenna_list[aidx]);
-                    memcpy(
-                        &(samples_storage[tcs_storage_i * STATIC_ANTENNA_NUM + aidx * samples_num]), 
-                        temp_samples[aidx], 
-                        samples_num * sizeof(fftw_complex)
-                    );
-                }
-                log_debug( "Stored samples_storage[%d/%d] successfully...", tcs_storage_i + 1, STORAGE_NUM);
+            // Store Spectra Data
+            log_info( "Storing Spectra Data...");
+            if (tcs_storage_i[cur_radar_id] < STORAGE_NUM) {
                 
                 // Fill Spectra Storage
                 process_all_beamformed_spectras(
@@ -1171,40 +1205,22 @@ int main() {
                         restricted_freq, 
                         restricted_num,
                         &meta_data,
-                        beam_total,
-                        &(spectra_storage[tcs_storage_i * beam_total * samples_num])
+                        array_config,
+                        &(spectra_storage[
+                            cur_radar_id * STORAGE_NUM * beam_total * samples_num + 
+                            tcs_storage_i[cur_radar_id] * beam_total * samples_num
+                        ])
                     );
 
-                log_info( "Processed spectra_storage[%d/%d] successfully...", tcs_storage_i + 1, STORAGE_NUM);
-                tcs_storage_i++;
+                log_info( "[TCS] Processed Radar[%d]'s spectra_storage[%d/%d] successfully...", cur_radar_id, tcs_storage_i[cur_radar_id] + 1, STORAGE_NUM);
+                tcs_storage_i[cur_radar_id] += 1;
 
-                if (tcs_storage_i >= STORAGE_NUM) {
-                    log_info( "TCS Ready for client processing...");
-                    is_tcs_ready = true;
-                    tcs_storage_i = 0;
+                if (tcs_storage_i[cur_radar_id] >= STORAGE_NUM) {
+                    log_info( "[TCS] Radar[%d] Storage is now Ready...", cur_radar_id);
+                    is_tcs_ready[cur_radar_id] = true;
+                    tcs_storage_i[cur_radar_id] = 0;
                 } 
             }
-            
-            // TODO: Batch Temporal Clear Search: Process all spectra every 1 min
-            // // If 1 min of spectra collected, process collection into avg beam's clr freq 
-            // else {
-            //     // Spectral Avg (all packets into 1 and X # of samples by Avg Aatio) and Find Clear Freqs
-            //     process_avg_beam_spectrum(
-            //         spectra_storage,
-            //         AVG_RATIO,
-            //         meta_data.number_of_samples,
-            //         beam_total,
-            //         STORAGE_NUM,
-            //         &meta_data,
-            //         avg_beam_spectrum,
-            //         avg_freq_vector
-            //     );
-
-            //     // 
-
-
-            //     tcs_storage_i = 0;
-            // }
 
             log_info( "Stored Samples successfully...");
         } 
@@ -1221,7 +1237,7 @@ int main() {
             log_trace( "Reading Clear Freq Data...");
 
             // Read Beam_num
-            if (msync(beam_num_obj.shm_ptr, BEAM_NUM_SHM_SIZE, MS_SYNC) == -1) {    // Synchronize data writes with program counter
+            if (msync(beam_num_obj.shm_ptr, BEAM_NUM_SHM_SIZE, MS_SYNC) == -1) { // Synchronize data writes with program counter
                 log_error( "msync failed");
                 perror("msync failed");
             }
@@ -1251,13 +1267,24 @@ int main() {
                 log_debug("    clr_range: %d -- %d", clr_range[0], clr_range[1]);
             }
             
-
+            // Read Radar ID
+            if (*(int*) (radar_id_obj.shm_ptr) >= 0) {
+                log_debug( "Radar ID reading...");
+                read_single_int(&cur_radar_id, radar_id_obj.shm_ptr);
+                log_debug("    cur_radar_id: %d", cur_radar_id);
+                if (cur_radar_id >= radar_num) {
+                    log_error( "ERROR: Radar ID out of range");
+                    log_error( "ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
+                    perror("ERROR: Radar ID out of range");
+                    exit(EXIT_FAILURE);
+                }
+            }
 
             // General: Process a beam-specific clrfreq
             log_info( "Clr Freq @ Beam #%d ...", cur_beam);
             
             // If TCS is not ready, process new clrfreq per unique beam request
-            if (is_tcs_ready == false) {
+            if (is_tcs_ready[cur_radar_id] == false) {
                 // Process basic Clear Search
                 log_info( "Starting Clear Freq Search...");
                 clear_freq_search(
@@ -1268,16 +1295,16 @@ int main() {
                     restricted_freq, 
                     restricted_num,
                     meta_data,
+                    array_config,
                     clr_bands                
                 );
-                log_info( "TCS Readiness at [%d/%d] ...", tcs_storage_i + 1, STORAGE_NUM);
             }
             // If TCS ready, process specific beam clr freq
             else {
-                log_info( "[Fresh TCS] Clr Freq @ Beam #%d", cur_beam);
+                log_info( "[TCS] Clr Freq @ Beam #%d processing...", cur_beam);
                 
                 process_avg_beam_spectra(
-                    spectra_storage,
+                    &(spectra_storage[cur_radar_id * STORAGE_NUM * beam_total * samples_num]),
                     AVG_RATIO,
                     meta_data.number_of_samples,
                     cur_beam,
@@ -1301,7 +1328,7 @@ int main() {
                     &meta_data,
                     clr_bands
                 );
-                log_info( "     FTCS @ #%d Beam done...", cur_beam);
+                log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
             
             }
             // TODO: update_clr_table(clr_bands);
@@ -1320,18 +1347,23 @@ int main() {
             }
             write_clrfreq_shm(clr_bands, clrfreq_obj.shm_ptr);
 
-            
-            // Log clear freq band sets
-            memcpy(clr_bands_storage[clr_storage_i], clr_bands, CLR_BANDS_MAX * sizeof(freq_band));
-            clr_storage_i++;
-            log_info( "Clr Freq Log Batch: %d/%d", clr_storage_i, CLR_STORAGE_NUM);
-            if (clr_storage_i >= CLR_STORAGE_NUM) {
-                write_clr_log_csv(clr_bands_storage, clr_storage_i);
-                clr_storage_i = 0;
+
+            log_info( "[TCS] Radar[%d] Storage at [%d/%d] ...", cur_radar_id, tcs_storage_i[cur_radar_id] + 1, STORAGE_NUM);
+            if (is_tcs_ready[cur_radar_id] == true) {
+                log_info( "[TCS] Radar[%d] ready...", cur_radar_id);
             }
 
-            
-            if (msync(clrfreq_obj.shm_ptr, CLR_BANDS_SHM_SIZE, MS_SYNC) == -1) {    // Synchronize data writes with program counter
+            // Log clear freq bands
+            memcpy(clr_bands_storage[cur_radar_id][clr_storage_i[cur_radar_id]], clr_bands, CLR_BANDS_MAX * sizeof(freq_band));
+            clr_storage_i[cur_radar_id]++;
+            log_info( "Clr Freq Log Batch: radar[%d] @ %d/%d", cur_radar_id, clr_storage_i[cur_radar_id], CLR_STORAGE_NUM);
+            if (clr_storage_i[cur_radar_id] >= CLR_STORAGE_NUM) {
+                write_clr_log_csv(clr_bands_storage[cur_radar_id], clr_storage_i[cur_radar_id], cur_radar_id);
+                clr_storage_i[cur_radar_id] = 0;
+            }
+
+            // Synchronize data writes with program counter
+            if (msync(clrfreq_obj.shm_ptr, CLR_BANDS_SHM_SIZE, MS_SYNC) == -1) {
                 log_fatal( "msync failed");
                 perror("msync failed");
             }            
@@ -1342,7 +1374,7 @@ int main() {
             log_trace( "Processed Clear Freq Request successfully...");
         }
 
-        // If no data to process, exit
+        // If no data to process, signal possible error
         else {
             log_fatal( "ERROR: No Clear Freq or Sample flag to process...");
             log_fatal( "ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
@@ -1350,9 +1382,9 @@ int main() {
             exit(EXIT_FAILURE);
         }
         
-        log_info( "Processed Client successfully...");
-
+        
         t2 = clock();
+        log_info( "Processed Client successfully...");
         log_info( "Processing Time for Client (s): %lf\n", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
     }
 }
