@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#sudo ./init_network.sh &
+sudo ./tools/optimize_network.sh &
 
 
 errlog -name mcm.a -lp 41000 &

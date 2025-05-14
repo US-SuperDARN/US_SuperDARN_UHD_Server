@@ -150,7 +150,8 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
 
     clrfreq_cmd = usrp_clrfreq_command(usrp_sockets, num_clrfreq_samples, clrfreq_time, center_freq, clrfreq_rate_requested)
     clrfreq_cmd.transmit()
-
+    time.sleep(0.001)
+    
     # if usrp_sockets[0].getpeername()[0] != '127.0.0.1':
     #    time.sleep(0.01)
     
@@ -171,7 +172,7 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
               dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
               
               if usrpsock.getpeername()[0] != '127.0.0.1':
-                 time.sleep(0.01)
+                 time.sleep(0.002)
                  
               sample_buf = recv_dtype(usrpsock, np.int16, nitems = int(2 * num_clrfreq_samples))
               

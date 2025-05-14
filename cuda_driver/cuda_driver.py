@@ -322,6 +322,7 @@ class cuda_get_data_handler(cudamsg_handler):
         self.logger.debug('entering cuda_get_data handler on {}'.format(os.uname().nodename))
 
         cmd = cuda_get_data_command([self.sock])
+        time.sleep(0.001)
         cmd.receive(self.sock)
         swing    = cmd.payload['swing']    
 
@@ -356,6 +357,7 @@ class cuda_get_if_data_handler(cudamsg_handler):
         self.logger.debug('entering cuda_get_if_data handler')
 
         cmd = cuda_get_data_command([self.sock])
+        time.sleep(0.001)
         cmd.receive(self.sock)
         swing    = cmd.payload['swing']    
 

@@ -864,24 +864,20 @@ int main() {
 
     // Initialize Array Configuration
     log_info( "Initializing Array Configuration...");
-    if (access(ARRAY_CONFIG_FILEPATH, F_OK) == -1) {
-        perror("Error: Config file does not exist");
-        exit(EXIT_FAILURE);
-    }
-    if (access(ARRAY_CONFIG_FILEPATH, R_OK) == -1) {
-        perror("Error: Config file is not readable");
-        exit(EXIT_FAILURE);
-    }
-
-
     Config array_config = {0}; 
-    ini_parse(ARRAY_CONFIG_FILEPATH, config_ini_handler, &array_config);
-    if (array_config.array_info.beam_sep == 0) {
+    int ini_check = ini_parse(ARRAY_CONFIG_FILEPATH, config_ini_handler, &array_config);
+    if (ini_check < 0) {
         log_fatal( "Error reading array configuration file");
         perror("Error reading array configuration file");
         exit(EXIT_FAILURE);
     }
     int radar_num = array_config.array_info.nradars;
+    if (radar_num <= 0) {
+        log_warn( "No radars found in the configuration file. Defaulting to 1 radar.");
+        log_warn( "If you are using a single radar, please set the number of radars to 1.");
+        log_warn( "Note: CFS still expects a radar_id argument!");
+        radar_num = 1;
+    }
     int beam_total = array_config.array_info.nbeams;
     int cur_radar_id = 0;
     log_info( "Done initializing Array Configuration...");

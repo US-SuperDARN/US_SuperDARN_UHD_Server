@@ -392,10 +392,15 @@ class usrp_get_auto_clear_freq_command(driver_command):
                 print("clear search number of samples:",nSamples)
                 
                 if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
-                    time.sleep(0.002)
+                    time.sleep(0.003)
                     
                 time.sleep(0.001)
-                sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))                
+                try:
+                    sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
+                except:
+                    return nSides,-1, sample_buf
+                    # sample_buf_side = [np.int16(0) for j in range(2*nSamples)]
+                    
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
 
             

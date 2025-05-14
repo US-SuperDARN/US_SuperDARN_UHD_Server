@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <fftw3.h>      // FFT transform library
 #include "ini_parser.h"
 
 #ifndef CLR_BANDS_MAX
