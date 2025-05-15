@@ -873,9 +873,10 @@ int main() {
     }
     int radar_num = array_config.array_info.nradars;
     if (radar_num <= 0) {
-        log_warn( "No radars found in the configuration file. Defaulting to 1 radar.");
-        log_warn( "If you are using a single radar, please set the number of radars to 1.");
-        log_warn( "Note: CFS still expects a radar_id argument!");
+        log_warn( "Defaulting to 1 radar.");
+        log_warn( "If you are using a two radars, please set the number of radars under the [array_info] section: ");
+        log_warn( "\"nradars = 2\"");
+        if (radar_num == 0) log_error( "nradars is missing from the config file! Please add it to specify number of radars.");
         radar_num = 1;
     }
     int beam_total = array_config.array_info.nbeams;

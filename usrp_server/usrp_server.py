@@ -1017,7 +1017,7 @@ class ClearFrequencyService():
                 obj['shm_ptr'] = mmap.mmap(obj['shm_fd'], obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) 
     
     
-    def send_samples(self, raw_samples, radar_id, fcenter=None, meta_data=None):
+    def send_samples(self, raw_samples, radar_id=0, fcenter=None, meta_data=None):
         """ Waits for client requests, then processes server data, writes client 
             data, and requests server to process new data. When process is 
             terminated, the try/finally block cleans up.
@@ -1154,7 +1154,7 @@ class ClearFrequencyService():
                 
         return 
                 
-    def request_clr_freq(self, radar_id, beam_num=None, sample_sep=None, clr_range=None, ):
+    def request_clr_freq(self, radar_id=0, beam_num=None, sample_sep=None, clr_range=None, ):
         """ Waits for client requests, then processes server data, writes client 
             data, and requests server to process new data. When process is 
             terminated, the try/finally block cleans up.\
