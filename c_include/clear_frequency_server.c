@@ -960,7 +960,6 @@ int main() {
 
 
     
-    int clr_range[2] = {0};
     int cur_beam = 0;
     int sample_sep = -1;
     int old_antenna_num = ANTENNA_NUM;
@@ -981,6 +980,8 @@ int main() {
     int clr_storage_i[STATIC_RADAR_NUM] = {0};
     int tcs_storage_i[STATIC_RADAR_NUM] = {0};
     bool is_tcs_ready[STATIC_RADAR_NUM] = {false};
+    int clr_range[STATIC_RADAR_NUM][2] = {0};
+    bool has_clr_range_changed = false;
     
     // Initialize FFTW for fast spectra storage
     // initialize_fftw_threads(FFTW_THREADS);
@@ -1074,6 +1075,15 @@ int main() {
                     read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                     samples_num = meta_data.number_of_samples;
 
+                }
+
+                // If clr_range is not set, default clr_range to usrp_fcenter -/+ 0.5 * usrp_rf_rate
+                if (meta_data.usrp_fcenter == 0) {
+                    log_info( "Setting default clr_range...");
+                    for (int i = 0; i < STATIC_RADAR_NUM; i++) {
+                        clr_range[i][0] = meta_data.usrp_fcenter - (0.5 * meta_data.usrp_rf_rate);
+                        clr_range[i][1] = meta_data.usrp_fcenter + (0.5 * meta_data.usrp_rf_rate);
+                    }
                 }
                 
                 // If critical TCS parameters have changed, reset TCS
@@ -1196,7 +1206,7 @@ int main() {
                 // Fill Spectra Storage
                 process_all_beamformed_spectras(
                         temp_samples,
-                        clr_range, 
+                        clr_range[cur_radar_id], 
                         sample_sep, 
                         restricted_freq, 
                         restricted_num,
@@ -1256,13 +1266,6 @@ int main() {
                 log_debug("    sample_sep: %d", sample_sep);
             }
 
-            // Read Clear Range
-            if (*(int*) (clr_range_obj.shm_ptr) != 0) {
-                log_debug( "Clear Range reading...");
-                read_int(clr_range, clr_range_obj.shm_ptr, 2);
-                log_debug("    clr_range: %d -- %d", clr_range[0], clr_range[1]);
-            }
-            
             // Read Radar ID
             if (*(int*) (radar_id_obj.shm_ptr) >= 0) {
                 log_debug( "Radar ID reading...");
@@ -1276,6 +1279,25 @@ int main() {
                 }
             }
 
+            // Read Clear Range
+            if (*(int*) (clr_range_obj.shm_ptr) != 0) {
+                log_debug( "Clear Range reading...");
+                read_int(clr_range[cur_radar_id], clr_range_obj.shm_ptr, 2);
+                log_debug("    clr_range: %d -- %d", clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]);
+
+                // If new clr_range, reset TCS for cur_radar_id
+                int old_clr_range[2] = {clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]};
+                log_debug("    old_clr_range: %d -- %d", old_clr_range[0], old_clr_range[1]);
+                if (clr_range[cur_radar_id][0] != old_clr_range[0] || clr_range[cur_radar_id][1] != old_clr_range[1]) {
+                    log_info( "Radar#%d's Clear Range changed...", cur_radar_id);
+                    has_clr_range_changed = true;
+
+                    is_tcs_ready[cur_radar_id] = false;
+                    tcs_storage_i[cur_radar_id] = 0;
+                }
+            }
+            
+
             // General: Process a beam-specific clrfreq
             log_info( "Clr Freq @ Beam #%d ...", cur_beam);
             
@@ -1285,7 +1307,7 @@ int main() {
                 log_info( "Starting Clear Freq Search...");
                 clear_freq_search(
                     temp_samples, 
-                    clr_range,
+                    clr_range[cur_radar_id],
                     cur_beam,
                     sample_sep,
                     restricted_freq, 
@@ -1315,7 +1337,7 @@ int main() {
                 process_beam_clr_freq(
                     avg_beam_spectrum,
                     cur_beam,
-                    clr_range,
+                    clr_range[cur_radar_id],
                     sample_sep,
                     restricted_freq, 
                     restricted_num,

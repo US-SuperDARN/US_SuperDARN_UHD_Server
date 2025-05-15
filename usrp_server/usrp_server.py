@@ -1374,6 +1374,7 @@ class clearFrequencyRawDataManager():
         self.metaData[jrad]['antenna_list'] = antenna_list
         self.sampling_rate = meta_data_dict['sampling_rate']
         self.center_freq[jrad] = meta_data_dict['center_freq'] /1000
+        self.CFS.send_samples(self.rawData[jrad], int(jrad), int(self.center_freq[jrad]), meta_data=self.metaData[jrad])
         self.logger.debug("Updated clear freq raw data with auto_clear_freq data")
 
 
