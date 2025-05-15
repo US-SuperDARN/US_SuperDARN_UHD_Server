@@ -727,11 +727,12 @@ void process_all_beamformed_spectras(
 
     // Scale parameters to Hz and ms
     smsep = smsep / 1000000;
+    log_trace(" clr_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
     if (clear_freq_range[0] < 100000 || clear_freq_range[1] < 100000) {
         clear_freq_range[0] = clear_freq_range[0] * 1000; 
         clear_freq_range[1] = clear_freq_range[1] * 1000;
     }
-
+    log_trace(" clr_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
 
     // Beam Angle Calculation
     double beam_angle[beam_total];
@@ -822,7 +823,7 @@ void process_avg_beam_spectra(
         memset(avg_beam_spectra[cur_beam], 0, sizeof(double) * num_avg_samples);
     }
 
-    log_trace("num_avg_sample: %davg_freq_ratio: %d", num_avg_samples, avg_ratio);
+    log_trace("num_avg_sample: %d avg_freq_ratio: %d", num_avg_samples, avg_ratio);
         
 
     log_trace("=----Starting Spectral Averaging----=");
@@ -936,7 +937,7 @@ void process_all_beam_clr_freqs(
 
     // Debug: Output results
     for (int i = 0; i < CLR_BANDS_MAX; i++)
-        log_trace("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[0][i].is_selected ? "Selected" : "Free", clr_bands[0][i].f_start, clr_bands[0][i].noise, clr_bands[0][i].f_end);
+        log_trace("Clear Freq Band[%d][%s]: | %d Hz -- Noise: %f -- %d Hz |", i, clr_bands[0][i].is_selected ? "Selected" : "Free", clr_bands[0][i].f_start, clr_bands[0][i].noise, clr_bands[0][i].f_end);
     
     // // Debug: Print Restricted Freqs
     // for (int i = 0; i < restricted_num; i++) {
@@ -1047,14 +1048,14 @@ clear_freq clear_freq_search(
 
     // Debug: Display parameters
     log_trace("=--- Clear Freq Variables ---=");
-    log_trace("num_samples: %dnum_antennas: %dx_spacing: %lfusrp_rf_rate: %dusrp_fcenter: %d",
+    log_trace("num_samples: %d num_antennas: %d x_spacing: %lf usrp_rf_rate: %d usrp_fcenter: %d",
         meta_data.number_of_samples,
         meta_data.num_antennas,
         meta_data.x_spacing,
         meta_data.usrp_rf_rate,
         meta_data.usrp_fcenter
     );       
-    log_trace("n_beams: %dbeam_sep: %fbeam_num: %dbeam_angle: %f", n_beams, beam_sep, cur_beam, beam_angle);
+    log_trace("n_beams: %d beam_sep: %f beam_num: %d beam_angle: %f", n_beams, beam_sep, cur_beam, beam_angle);
 
 
     // Stopwatch Start

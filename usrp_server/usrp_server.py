@@ -1041,6 +1041,11 @@ class ClearFrequencyService():
         if self.soft_kill is True:
             return
                 
+        # Fail: If no antennas, skip to recover on next Clear Search Cycle 
+        if meta_data is None or len(meta_data['antenna_list']) == 0:
+            print("[clearFrequencyService] ERROR: No antennas found. Skipping...")
+            return
+                
         # Get in Queue
         active_clients = self.increment_active_clients()
         print(f"[clearFrequencyService] Active clients count: {active_clients}")

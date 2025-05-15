@@ -981,7 +981,6 @@ int main() {
     int tcs_storage_i[STATIC_RADAR_NUM] = {0};
     bool is_tcs_ready[STATIC_RADAR_NUM] = {false};
     int clr_range[STATIC_RADAR_NUM][2] = {0};
-    bool has_clr_range_changed = false;
     
     // Initialize FFTW for fast spectra storage
     // initialize_fftw_threads(FFTW_THREADS);
@@ -1075,15 +1074,6 @@ int main() {
                     read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                     samples_num = meta_data.number_of_samples;
 
-                }
-
-                // If clr_range is not set, default clr_range to usrp_fcenter -/+ 0.5 * usrp_rf_rate
-                if (meta_data.usrp_fcenter == 0) {
-                    log_info( "Setting default clr_range...");
-                    for (int i = 0; i < STATIC_RADAR_NUM; i++) {
-                        clr_range[i][0] = meta_data.usrp_fcenter - (0.5 * meta_data.usrp_rf_rate);
-                        clr_range[i][1] = meta_data.usrp_fcenter + (0.5 * meta_data.usrp_rf_rate);
-                    }
                 }
                 
                 // If critical TCS parameters have changed, reset TCS
@@ -1202,6 +1192,16 @@ int main() {
             // Store Spectra Data
             log_info( "Storing Spectra Data...");
             if (tcs_storage_i[cur_radar_id] < STORAGE_NUM) {
+
+                // If clr_range is not set, default clr_range to usrp_fcenter -/+ 0.5 * usrp_rf_rate
+                if (clr_range[0][0] == 0 && clr_range[0][1] == 0) {
+                    log_info( "Setting default clr_range...");
+                    for (int i = 0; i < STATIC_RADAR_NUM; i++) {
+                        clr_range[i][0] = (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate)) / 1000;
+                        clr_range[i][1] = (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate)) / 1000;
+                    }
+                    log_info( "Default clr_range set to %d -- %d", clr_range[0][0], clr_range[0][1]);
+                }
                 
                 // Fill Spectra Storage
                 process_all_beamformed_spectras(
@@ -1281,16 +1281,26 @@ int main() {
 
             // Read Clear Range
             if (*(int*) (clr_range_obj.shm_ptr) != 0) {
+                int old_clr_range[2] = {clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]};
+
                 log_debug( "Clear Range reading...");
                 read_int(clr_range[cur_radar_id], clr_range_obj.shm_ptr, 2);
-                log_debug("    clr_range: %d -- %d", clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]);
+                log_trace("    clr_range: %d -- %d (kHz)", clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]);
 
-                // If new clr_range, reset TCS for cur_radar_id
-                int old_clr_range[2] = {clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]};
+                // If clr_range is in kHz, convert to Hz
+                if (clr_range[cur_radar_id][0] < 100000 || clr_range[cur_radar_id][1] < 100000) {
+                    clr_range[cur_radar_id][0] = clr_range[cur_radar_id][0] * 1000;
+                    clr_range[cur_radar_id][1] = clr_range[cur_radar_id][1] * 1000;
+                    log_debug("    clr_range: %d -- %d Hz", clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]);
+                }
+
+                // If a radar's clr_range changed, reset TCS for that radar
                 log_debug("    old_clr_range: %d -- %d", old_clr_range[0], old_clr_range[1]);
                 if (clr_range[cur_radar_id][0] != old_clr_range[0] || clr_range[cur_radar_id][1] != old_clr_range[1]) {
                     log_info( "Radar#%d's Clear Range changed...", cur_radar_id);
-                    has_clr_range_changed = true;
+                    log_info("    old_clr_range: %d -- %d", old_clr_range[0], old_clr_range[1]);
+                    log_info("    clr_range: %d -- %d", clr_range[cur_radar_id][0], clr_range[cur_radar_id][1]);
+
 
                     is_tcs_ready[cur_radar_id] = false;
                     tcs_storage_i[cur_radar_id] = 0;
@@ -1360,6 +1370,7 @@ int main() {
                 if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                     clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
                     log_error("ERROR: Clear Freq Band[%d] is abnornal", i);
+                    log_error("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
                     log_error("ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
                 }
             }
