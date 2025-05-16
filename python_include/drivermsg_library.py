@@ -127,7 +127,8 @@ class driver_command(object):
               # pdb.set_trace()
                returns.append(CONNECTION_ERROR)
 
-        #cprint('command return success', 'yellow')
+            time.sleep(0.001)
+
         return returns
 
     def receive(self, sock):
@@ -243,6 +244,7 @@ class cuda_add_channel_command(driver_command):
     def __init__(self, cudas, sequence = None, swing = -1):
         driver_command.__init__(self, cudas, CUDA_ADD_CHANNEL)
         self.queue(swing, np.uint32, 'swing')
+        time.sleep(0.001)
         self.sequence = sequence
  
     def receive(self, sock):
@@ -322,8 +324,6 @@ class usrp_trigger_pulse_command(driver_command):
 
 
 
-
-
 # command usrp drivers to ready rx sample data into shared memory
 class usrp_ready_data_command(driver_command):
     def __init__(self, usrps, swing):
@@ -333,7 +333,7 @@ class usrp_ready_data_command(driver_command):
     def receive_all_metadata(self):
        payloadList = []
        for sock in self.clients:
-           print(sock)
+           self.logger.debug("receive metadata for {}".format(sock))
            try:
               payload = {}
               payload['status']   = recv_dtype(sock, np.int32)
@@ -392,10 +392,15 @@ class usrp_get_auto_clear_freq_command(driver_command):
                 print("clear search number of samples:",nSamples)
                 
                 if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
-                    time.sleep(0.002)
+                    time.sleep(0.003)
                     
                 time.sleep(0.001)
-                sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))                
+                try:
+                    sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
+                except:
+                    return nSides,-1, sample_buf
+                    # sample_buf_side = [np.int16(0) for j in range(2*nSamples)]
+                    
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
 
             

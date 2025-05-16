@@ -2,32 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ini_parser.h"
+#include "clear_freq_search.h"
+#include "log.h"
 
-typedef struct {
-    int radar_stid;
-    double x_spacing;
-    int nbeams;
-    double beam_sep;
-} ArrayInfo;
-
-typedef struct {
-    double max_tpulse;
-    double min_chip;
-    double max_dutycycle;
-    double max_integration;
-    double minimum_tfreq;
-    double maximum_tfreq;
-    double min_tr_to_pulse;
-} HardwareLimits;
-
-typedef struct {
-    ArrayInfo array_info;
-    HardwareLimits hardware_limits;
-} Config;
 
 static int config_ini_handler(void* user, const char* section, const char* name, const char* value) {
     Config* pconfig = (Config*)user;
-    
+
     if (strcmp(section, "array_info") == 0) {
         if (strcmp(name, "radar_stid") == 0) {
             pconfig->array_info.radar_stid = atoi(value);
@@ -40,6 +21,9 @@ static int config_ini_handler(void* user, const char* section, const char* name,
         } else if (strcmp(name, "beam_sep") == 0) {
             pconfig->array_info.beam_sep = atof(value);
             // printf("value: %f\nvalue (str): %s", atof(value), value);
+        } else if (strcmp(name, "nradars") == 0) {
+            pconfig->array_info.nradars = atoi(value);
+            // printf("value: %d\nvalue (str): %s", atoi(value), value);
         }
     } else if (strcmp(section, "hardware_limits") == 0) {
         if (strcmp(name, "max_tpulse") == 0) {
@@ -57,9 +41,29 @@ static int config_ini_handler(void* user, const char* section, const char* name,
         } else if (strcmp(name, "min_tr_to_pulse") == 0) {
             pconfig->hardware_limits.min_tr_to_pulse = atof(value);
         }
-    } 
+    }
 
     return 1;
+}
+
+/**
+ * @brief  Loads in the array configuration from array_config.ini. 
+ * @note   By DF
+ * @param  *config_path:       Filepath of the array_config.ini file
+ * @retval None
+ */
+Config read_array_config(const char *config_path){
+    Config config = {0};
+
+    if (ini_parse(config_path, config_ini_handler, &config) < 0) {
+        log_error("Can't load config_path: \n%s", config_path);
+        config.array_info.beam_sep = 0;
+    }
+
+    return config;
+    // *x_spacing = config.array_info.x_spacing;
+    // *n_beams = config.array_info.nbeams;
+    // *beam_sep = config.array_info.beam_sep;
 }
 
 /*

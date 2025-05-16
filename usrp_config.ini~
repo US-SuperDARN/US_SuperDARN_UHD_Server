@@ -137,7 +137,7 @@ phase_offset = 0
 
 [usrp6a]
 usrp_hostname = 192.168.51.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 0
@@ -148,7 +148,7 @@ phase_offset = 0
 
 [usrp6b]
 usrp_hostname = 192.168.51.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 1
@@ -159,7 +159,7 @@ phase_offset = 0
 
 [usrp7a]
 usrp_hostname = 192.168.52.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 2
@@ -170,7 +170,7 @@ phase_offset = 0
 
 [usrp7b]
 usrp_hostname = 192.168.52.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 3
@@ -181,7 +181,7 @@ phase_offset = 0
 
 [usrp8a]
 usrp_hostname = 192.168.53.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 4
@@ -193,7 +193,7 @@ phase_offset = 0
 
 [usrp8b]
 usrp_hostname = 192.168.53.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 5
@@ -204,7 +204,7 @@ phase_offset = 0
 
 [usrp9a]
 usrp_hostname = 192.168.54.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 6
@@ -216,7 +216,7 @@ phase_offset = 0
 
 [usrp9b]
 usrp_hostname = 192.168.54.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 7
@@ -227,7 +227,7 @@ phase_offset = 0
 
 [usrp10a]
 usrp_hostname = 192.168.56.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 8
@@ -239,7 +239,7 @@ phase_offset = 0
 
 [usrp10b]
 usrp_hostname = 192.168.56.2
-driver_hostname = 146.186.43.132
+driver_hostname = 192.168.100.2
 radar = 1
 mainarray = True
 array_idx = 9
