@@ -3730,21 +3730,20 @@ class RadarChannelHandler:
 
 
     def QueryIniSettingsHandler(self, rmsg):
-        # TODO: don't hardcode this if I find anything other than ifmode querying..
-        data_length = recv_dtype(self.conn, np.int32)
-        ini_name = recv_dtype(self.conn, str, nitems=data_length)
-        requested_type = recv_dtype(self.conn, np.uint8)
+        # send information about tx_scaling_factor_total as txpow
+        tx_factor = self.parent_RadarHardwareManager.scaling_factor_tx_total*100
+        transmit_dtype(self.conn, tx_factor, np.int32)
 
-        # hardcode to reply with ifmode is false
-        assert ini_name == b'site_settings:ifmode\x00'
-
-        payload = 0 # assume always false
-
-        transmit_dtype(self.conn, requested_type, np.uint8)
-        transmit_dtype(self.conn, data_length, np.int32) # appears to be unused by site library
-        transmit_dtype(self.conn, payload, np.int32)
-
-        return 1 # TODO: Why does the ini handler expect a nonzero response for success?
+        # send information about amplification and attenuation settings as atten
+        amp1 = self.parent_RadarHardwareManager.ini_rxfe_settings.getboolean('enable_amp1')
+        amp2 = self.parent_RadarHardwareManager.ini_rxfe_settings.getboolean('enable_amp2')
+        atten = float(self.parent_RadarHardwareManager.ini_rxfe_settings['attenuation'])
+        if amp1 == True:
+          atten -= 15.0
+        if amp2 == True:
+          atten -= 15.0
+        transmit_dtype(self.conn, atten, np.int32)
+        return RMSG_SUCCESS
 
     def SetActiveHandler(self, rmsg):
         # called by site library at the start of a scan 
