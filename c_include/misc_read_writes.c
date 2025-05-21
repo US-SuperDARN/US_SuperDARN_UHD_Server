@@ -114,7 +114,7 @@ void write_spectrum_csv(char *filename, fftw_complex *spectrum, double *freq_vec
 
     // Generate timestamp
     time(&raw_time);
-    time_info = localtime(&raw_time);
+    time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), filename, timestamp, "csv");
 
@@ -151,7 +151,7 @@ void write_spectrum_mag_csv(char *filename, double *spectrum, double *freq_vecto
 
     // Generate timestamp
     time(&raw_time);
-    time_info = localtime(&raw_time);
+    time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), filename, timestamp, "csv");
 
@@ -178,7 +178,7 @@ void write_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vecto
 
     // Generate timestamp
     time(&raw_time);
-    time_info = localtime(&raw_time);
+    time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), filename, timestamp, "bin");
 
@@ -208,7 +208,7 @@ void write_clr_freq_csv(char *filename, freq_band *clr_bands) {
 
     // Generate timestamp
     time(&raw_time);
-    time_info = localtime(&raw_time);
+    time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), filename, timestamp, "csv");
     
@@ -246,7 +246,7 @@ void write_clr_freq_bin(char *filename, freq_band *clr_bands) {
 
     // Generate timestamp
     time(&raw_time);
-    time_info = localtime(&raw_time);
+    time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), filename, timestamp, "bin");
 
@@ -483,7 +483,7 @@ void get_timestamp( char* buffer){
 	time_t rawtime;
 	struct tm *timeinfo;
 	time(&rawtime);
-	timeinfo = localtime (&rawtime);
+	timeinfo = gmtime (&rawtime);
 	strftime (buffer,32,"%G.%m%d.%H%M%S",timeinfo);
 }
 

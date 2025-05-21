@@ -534,7 +534,7 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num) {
 
     // Generate timestamp
     time(&raw_time);
-    time_info = localtime(&raw_time);
+    time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.csv", timestamp);
 
