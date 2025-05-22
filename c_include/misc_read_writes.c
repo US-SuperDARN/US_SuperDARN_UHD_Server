@@ -422,6 +422,41 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
     fclose(file);
 }
 
+void read_radar_config(char *filepath, int *clr_freq_res) {
+    FILE *file = fopen(filepath, "r");
+    if (file == NULL) {
+        file_access_error(filepath);
+        exit(EXIT_FAILURE);
+    }
+
+    char line[256];
+    char word[12] = {"\0"};
+    int value = 0;
+    int i = 0;
+    int result = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        result = sscanf(line, "%s = %d", &word, &value);
+        word[11] = '\0'; // Ensure null-termination     
+
+        // If sscanf finds CLR_FREQ_RES, store it
+        if (strcmp(word, "CLRFREQ_RES\0") == 0) {
+            *clr_freq_res = value;
+            log_trace("CLR_FREQ_RES: %d", *clr_freq_res);
+            break;
+        }
+    }
+
+    // Warn if low frequency resolution (can result in corrupted clr freq bands)
+    if (*clr_freq_res < 500) {
+        log_warn("CLR_FREQ_RES is extremely low (%d < 500). This is known to result in corrupted clear frequency bands!", *clr_freq_res);
+        log_warn("Please check radar_config_constants.py file.");
+        exit(EXIT_FAILURE);
+    }
+
+    fclose(file);
+}
+
 void get_timestamp( char* buffer){
 	time_t rawtime;
 	struct tm *timeinfo;
