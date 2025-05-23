@@ -3509,7 +3509,7 @@ class RadarChannelHandler:
 
     def write_bb_data(channel):
         channel.logger.debug('start saving BB samples')
-        time_now = datetime.datetime.utcnow()
+        time_now = datetime.datetime.now(datetime.UTC)
         version = 3 
         hardwareManager = channel.parent_RadarHardwareManager
         
@@ -3517,8 +3517,9 @@ class RadarChannelHandler:
         if not os.path.isdir(savePath):
             os.mkdir(savePath)
                     
-        fileName = '{:04d}{:02d}{:02d}{:02d}{:02d}.{}.iraw.{:c}'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute, channel.station[0:3], 96+channel.cnum)
-
+        fileName = '{:04d}{:02d}{:02d}{:02d}{:02d}.{}.iraw.{:c}'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute, channel.station, 96+channel.cnum)
+        print("**************************{}**************".format(fileName))
+        
         exportList = []
         exportList = []
         exportList.append( version )
@@ -3959,8 +3960,8 @@ class RadarChannelHandler:
         self.cnum = recv_dtype(self.conn, np.int32)
         self.stid = recv_dtype(self.conn, np.int32)
         data_length = recv_dtype(self.conn, np.int32)
-        self.station = recv_dtype(self.conn, str, nitems=data_length)
-
+        self.station = str.replace(recv_dtype(self.conn, str, nitems=data_length).decode('ascii'), "\x00", "")
+        
         if [self.rnum,self.cnum] in [[[ch.rnum,ch.cnum]] for ch in np.concatenate(self.parent_RadarHardwareManager.channels).tolist() if ch is not None and ch is not self]:
            self.logger.error("New channel (cnum {}) can not be added on radar {} beause channel with this cnum already active.".format(self.cnum,self.rnum))
            return RMSG_FAILURE

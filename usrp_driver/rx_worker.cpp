@@ -45,6 +45,10 @@ void usrp_rx_worker(
     int32_t *return_status
 ){
 
+    float priority=1;
+    bool realtime=true;
+    uhd::set_thread_priority_safe(priority,realtime);
+
     float debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("entering RX_WORKER %2.4f\n",debugt);
  //   fprintf( stderr, "RX WORKER nSamples requested: %i\n", num_requested_samps );
