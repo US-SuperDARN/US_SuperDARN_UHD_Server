@@ -22,7 +22,8 @@
 
 
 // Logging Vars
-#define LOG_LEVEL 2                         // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
+#define LOG_TERMINAL_LEVEL 2                         // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
+#define LOG_FILE_LEVEL 1
 #define LOG_PREFIX "[CFS] %s"               // *Unused* Prefix for log messages
 #define LOG_FILEPATH "log/cfs/cfs.%s.log"
 
@@ -844,7 +845,7 @@ int main() {
     signal(SIGSEGV, handle_sig);
 
     // Initialize Logging
-    log_file = init_log(LOG_LEVEL, LOG_FILEPATH);
+    log_file = init_log(LOG_TERMINAL_LEVEL, LOG_FILE_LEVEL, LOG_FILEPATH);
     if (log_file == NULL) {
         log_fatal("Error opening log file");
         perror("Error opening log file");

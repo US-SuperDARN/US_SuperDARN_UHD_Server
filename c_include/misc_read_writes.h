@@ -42,6 +42,6 @@ void read_radar_config(char *filepath, int *clr_freq_res);
 void get_timestamp(char *buffer);
 void get_file_name(char *filename, char *filepath);
 FILE* get_log_file(char *filepath);
-FILE* init_log(int level, char *filepath);
+FILE* init_log(int level, int file_level, char *filepath);
 
 #endif // MISC_READ_WRITES_H

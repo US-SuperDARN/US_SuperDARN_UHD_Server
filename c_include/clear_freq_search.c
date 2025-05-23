@@ -146,11 +146,11 @@ double calc_beam_angle(int n_beams, int cur_beam, double beam_sep) {
  *         
  * @retval Returns the Phase Shift (in degrees)
  */
-float calc_phase_increment(float beam_angle, double center_frequency, double x_spacing) {
+float calc_phase_increment(float beam_angle, int center_frequency, double x_spacing) {
     double wavelength = C / center_frequency;
     double phase_shift = (2 * PI * x_spacing * sin(beam_angle)) / wavelength;
     if (VERBOSE) {
-        log_trace("search_center_freq: %lf x_spacing: %lf phase_shift: %lf degree", center_frequency, x_spacing, phase_shift * 180 / PI);
+        log_trace("search_center_freq: %d x_spacing: %lf phase_shift: %lf degree", center_frequency, x_spacing, phase_shift * 180 / PI);
     }
     return phase_shift; 
 }
@@ -592,6 +592,7 @@ void calc_clear_freq_on_raw_samples(
     
 
     // Save data to csv
+    // bool save_spectra = false;
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
@@ -763,7 +764,7 @@ void process_all_beamformed_spectras(
     for (int cur_beam = 0; cur_beam < beam_total; cur_beam++) {
         current_beam_samples = beamformed_samples + cur_beam * num_samples;
         phasing_and_beamforming(
-            (double) (beam_angle[cur_beam]), &clear_freq_range, meta_data, &(phasing_vector[cur_beam * num_samples]), antennas, num_samples, raw_samples, current_beam_samples
+            (double) (beam_angle[cur_beam]), clear_freq_range, meta_data, &(phasing_vector[cur_beam * num_samples]), antennas, num_samples, raw_samples, current_beam_samples
         );
         // for (int i = 0; i < num_samples; i++) if (i < 5 || i > 2495) log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[cur_beam * num_samples + i]), cimag(beamformed_samples[cur_beam * num_samples + i]));
     }
