@@ -1053,7 +1053,7 @@ int main() {
     freq_band selected_clr_band = {0};
     
     // Get Clear Frequency Resolution 
-    log_debug( "Reading clrfreq_res from radar_config_constants.py ...");
+    log_debug( "Reading clr_freq_res from radar_config_constants.py ...");
     int clr_freq_res = 0;
     read_radar_config(RADAR_CONST_CONFIG_FILEPATH, &clr_freq_res);
     if (clr_freq_res <= 0) {
@@ -1400,6 +1400,11 @@ int main() {
                 }
             }
             
+            int avg_ratio = (int) ((meta_data.usrp_rf_rate / samples_num) / clr_freq_res);
+            log_info( "    avg_ratio: %d", avg_ratio);
+            log_info( "    delta_f: %d", (int) (meta_data.usrp_rf_rate / samples_num) );
+            log_info( "    clr_freq_res: %d", clr_freq_res);
+
             // Clear Freq Processing
             // If TCS is not ready, process new clrfreq per unique beam request
             if (is_tcs_ready[cur_radar] == false) {
@@ -1422,10 +1427,6 @@ int main() {
             // If TCS ready, process beam-specific clr freq
             else {
                 log_info( "[TCS] Clr Freq @ Beam #%d ...", cur_beam);
-
-                int avg_ratio = (int) ((meta_data.usrp_rf_rate / samples_num) / clr_freq_res);
-                log_info( "    avg_ratio: %d", avg_ratio);
-                
                 process_avg_beam_spectra(
                     &(spectra_storage[cur_radar * STORAGE_NUM * beam_total * samples_num]),
                     avg_ratio, 
@@ -1438,7 +1439,6 @@ int main() {
                     avg_freq_vector
                 );
                 log_trace( "    Avg Beam Spectrum done...");
-
 
                 process_beam_clr_freq(
                     avg_beam_spectrum,
@@ -1453,7 +1453,6 @@ int main() {
                     clr_bands
                 );
                 log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
-                
             }
             
             // Flag intersecting freq bands from Radar Table

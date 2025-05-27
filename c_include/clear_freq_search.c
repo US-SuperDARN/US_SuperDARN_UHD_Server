@@ -268,7 +268,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
  * @note   By DF
  * @param  *spectrum: Spectrum Data (Power per Sample)
  * @param  meta_data: Misc info on operating Radar parameters  
- * @param  delta_f: Frequency step per Sample 
+ * @param  avg_delta_f: Frequency step per Sample post spectral averaging
  * @param  f_start: Clear Freq Search Bound start
  * @param  f_end: Clear Freq Search Bound end
  * @param  clear_bw: Bandwidth of the Clear Frequency Bands. If 0, default to 40kHz.
@@ -276,25 +276,23 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
  * * lowest noise freq_bands.  
  * @retval None
  */
-void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta_f, double f_start, double f_end, int clear_bw, freq_band *clr_bands) {
+void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_delta_f, double f_start, double f_end, int clear_bw, freq_band *clr_bands) {
     
     log_debug("[find_clear_freqs()] Entered find_clear_freqs()...");
-    int clear_sample_bw = clear_bw / delta_f; 
-    log_trace("    Clear Sample Bandwidth: %d samples", clear_sample_bw);
-    log_trace("    delta_f: %f Hz", delta_f);
-
+    int clear_sample_bw = ceil(clear_bw / avg_delta_f);  // Always round up to avoid any overlapping bands
+    log_trace("    Clear Sample Bandwidth: %d samples, avg_delta_f: %f Hz", clear_sample_bw, avg_delta_f);
 
     // Define Range of Clear Freq Search 
-    int spectrum_sample_start = (int) ((meta_data.usrp_fcenter * 1000 - meta_data.usrp_rf_rate / 2) / delta_f);
-    int spectrum_sample_end = (int) ((meta_data.usrp_fcenter * 1000 + meta_data.usrp_rf_rate / 2) / delta_f);
-    int clr_search_sample_start = (int) (f_start / delta_f) - spectrum_sample_start;
-    int clr_search_sample_end = (int) (f_end / delta_f) - spectrum_sample_start;
+    int spectrum_sample_start = (int) ((meta_data.usrp_fcenter * 1000 - meta_data.usrp_rf_rate / 2) / avg_delta_f);
+    int spectrum_sample_end = (int) ((meta_data.usrp_fcenter * 1000 + meta_data.usrp_rf_rate / 2) / avg_delta_f);
+    int clr_search_sample_start = (int) (f_start / avg_delta_f) - spectrum_sample_start;
+    int clr_search_sample_end = (int) (f_end / avg_delta_f) - spectrum_sample_start;
     if (clr_search_sample_start < 0) clr_search_sample_start = 0;
     else if (clr_search_sample_start > spectrum_sample_end) clr_search_sample_start = spectrum_sample_end;
     if (clr_search_sample_end < 0) clr_search_sample_end = 0;
     else if (clr_search_sample_end > spectrum_sample_end) clr_search_sample_end = spectrum_sample_end;
 
-    log_trace("spectrum_sample_start: %d     f_start: %f", spectrum_sample_start, f_start);
+    // log_trace("spectrum_sample_start: %d     f_start: %f", spectrum_sample_start, f_start);
 
     // Trim Spectrum Data to only Clear Search Range (Used for convolving)
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
@@ -333,8 +331,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     
     // Initialize Clear Freq Bands
     for (int i = 0; i < CLR_BANDS_MAX; i++) {
-        clr_bands[i].f_start = clr_search_sample_start * delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        clr_bands[i].f_end = clr_search_sample_end * delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        clr_bands[i].f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        clr_bands[i].f_end = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
         clr_bands[i].noise = RAND_MAX; // XXX: Logic Flip
     };
     int min_idx[CLR_BANDS_MAX];
@@ -342,8 +340,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
     // Identify lowest noise bands from convolve results...
     freq_band curr_band;
     for (int i = 0; i < convolve_bw; i++) {
-        curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * delta_f;
-        curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * delta_f;
+        curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * avg_delta_f;
+        curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * avg_delta_f;
         curr_band.noise = convolve_result[i];
         // if (i < 10) log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
@@ -357,7 +355,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
                 insert_idx = j;
             }
             // Check for Intersecting Band; get intersecting clr_band index
-            if ( //intersect_idx == -1 && 
+            if ( 
                 ((clr_bands[j].f_start < curr_band.f_start && curr_band.f_start < clr_bands[j].f_end) ||
                     (clr_bands[j].f_start < curr_band.f_end && curr_band.f_end < clr_bands[j].f_end))) {
                 intersect_idx = j;
@@ -418,16 +416,15 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double delta
         }
     }
 
-    // log_debug("    Convolution Results packed up...");
-
-    // Debug: Output Final Clear Freq Bands
-    // for (int i = 0; i < CLR_BANDS_MAX; i++)
-    //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
-
     // Free allocated memory
     free(convolve_result);
 
-    log_info("[find_clear_freqs()] Exiting find_clear_freqs()...");
+    if (clr_search_sample_bw <= CLR_BANDS_MAX) {
+        log_warn("Clear Sample Bandwidth <= %d Clear Freq Bands; expect RAND_MAX in the worst Clear Freqs", CLR_BANDS_MAX);
+        log_warn("    Increase CFSFREQ_RES or CLRFREQ_RES in config file to increase number of searchable bands");
+    }
+
+    log_info("Exiting find_clear_freqs()...");
 }
 
 
@@ -505,8 +502,6 @@ void calc_clear_freq_on_raw_samples(
     int delta_f_avg = delta_f * avg_ratio;
     for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = i * delta_f_avg + f_start;
 
-    log_debug("avg freq vector");
-
     double *avg_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
     fftw_complex *fft_spectrum = NULL;
     fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
@@ -563,7 +558,7 @@ void calc_clear_freq_on_raw_samples(
     int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
     int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
     log_trace("clear_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
-    log_trace("    samples: | %d -- %d |", clear_sample_start, clear_sample_end);
+    // log_trace("    samples: | %d -- %d |", clear_sample_start, clear_sample_end);
     // if (VERBOSE){ for (int i = clear_sample_start; i < clear_sample_end; i++) {
     //     // if (i < 2 + clear_sample_start || i > clear_sample_end - 3) 
     //     log_trace("spectrum_pow[%d]: %f", i, avg_spectrum[i]);   
@@ -582,8 +577,8 @@ void calc_clear_freq_on_raw_samples(
     if (VERBOSE) log_info("find_clear_freqs (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
     // Debug: Output results
-    for (int i = 0; i < CLR_BANDS_MAX; i++)
-        log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+    // for (int i = 0; i < CLR_BANDS_MAX; i++)
+    //     log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
     
     // // Debug: Print Restricted Freqs
     // for (int i = 0; i < restricted_num; i++) {
@@ -646,10 +641,10 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         } 
         else phasing_vector[aidx] = 0;
 
-        if (VERBOSE) {
-            // log_trace("ant[%d]: %d", i, antennas[i]);
-            log_trace("phasing vec[%d]: %f + %fi", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
-        }
+        // if (VERBOSE) {
+        //     // log_trace("ant[%d]: %d", i, antennas[i]);
+        //     log_trace("phasing vec[%d]: %f + %fi", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
+        // }
     }
 
     // Apply beamforming
@@ -843,7 +838,6 @@ void process_avg_beam_spectra(
     log_trace("     num_avg_sample: %d avg_freq_ratio: %d", num_avg_samples, avg_ratio);
         
 
-    log_trace("     =----Starting Spectral Averaging----=");
     clock_t t_avg_curr, t_avg;
     t_avg_curr = clock();
 
@@ -941,7 +935,7 @@ void process_beam_clr_freq(
     int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
     int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
     log_trace("     clear_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
-    log_trace("         samples: | %d -- %d |", clear_sample_start, clear_sample_end);
+    // log_trace("         samples: | %d -- %d |", clear_sample_start, clear_sample_end);
     // if (VERBOSE){ for (int i = clear_sample_start; i < clear_sample_end; i++) {
     //     // if (i < 2 + clear_sample_start || i > clear_sample_end - 3) 
     //     log_trace("spectrum_pow[%d]: %f", i, avg_spectrum[i]);   
@@ -955,11 +949,7 @@ void process_beam_clr_freq(
     t1 = clock();
     find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_bands);
     t2 = clock();
-    log_trace("     find_clear_freqs of %d beam (s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
-
-    // Debug: Output results
-    for (int i = 0; i < CLR_BANDS_MAX; i++)
-        log_trace(" Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+    log_trace("     find_clear_freqs(s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 }
 
 /**
