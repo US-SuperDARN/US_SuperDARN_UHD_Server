@@ -278,21 +278,24 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
  */
 void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_delta_f, double f_start, double f_end, int clear_bw, freq_band *clr_bands) {
     
-    log_debug("[find_clear_freqs()] Entered find_clear_freqs()...");
+    log_debug("Entered find_clear_freqs()...");
     int clear_sample_bw = ceil(clear_bw / avg_delta_f);  // Always round up to avoid any overlapping bands
-    log_trace("    Clear Sample Bandwidth: %d samples", clear_sample_bw);
+    log_info("    Clear Sample Bandwidth: %d samples", clear_sample_bw);
 
-    // Define Range of Clear Freq Search 
+    
+    // Define Range of Clear Freq Search (f_start, f_end into clr_search_sample_start, clr_search_sample_end)
     int spectrum_sample_start = (int) ((meta_data.usrp_fcenter * 1000 - meta_data.usrp_rf_rate / 2) / avg_delta_f);
     int spectrum_sample_end = (int) ((meta_data.usrp_fcenter * 1000 + meta_data.usrp_rf_rate / 2) / avg_delta_f);
+    int spectrum_sample_bw = spectrum_sample_end - spectrum_sample_end;
     int clr_search_sample_start = (int) (f_start / avg_delta_f) - spectrum_sample_start;
     int clr_search_sample_end = (int) (f_end / avg_delta_f) - spectrum_sample_start;
-    if (clr_search_sample_start < 0) clr_search_sample_start = 0;
-    else if (clr_search_sample_start > spectrum_sample_end) clr_search_sample_start = spectrum_sample_end;
-    if (clr_search_sample_end < 0) clr_search_sample_end = 0;
-    else if (clr_search_sample_end > spectrum_sample_end) clr_search_sample_end = spectrum_sample_end;
 
-    // log_trace("spectrum_sample_start: %d     f_start: %f", spectrum_sample_start, f_start);
+    // Set Search Range to within bounds of Spectrum Range
+    if (clr_search_sample_start < 0) clr_search_sample_start = 0;
+    else if (clr_search_sample_start > spectrum_sample_bw) clr_search_sample_start = spectrum_sample_bw;
+    if (clr_search_sample_end < 0) clr_search_sample_end = 0;
+    else if (clr_search_sample_end > spectrum_sample_bw) clr_search_sample_end = spectrum_sample_bw;
+
 
     // Trim Spectrum Data to only Clear Search Range (Used for convolving)
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
@@ -424,7 +427,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         log_warn("    Increase CFSFREQ_RES or CLRFREQ_RES in config file to increase number of searchable bands");
     }
 
-    log_info("Exiting find_clear_freqs()...");
+    log_debug("Exiting find_clear_freqs()...");
 }
 
 
