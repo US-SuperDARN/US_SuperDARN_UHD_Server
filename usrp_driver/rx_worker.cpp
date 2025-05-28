@@ -45,6 +45,10 @@ void usrp_rx_worker(
     int32_t *return_status
 ){
 
+    float priority=1;
+    bool realtime=true;
+    uhd::set_thread_priority_safe(priority,realtime);
+
     float debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("entering RX_WORKER %2.4f\n",debugt);
  //   fprintf( stderr, "RX WORKER nSamples requested: %i\n", num_requested_samps );
@@ -150,6 +154,7 @@ void usrp_rx_worker(
  */
     debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("starting rx_worker while loop %2.4f\n",debugt);
+    useconds_t usecs=100;
     while(num_acc_samps < num_requested_samps) {
 
         size_t samp_request = std::min(max_samples_per_packet, num_requested_samps - num_acc_samps);
@@ -160,6 +165,7 @@ void usrp_rx_worker(
         }
 
         size_t num_rx_samps = rx_stream->recv(buff_ptrs , samp_request, md, timeout);
+	usleep(usecs);
 
 //	fprintf(stderr,"RX_WORKER - n_rx_samp: %d %d\n",num_rx_samps,rx_stream->get_num_channels());
 //	for( int j=0; j<10; j++ )fprintf(stderr,"RX_WORKER  %d  %d\n",buff_ptrs[0][j],buff_ptrs[1][j]);

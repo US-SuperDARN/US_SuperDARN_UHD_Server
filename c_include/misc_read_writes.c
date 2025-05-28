@@ -57,43 +57,6 @@ void update_ptr_no_global(void *old_ptr, void *new_ptr, void** temp_ptrs, int te
 }
 
 
-static int config_ini_handler(void* user, const char* section, const char* name, const char* value) {
-    Config* pconfig = (Config*)user;
-
-    if (strcmp(section, "array_info") == 0) {
-        if (strcmp(name, "radar_stid") == 0) {
-            pconfig->array_info.radar_stid = atoi(value);
-        } else if (strcmp(name, "x_spacing") == 0) {
-            pconfig->array_info.x_spacing = atof(value);
-            // printf("value: %f\nvalue (str): %s", atof(value), value);
-        } else if (strcmp(name, "nbeams") == 0) {
-            pconfig->array_info.nbeams = atoi(value);
-            // printf("value: %d\nvalue (str): %s", atoi(value), value);
-        } else if (strcmp(name, "beam_sep") == 0) {
-            pconfig->array_info.beam_sep = atof(value);
-            // printf("value: %f\nvalue (str): %s", atof(value), value);
-        }
-    } else if (strcmp(section, "hardware_limits") == 0) {
-        if (strcmp(name, "max_tpulse") == 0) {
-            pconfig->hardware_limits.max_tpulse = atof(value);
-        } else if (strcmp(name, "min_chip") == 0) {
-            pconfig->hardware_limits.min_chip = atof(value);
-        } else if (strcmp(name, "max_dutycycle") == 0) {
-            pconfig->hardware_limits.max_dutycycle = atof(value);
-        } else if (strcmp(name, "max_integration") == 0) {
-            pconfig->hardware_limits.max_integration = atof(value);
-        } else if (strcmp(name, "minimum_tfreq") == 0) {
-            pconfig->hardware_limits.minimum_tfreq = atof(value);
-        } else if (strcmp(name, "maximum_tfreq") == 0) {
-            pconfig->hardware_limits.maximum_tfreq = atof(value);
-        } else if (strcmp(name, "min_tr_to_pulse") == 0) {
-            pconfig->hardware_limits.min_tr_to_pulse = atof(value);
-        }
-    }
-
-    return 1;
-}
-
 /**
  * @brief  Writes a complex Frequency Spectrum to csv file to be plotted in python.
  * @note   By DF
@@ -267,7 +230,7 @@ void write_clr_freq_bin(char *filename, freq_band *clr_bands) {
 
     fwrite(&clr_start, sizeof(int), 1, file);
     fwrite(&clr_end, sizeof(int), 1, file);
-    fwrite(clr_bands, sizeof(freq_band), 1, file);
+    fwrite(clr_bands, sizeof(freq_band), CLR_BANDS_MAX, file);
 
     fclose(file);
 }
@@ -417,27 +380,7 @@ void read_clr_freq_bin(char *filename, freq_band *clr_bands, int *clr_start, int
 //     fclose(file);
 // }
 
-/**
- * @brief  Loads in the beam configuration from array_config.ini. 
- * @note   By DF
- * @param  *n_beams:    Number of beams
- * @param  *beam_sep:   Angle Offset between beams (in degrees)
- * @retval None
- */
-void read_array_config(const char *config_path, int *n_beams, double *beam_sep){
-    Config config;
-
-    if (ini_parse(config_path, config_ini_handler, &config) < 0) {
-        log_error("Can't load 'config.ini'\n");
-        return;
-    }
-
-    // *x_spacing = config.array_info.x_spacing;
-    *n_beams = config.array_info.nbeams;
-    *beam_sep = config.array_info.beam_sep;
-}
-
-void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num, void **temp_ptrs, int temp_ptrs_num) {
+void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num) {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
         file_access_error(filepath);
@@ -479,6 +422,52 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
     fclose(file);
 }
 
+void read_radar_config(char *filepath, int *avg_ratio) {
+    FILE *file = fopen(filepath, "r");
+    if (file == NULL) {
+        file_access_error(filepath);
+        exit(EXIT_FAILURE);
+    }
+
+    char line[256];
+    char word[256] = {"\0"};
+    int value = 0;
+    int i = 0;
+    int result = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        result = sscanf(line, "%s = %d", &word, &value);
+        word[11] = '\0'; // Ensure null-termination     
+
+        // Debug: Print word and value
+        // log_trace("Read line: %s, word: %s, value: %d", line, word, value);
+
+        // If sscanf finds CLR_FREQ_RES, store it
+        // if (strcmp(word, "CFSFREQ_RES\0") == 0) {
+        //     *clr_freq_res = value;
+        //     log_trace("CFSFREQ_RES: %d", *clr_freq_res);
+        //     break;
+        // }
+
+        if (strcmp(word, "AVG_RATIO") == 0) {
+            *avg_ratio = value;
+            log_trace("AVG_RATIO: %d", *avg_ratio);
+            break;
+        }
+    }
+
+    // Warn if low frequency resolution (can result in corrupted clr freq bands)
+    if (*avg_ratio <= 0) {
+        log_error("avg_ratio is invalid (%d <= 0). Please check radar_config_constants.py file.", *avg_ratio);
+    }
+    else if (*avg_ratio > 5) {
+        log_warn("avg_ratio is high (%d > 5). This can result in corrupted clear frequency bands!", *avg_ratio);
+        log_warn("Please check radar_config_constants.py file.");
+    } 
+
+    fclose(file);
+}
+
 void get_timestamp( char* buffer){
 	time_t rawtime;
 	struct tm *timeinfo;
@@ -514,7 +503,7 @@ FILE* get_log_file( char *filepath) {
     return file;
 }
 
-FILE* init_log(int level, char *filepath) {
+FILE* init_log(int level, int file_level, char *filepath) {
     log_set_level(level);
 	log_set_quiet(0);
 	FILE *file = get_log_file(filepath);

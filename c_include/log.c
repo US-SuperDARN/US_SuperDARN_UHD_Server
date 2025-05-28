@@ -20,6 +20,8 @@
  * IN THE SOFTWARE.
  */
 
+#define _POSIX_C_SOURCE 199309L
+#include <time.h>
 #include "log.h"
 
 #define MAX_CALLBACKS 32
@@ -51,8 +53,10 @@ static const char *level_colors[] = {
 
 
 static void stdout_callback(log_Event *ev) {
-  char buf[16];
-  buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
+  char buf[32];
+  sprintf(buf, "%d:%d:%d,%d", ev->time->tm_hour, ev->time->tm_min,
+          ev->time->tm_sec, ev->time_ms);
+  // buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
 #ifdef LOG_USE_COLOR
   fprintf(
     ev->udata, "%s %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
@@ -71,7 +75,11 @@ static void stdout_callback(log_Event *ev) {
 
 static void file_callback(log_Event *ev) {
   char buf[64];
-  buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
+  sprintf(buf, "%d-%d-%d %d:%d:%d,%d", 
+    ev->time->tm_year + 1900, ev->time->tm_mon + 1, ev->time->tm_mday,
+    ev->time->tm_hour, ev->time->tm_min,
+    ev->time->tm_sec, ev->time_ms);
+  // buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
   fprintf(
     ev->udata, "%s %-5s %s:%d: ",
     buf, level_strings[ev->level], ev->file, ev->line);
@@ -130,8 +138,12 @@ int log_add_fp(FILE *fp, int level) {
 
 static void init_event(log_Event *ev, void *udata) {
   if (!ev->time) {
-    time_t t = time(NULL);
-    ev->time = gmtime(&t);
+    // time_t t = time(NULL);
+    struct timespec tm;
+    clock_gettime(CLOCK_REALTIME, &tm);
+    
+    ev->time = gmtime(&(tm.tv_sec));
+    ev->time_ms = tm.tv_nsec / 1000000;
   }
   ev->udata = udata;
 }

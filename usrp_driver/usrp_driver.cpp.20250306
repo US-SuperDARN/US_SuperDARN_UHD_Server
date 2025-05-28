@@ -17,7 +17,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <signal.h>
 #include <iostream>
 #include <complex>
@@ -29,11 +28,12 @@
 
 #include <argtable2.h>
 #include <uhd/types/tune_request.hpp>
-#include <uhd/utils/thread.hpp>
+#include <uhd/utils/thread_priority.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/transport/udp_simple.hpp>
 #include <uhd/exception.hpp>
+#include <uhd/utils/msg.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -88,7 +88,7 @@
 
 #define CAPTURE_ERRORS 0
 
-const char * log_dir = "/data/log/usrp_driver";
+const char * log_dir = "../log/usrp_driver"; 
 const char * diag_dir = "/data/diagnostic_samples/usrp_driver"; 
 
 // create log and diag_samples dir
@@ -120,6 +120,10 @@ namespace po = boost::program_options;
 int32_t driversock = 0;
 int32_t driverconn = 0;
 int32_t verbose = 0;
+
+void uhd_term_message_handler(uhd::msg::type_t type, const std::string &msg){
+    ;
+}
 
 void *open_sample_shm(int32_t ant, int32_t dir, int32_t side, int32_t swing, size_t shm_size) {
     void *pshm = NULL;
@@ -389,12 +393,8 @@ bool check_clock_lock(uhd::usrp::multi_usrp::sptr usrp) {
 
 int UHD_SAFE_MAIN(int argc, char *argv[]){
     
-    // uhd::set_thread_priority_safe(); 
-
-    float priority=1;
-    bool realtime=true;
-    uhd::set_thread_priority_safe(priority,realtime);
-    
+    uhd::set_thread_priority_safe(); 
+   
     size_t rxshm_size, txshm_size;
 
     bool mimic_active;
@@ -482,6 +482,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
     DEBUG_PRINT("usrp_driver debug mode enabled\n");
 
+    if (SUPRESS_UHD_PRINTS) {
+        uhd::msg::register_handler(&uhd_term_message_handler);
+    }
+
     nerrors = arg_parse(argc,argv,argtable);
     if (nerrors > 0) {
         arg_print_errors(stdout,ae_argend,"usrp_driver");
@@ -554,6 +558,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
+    //  usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6,recv_frame_size=50000000";
+    // usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
+    // usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
     boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
     uhd::stream_args_t stream_args("sc16", "sc16");
     
@@ -639,8 +646,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
         sockopt = 1;
         setsockopt(driversock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int32_t));
-        setsockopt(driversock, IPPROTO_TCP, TCP_NODELAY, &sockopt, sizeof(int32_t));
-        setsockopt(driversock, IPPROTO_TCP, TCP_QUICKACK, &sockopt, sizeof(int32_t));
 
         sockaddr.sin_family = AF_INET;
         // TODO: maybe limit addr to interface connected to usrp_server
@@ -711,7 +716,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     nSamples_tx_pulse        = sock_get_uint64(driverconn);
                     nSamples_rx_total        = nSamples_rx + nSamples_pause_after_rx + nSamples_auto_clear_freq;
 
-                    DEBUG_PRINT("USRP_SETUP number of requested rx samples: %d + %ld pause + %ld auto clear freq\n", (uint32_t) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
+                    DEBUG_PRINT("USRP_SETUP number of requested rx samples: %d + %d pause + %d auto clear freq\n", (uint32_t) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
                     DEBUG_PRINT("USRP_SETUP number of requested tx samples per pulse: %d\n", (uint32_t) nSamples_tx_pulse);
                     DEBUG_PRINT("USRP_SETUP existing tx rate : %f (swing %d)\n", txrate, swing);
                     DEBUG_PRINT("USRP_SETUP requested tx rate: %f\n", txrate_new);
@@ -785,7 +790,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-                    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
+                    DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -861,7 +866,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                         size_t number_of_pulses = pulse_time_offsets.size();
                         size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-                        DEBUG_PRINT("spb %ld, pulse length %ld samples, pulse with padding %ld\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
+                        DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
 
                         // read in time for start of pulse sequence over socket
@@ -874,10 +879,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         // calculate usrp clock time of the start of each pulse over the integration period
                         // so we can schedule the io (perhaps we will have to move io off of the usrp if it can't keep up)
                         for(uint32_t p_i = 0; p_i < number_of_pulses; p_i++) {
-			  double offset_time = (double)pulse_sample_idx_offsets[p_i] / (double)txrate;
-			  pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
-			    
-			  DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
+                            double offset_time = pulse_sample_idx_offsets[p_i] / txrate;
+                            pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
+                           // DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5f\n", p_i, pulse_time_offsets[p_i].get_real_secs());
                         }
 
                         DEBUG_PRINT("first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
@@ -886,27 +890,28 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         rx_start_time = offset_time_spec(rx_start_time, pulse_sample_idx_offsets[0]/txrate); 
 
                         // send_timing_for_sequence(usrp, start_time, pulse_times);
-                        double pulseLength = (double)nSamples_tx_pulse / (double)txrate;
+                        double pulseLength = nSamples_tx_pulse / txrate;
 
 			
 			
                         float debugt = usrp->get_time_now().get_real_secs();
                         DEBUG_PRINT("USRP_DRIVER: spawning worker threads at usrp_time %2.4f\n", debugt);
 
-                        DEBUG_PRINT("TRIGGER_PULSE creating rx and tx worker threads on swing %d (nSamples_rx= %d + %ld pause + %ld auto clear freq )\n", swing,(int) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
+                        DEBUG_PRINT("TRIGGER_PULSE creating rx and tx worker threads on swing %d (nSamples_rx= %d + %d pause + %d auto clear freq )\n", swing,(int) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
                         // works fine with tx_worker and dio_worker, fails if rx_worker is enabled
                         uhd_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &rx_data_buffer, nSamples_rx_total, rx_start_time, &rx_worker_status));
 
 			useconds_t usecs=1000;
-			usleep(usecs);			
                         if (tx_worker_active) {
+			  usleep(usecs);
 			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets)); 
                         }
 
 			usleep(usecs);
                         uhd_threads.create_thread(boost::bind(send_timing_for_sequence, usrp, start_time,  pulse_time_offsets, pulseLength, mimic_active, mimic_delay, nSides)); 
 
-			usleep(usecs);
+
+
                         sock_send_uint8(driverconn, TRIGGER_PULSE);
 
                         uhd_threads.join_all(); // wait for transmit threads to finish, drawn from shared memory..
@@ -1062,23 +1067,19 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 case AUTOCLRFREQ: {
                     // has to be called after GET_DATA and before USRP_SETUP
                     DEBUG_PRINT("entering getting auto clear freq command\n");
+//                    uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
 
+                    iSide = 0;// TODO both sides!
                     if (auto_clear_freq_available) {
+                        DEBUG_PRINT("AUTOCLRFREQ samples sending %d samples for antenna %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide]);
+                        sock_send_int32(driverconn, (int32_t) antennaVector[iSide]); 
+                        sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[iSide].size());
 
-                      DEBUG_PRINT("AUTOCLRFREQ samples sending %ld samples for antenna %d usrp side %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide],iSide);
-
-                      sock_send_int32(driverconn, (int32_t) nSides );
-
-                      for( int jSide=0; jSide<(int)nSides; jSide++ ){
-                        sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
-                        sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[jSide].size());
-                      // send samples
-                        send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[jSide].size() , 0);
-                      }
-
+                        // send samples                   
+                        send(driverconn, &rx_auto_clear_freq[iSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[iSide].size() , 0);
                     }
                     else {
-                        sock_send_int32(driverconn, (int32_t) -1);
+                        sock_send_int32(driverconn, (int32_t) -1); 
                         
                     }
 
@@ -1137,17 +1138,16 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 
 
-                    sock_send_int32(driverconn, (int32_t) nSides);
+		    sock_send_int32(driverconn, (int32_t) nSides);
                     DEBUG_PRINT("CLRFREQ received samples, relaying %d samples back...\n", num_clrfreq_samples);
-                    for( int jSide = 0; jSide < (int) nSides; jSide++ ){
+		    for( int jSide = 0; jSide < (int) nSides; jSide++ ){
+		      sock_send_int32(driverconn, (int32_t) antennaVector[jSide]); 
+		      sock_send_float64(driverconn, clrfreq_rate);
 
-                      sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
-                      sock_send_float64(driverconn, clrfreq_rate);
-
-                    // send back samples
-                      send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-                    }
-
+                    // send back samples                   
+		      send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+		    }
+		    
                     //for(uint32_t i = 0; i < num_clrfreq_samples; i++) {
                         //DEBUG_PRINT("sending %d - %d\n", i, clrfreq_data_buffer[0][i]);
                     //    sock_send_cshort(driverconn, clrfreq_data_buffer[0][i]);

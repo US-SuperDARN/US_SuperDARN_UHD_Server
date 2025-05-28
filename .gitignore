@@ -2,6 +2,8 @@
 *.o
 *.log
 *.*int16
+*.bin
+*.ini
 tags
 dist/*
 

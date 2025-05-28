@@ -614,7 +614,8 @@ def start_clear_frequency_server():
 
 def start_usrp_server():
     myPrint("Starting usrp_server...")
-    os.chdir(os.path.join(basePath, "usrp_server") )   
+    os.chdir(os.path.join(basePath, "usrp_server") )
+    print(os.getcwd())
     subprocess.Popen(['./usrp_server.py' ])
     os.chdir(basePath)
 
