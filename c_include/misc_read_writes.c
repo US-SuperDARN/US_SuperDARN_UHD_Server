@@ -422,7 +422,7 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
     fclose(file);
 }
 
-void read_radar_config(char *filepath, int *clr_freq_res) {
+void read_radar_config(char *filepath, int *avg_ratio) {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
         file_access_error(filepath);
@@ -443,19 +443,25 @@ void read_radar_config(char *filepath, int *clr_freq_res) {
         // log_trace("Read line: %s, word: %s, value: %d", line, word, value);
 
         // If sscanf finds CLR_FREQ_RES, store it
-        if (strcmp(word, "CFSFREQ_RES\0") == 0) {
-            *clr_freq_res = value;
-            log_trace("CFSFREQ_RES: %d", *clr_freq_res);
+        // if (strcmp(word, "CFSFREQ_RES\0") == 0) {
+        //     *clr_freq_res = value;
+        //     log_trace("CFSFREQ_RES: %d", *clr_freq_res);
+        //     break;
+        // }
+
+        if (strcmp(word, "AVG_RATIO") == 0) {
+            *avg_ratio = value;
+            log_trace("AVG_RATIO: %d", *avg_ratio);
             break;
         }
     }
 
     // Warn if low frequency resolution (can result in corrupted clr freq bands)
-    if (*clr_freq_res <= 0) {
-        log_error("CFSFREQ_RES is not set or is invalid (%d <= 0). Please check radar_config_constants.py file.", *clr_freq_res);
+    if (*avg_ratio <= 0) {
+        log_error("avg_ratio is invalid (%d <= 0). Please check radar_config_constants.py file.", *avg_ratio);
     }
-    else if (*clr_freq_res < 500) {
-        log_warn("CFSFREQ_RES is extremely low (%d < 500). This can result in corrupted clear frequency bands!", *clr_freq_res);
+    else if (*avg_ratio > 5) {
+        log_warn("avg_ratio is high (%d > 5). This can result in corrupted clear frequency bands!", *avg_ratio);
         log_warn("Please check radar_config_constants.py file.");
     } 
 

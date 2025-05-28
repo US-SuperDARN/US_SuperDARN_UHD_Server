@@ -666,7 +666,7 @@ void flag_debug() {
  * @param  total_beams: Total number of beams to process
  * @retval None
  */
-void realloc_storage(int samples_num, int total_beams, int radar_num) {
+void realloc_storage(int samples_num, int total_beams, int radar_num, int avg_ratio) {
     log_info( "samples_num Reallocation in progress...");
 
     // Realloc spectra_storage
@@ -682,7 +682,7 @@ void realloc_storage(int samples_num, int total_beams, int radar_num) {
     // Realloc avg_beam_spectrum
     free_nested_ptr(avg_beam_spectrum, 2, avg_beam_spectrum_sizes);
     avg_beam_spectrum_sizes[0] = total_beams;
-    avg_beam_spectrum_sizes[1] = samples_num / AVG_RATIO;
+    avg_beam_spectrum_sizes[1] = samples_num / avg_ratio;
 
     avg_beam_spectrum = (double **)malloc(total_beams * sizeof(double *));
     if (avg_beam_spectrum == NULL) {
@@ -691,8 +691,8 @@ void realloc_storage(int samples_num, int total_beams, int radar_num) {
         exit(EXIT_FAILURE);
     }
     for (int i = 0; i < total_beams; i++) {
-        avg_beam_spectrum[i] = calloc((samples_num / AVG_RATIO), sizeof(double));
-        // (double *)malloc((samples_num / AVG_RATIO) * sizeof(double));
+        avg_beam_spectrum[i] = calloc((samples_num / avg_ratio), sizeof(double));
+        // (double *)malloc((samples_num / avg_ratio) * sizeof(double));
         if (avg_beam_spectrum[i] == NULL) {
             log_fatal( "Error reallocating memory for avg_beam_spectrum elements");
             perror("Error reallocating memory for avg_beam_spectrum elements");
@@ -704,7 +704,7 @@ void realloc_storage(int samples_num, int total_beams, int radar_num) {
 
     // Realloc avg_freq_vector
     free(avg_freq_vector);
-    avg_freq_vector = calloc(samples_num / AVG_RATIO, sizeof(double));
+    avg_freq_vector = calloc(samples_num / avg_ratio, sizeof(double));
     
     if (avg_freq_vector == NULL) {
         log_fatal( "Error reallocating memory for avg_freq_vector");
@@ -953,8 +953,22 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+
+
+    // Get Clear Frequency Resolution 
+    log_debug( "Reading Avg_ratio from radar_config_constants.py ...");
+    int avg_ratio = 0;
+    read_radar_config(RADAR_CONST_CONFIG_FILEPATH, &avg_ratio);
+    if (avg_ratio <= 0) {
+        log_debug( "Avg_ratio: %d", avg_ratio);
+        log_fatal( "Error reading radar configuration file");
+        perror("Error reading radar configuration file");
+        exit(EXIT_FAILURE);
+    }
+    log_debug( "Done reading Average Ratio...");
+
     avg_beam_spectrum_sizes[0] = beam_total;
-    avg_beam_spectrum_sizes[1] = SAMPLES_NUM / AVG_RATIO;
+    avg_beam_spectrum_sizes[1] = SAMPLES_NUM / avg_ratio;
     avg_beam_spectrum = (double **)malloc(beam_total * sizeof(double *));
     if (avg_beam_spectrum == NULL) {
         log_fatal( "Error reallocating memory for avg_beam_spectrum pointers");
@@ -962,7 +976,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
     for (int i = 0; i < beam_total; i++) {
-        avg_beam_spectrum[i] = calloc((SAMPLES_NUM / AVG_RATIO), sizeof(double));
+        avg_beam_spectrum[i] = calloc((SAMPLES_NUM / avg_ratio), sizeof(double));
         // (double *)malloc((samples_num / AVG_RATIO) * sizeof(double));
         if (avg_beam_spectrum[i] == NULL) {
             log_fatal( "Error reallocating memory for avg_beam_spectrum elements");
@@ -1052,17 +1066,6 @@ int main() {
     int clr_range[STATIC_RADAR_NUM][2] = {0};
     freq_band selected_clr_band = {0};
     
-    // Get Clear Frequency Resolution 
-    log_debug( "Reading clr_freq_res from radar_config_constants.py ...");
-    int clr_freq_res = 0;
-    read_radar_config(RADAR_CONST_CONFIG_FILEPATH, &clr_freq_res);
-    if (clr_freq_res <= 0) {
-        log_debug( "Clear Frequency Resolution: %d", clr_freq_res);
-        log_fatal( "Error reading radar configuration file");
-        perror("Error reading radar configuration file");
-        exit(EXIT_FAILURE);
-    }
-    log_debug( "Done reading Clear Frequency Resolution...");
     
     // Parameters for Reading Restricted Frequencies
     char restrict_file[255] = "";
@@ -1165,7 +1168,7 @@ int main() {
                         tcs_storage_i[r_idx] = 0;
                     }
                     
-                    realloc_storage(samples_num, beam_total, radar_num);
+                    realloc_storage(samples_num, beam_total, radar_num, avg_ratio);
 
                     // log_info( "Reinitializing TCS FFTW plan...");
                     // cleanup_storage_fft();
@@ -1400,10 +1403,8 @@ int main() {
                 }
             }
             
-            int avg_ratio = (int) ((meta_data.usrp_rf_rate / samples_num) / clr_freq_res);
             log_info( "    avg_ratio: %d", avg_ratio);
             log_info( "    delta_f: %d", (int) (meta_data.usrp_rf_rate / samples_num) );
-            log_info( "    clr_freq_res: %d", clr_freq_res);
 
             // Clear Freq Processing
             // If TCS is not ready, process new clrfreq per unique beam request
@@ -1416,7 +1417,7 @@ int main() {
                     clr_range[cur_radar],
                     cur_beam,
                     sample_sep,
-                    clr_freq_res,
+                    avg_ratio,
                     restricted_freq, 
                     restricted_num,
                     meta_data,

@@ -16,8 +16,8 @@ MIN_CLRFREQ_DELAY = .50
 
 # Frequency Resolution (in Hz) 
 # Do NOT use scientific notation
-CLRFREQ_RES = 500 # Radar and USRP frequency resolution
-CFSFREQ_RES = 125 # Clear Frequency Service's Clear frequency resolution after spectral averaging (must be a divisor of CLRFREQ_RES)
+CLRFREQ_RES = 1000 # Radar and USRP frequency resolution
+CFSFREQ_RES = 250 # must be a devisior of CLRFREQ_RES (CFS uses the ratio of CLRFREQ_RES / CFSFREQ_RES = # of Averages)
 
 MAX_AGE_OF_AUTO_CLEAR_FREQ = 30 # in sec, if data is older a new clear freq record if triggered
 PAUSE_TIME_BEFORE_AUTO_CLEAR_FREQ = 0.0 # is seconds
