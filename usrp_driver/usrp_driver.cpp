@@ -394,8 +394,12 @@ bool check_clock_lock(uhd::usrp::multi_usrp::sptr usrp) {
 
 int UHD_SAFE_MAIN(int argc, char *argv[]){
     
-    uhd::set_thread_priority_safe(); 
-   
+    // uhd::set_thread_priority_safe(); 
+
+    float priority=1;
+    bool realtime=true;
+    uhd::set_thread_priority_safe(priority,realtime);
+    
     size_t rxshm_size, txshm_size;
 
     bool mimic_active;
@@ -793,7 +797,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-                    DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
+                    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -882,9 +886,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         // calculate usrp clock time of the start of each pulse over the integration period
                         // so we can schedule the io (perhaps we will have to move io off of the usrp if it can't keep up)
                         for(uint32_t p_i = 0; p_i < number_of_pulses; p_i++) {
-                            double offset_time = pulse_sample_idx_offsets[p_i] / txrate;
-                            pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
-                           // DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5f\n", p_i, pulse_time_offsets[p_i].get_real_secs());
+			  double offset_time = (double)pulse_sample_idx_offsets[p_i] / (double)txrate;
+			  pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
+			    
+			  DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
                         }
 
                         DEBUG_PRINT("first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
@@ -893,7 +898,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         rx_start_time = offset_time_spec(rx_start_time, pulse_sample_idx_offsets[0]/txrate); 
 
                         // send_timing_for_sequence(usrp, start_time, pulse_times);
-                        double pulseLength = nSamples_tx_pulse / txrate;
+                        double pulseLength = (double)nSamples_tx_pulse / (double)txrate;
 
 			
 			
@@ -905,16 +910,15 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         uhd_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &rx_data_buffer, nSamples_rx_total, rx_start_time, &rx_worker_status));
 
 			useconds_t usecs=1000;
+			usleep(usecs);			
                         if (tx_worker_active) {
-			  usleep(usecs);
 			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets)); 
                         }
 
 			usleep(usecs);
                         uhd_threads.create_thread(boost::bind(send_timing_for_sequence, usrp, start_time,  pulse_time_offsets, pulseLength, mimic_active, mimic_delay, nSides)); 
 
-
-
+			usleep(usecs);
                         sock_send_uint8(driverconn, TRIGGER_PULSE);
 
                         uhd_threads.join_all(); // wait for transmit threads to finish, drawn from shared memory..

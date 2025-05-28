@@ -142,7 +142,7 @@ static void init_event(log_Event *ev, void *udata) {
     struct timespec tm;
     clock_gettime(CLOCK_REALTIME, &tm);
     
-    ev->time = localtime(&(tm.tv_sec));
+    ev->time = gmtime(&(tm.tv_sec));
     ev->time_ms = tm.tv_nsec / 1000000;
   }
   ev->udata = udata;

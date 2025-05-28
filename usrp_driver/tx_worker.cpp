@@ -46,6 +46,10 @@ void usrp_tx_worker(
     fprintf(stderr,"TX_WORKER starting up\n");
     DEBUG_PRINT("TX_WORKER starting up\n");
 
+    float priority=1;
+    bool realtime=true;
+    uhd::set_thread_priority_safe(priority,realtime);
+    
     uhd::tx_metadata_t md;
     md.start_of_burst = true;
     md.end_of_burst   = false;
@@ -70,16 +74,6 @@ void usrp_tx_worker(
     size_t sample_idx = 0;
     uint32_t pulse_idx = 0;
     int32_t nsamples_to_send, samples_to_pulse;
- 
-
- //   for (iSide =0; iSide<nSides; iSide++) {
- //       buffer[iSide] = &pulse_samples[iSide][sample_idx]; 
- //   }
- //   nacc_samples += tx_stream->send(buffer, spb, md, timeout);
-
- //   md.start_of_burst = false;
- //   md.has_time_spec = false;
-
 
     while(nacc_samples < tx_burst_length_samples) {
         // calculate the number of samples to send in the packet
@@ -96,13 +90,8 @@ void usrp_tx_worker(
             } else {
                 // if we've passed the tail of the pulse, then restart and look for the next one..
                 // DEBUG_PRINT("pulse idx: %d complete\n", pulse_idx);
-         //       if (number_of_pulses -1 > pulse_idx){
                     pulse_idx++;
                     continue;
-         //       } else {
-         //         sample_idx = 0;
-
-         //       }
             }
         }
 
