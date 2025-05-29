@@ -221,7 +221,7 @@ def print_status():
     remote_pc_list = get_remote_driver_host()
     for remote_pc in remote_pc_list:
        myPrint(" ")
-       respond = remote_command_echo("radar", remote_pc, "ps -aux", verbose=False)
+       respond = remote_command_echo("radar_user", remote_pc, "ps -aux", verbose=False)
        processList = respond.decode("UTF-8").split("\n")
        srrProcesses = get_known_processes(processList)
        myPrint("Remote {}: Found {} processes:".format(remote_pc, len(srrProcesses)))
@@ -232,7 +232,7 @@ def remote_stop_all():
     remote_pc_list = get_remote_driver_host()
     for remote_pc in remote_pc_list:
         myPrint(" calling srr stop for {}".format(remote_pc))
-        respond = remote_command_echo("radar", remote_pc, "srr stop", verbose=False)
+        respond = remote_command_echo("radar_user", remote_pc, "srr stop", verbose=False)
         print(respond)
 
 def get_known_processes(processList):
