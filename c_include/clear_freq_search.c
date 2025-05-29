@@ -286,7 +286,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     // Define Range of Clear Freq Search (f_start, f_end into clr_search_sample_start, clr_search_sample_end)
     int spectrum_sample_start = (int) ((meta_data.usrp_fcenter * 1000 - meta_data.usrp_rf_rate / 2) / avg_delta_f);
     int spectrum_sample_end = (int) ((meta_data.usrp_fcenter * 1000 + meta_data.usrp_rf_rate / 2) / avg_delta_f);
-    int spectrum_sample_bw = spectrum_sample_end - spectrum_sample_end;
+    int spectrum_sample_bw = spectrum_sample_end - spectrum_sample_start;
     int clr_search_sample_start = (int) (f_start / avg_delta_f) - spectrum_sample_start;
     int clr_search_sample_end = (int) (f_end / avg_delta_f) - spectrum_sample_start;
 
