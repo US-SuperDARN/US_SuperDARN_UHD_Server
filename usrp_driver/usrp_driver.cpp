@@ -1065,11 +1065,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     if (auto_clear_freq_available) {
 
-                      DEBUG_PRINT("AUTOCLRFREQ samples sending %ld samples for antenna %d usrp side %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide],iSide);
-
                       sock_send_int32(driverconn, (int32_t) nSides );
 
                       for( int jSide=0; jSide<(int)nSides; jSide++ ){
+                        DEBUG_PRINT("AUTOCLRFREQ samples sending %zu samples for antenna %d usrp side %d...\n", rx_auto_clear_freq[jSide].size(),antennaVector[jSide],jSide);
+
                         sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
                         sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[jSide].size());
                       // send samples
