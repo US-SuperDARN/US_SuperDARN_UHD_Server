@@ -485,11 +485,11 @@ void get_file_name(char* filename, char* filepath){
 FILE* get_log_file( char *filepath) {
     // Create logs directory if it doesn't exist
     struct stat st = {0};
-	if (stat("log/", &st) == -1) {
-		mkdir("log", 0700);
+	if (stat("/data/log/", &st) == -1) {
+		mkdir("/data/log", 0700);
 	}
-    if (stat("log/cfs", &st) == -1) {
-        mkdir("log/cfs", 0700);
+    if (stat("/data/log/cfs", &st) == -1) {
+        mkdir("/data/log/cfs", 0700);
     }
 
     char filename[128];
