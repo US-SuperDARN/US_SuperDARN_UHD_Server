@@ -225,7 +225,7 @@ def print_status():
        processList = respond.decode("UTF-8").split("\n")
        srrProcesses = get_known_processes(processList)
        myPrint("Remote {}: Found {} processes:".format(remote_pc, len(srrProcesses)))
-       for line in srrProcesses:
+       for line in sorted(srrProcesses):
           myPrint("  {}".format(line))
 
 def remote_stop_all():
