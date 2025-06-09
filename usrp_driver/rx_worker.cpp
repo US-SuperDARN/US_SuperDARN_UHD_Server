@@ -89,6 +89,7 @@ void usrp_rx_worker(
 
     // DEBUG to check timing
     double time_to_start;
+    useconds_t usecs=200;
     rx_usrp_pre_stream_time = usrp->get_time_now();
     time_to_start = start_time.get_real_secs() - rx_usrp_pre_stream_time.get_real_secs();
     fprintf(stderr,"#timing: time left for rx_worker  %f ms\n", time_to_start*1000);
@@ -119,6 +120,7 @@ void usrp_rx_worker(
         while(samples_remaining_to_stream > max_samples_per_stream) {
             usrp->issue_stream_cmd(stream_cmd); 
             samples_remaining_to_stream -= max_samples_per_stream;
+	    usleep(usecs);
 	    debugt = usrp->get_time_now().get_real_secs();
 	    DEBUG_PRINT("RX_WORKER: issued stream command %2.4f\n",debugt);//,++counter);
         }
@@ -128,6 +130,7 @@ void usrp_rx_worker(
         stream_cmd.stream_now = true;
         stream_cmd.num_samps = samples_remaining_to_stream;
         usrp->issue_stream_cmd(stream_cmd); 
+	usleep(usecs);
 	debugt = usrp->get_time_now().get_real_secs();
 	DEBUG_PRINT("RX_WORKER: issued last stream command %2.4f\n",debugt);//,++counter);
     }
@@ -154,7 +157,6 @@ void usrp_rx_worker(
  */
     debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("starting rx_worker while loop %2.4f\n",debugt);
-    useconds_t usecs=100;
     while(num_acc_samps < num_requested_samps) {
 
         size_t samp_request = std::min(max_samples_per_packet, num_requested_samps - num_acc_samps);
@@ -166,17 +168,6 @@ void usrp_rx_worker(
 
         size_t num_rx_samps = rx_stream->recv(buff_ptrs , samp_request, md, timeout);
 	usleep(usecs);
-
-//	fprintf(stderr,"RX_WORKER - n_rx_samp: %d %d\n",num_rx_samps,rx_stream->get_num_channels());
-//	for( int j=0; j<10; j++ )fprintf(stderr,"RX_WORKER  %d  %d\n",buff_ptrs[0][j],buff_ptrs[1][j]);
- 
-	// DEBUG print
-//        if (num_rx_samps == 1996) {
-      //     DEBUG_PRINT("|");
-//             DEBUG_PRINT("%d  ",num_acc_samps);
- //       } else {
-//           DEBUG_PRINT("(rxed %d) ", num_rx_samps);
-//        }
     
         timeout = 0.1;
 
