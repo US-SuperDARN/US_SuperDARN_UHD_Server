@@ -563,7 +563,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-    //  usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6,recv_frame_size=50000000";
+    // For King Salmon (uncomment the following 2 lines)
     // usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
     // usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
     boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
@@ -889,7 +889,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			  double offset_time = (double)pulse_sample_idx_offsets[p_i] / (double)txrate;
 			  pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
 			    
-			  DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
+			  // DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
                         }
 
                         DEBUG_PRINT("first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
@@ -1079,7 +1079,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 					  
                     if (auto_clear_freq_available) {
 
-		      DEBUG_PRINT("AUTOCLRFREQ samples sending %d samples for antenna %d usrp side %d...\n", rx_auto_clear_freq[iSide].size(),antennaVector[iSide],iSide);
+		      DEBUG_PRINT("AUTOCLRFREQ samples sending %zu samples for antenna %d usrp side %d...\n",rx_auto_clear_freq[iSide].size(),antennaVector[iSide],iSide);
 
 		      sock_send_int32(driverconn, (int32_t) nSides ); 
 
