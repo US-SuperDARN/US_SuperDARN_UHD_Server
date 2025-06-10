@@ -1655,7 +1655,7 @@ class scanManager():
 
         RHM.clearFreqRawDataManager.add_channel(clearFreq, bandwidth)
 
-        self.logger.debug("clear freq result for channel {}: selected {} , noise level {:2.1f}".format(self.channel.cnum, clearFreq, noise))
+        self.logger.debug("clear freq result for radar {} channel {}: selected {} , noise level {:2.1f}".format(self.channel.rnum, self.channel.cnum, clearFreq, noise))
         RHM.clearFreqRawDataManager.select_clear_freq.release()
 
         return (clearFreq, noise, recordTime)
@@ -1789,7 +1789,7 @@ class RadarHardwareManager:
 
                       controlLoop_logger.debug('end self.clearFreqRawDataManager.record_new_data({})'.format(jrad))
                       for ch in self.channels[jrad]:
-                         controlLoop_logger.debug('Radar {} channel {} active state: {}'.format(jrad, ch.cnum,ch.active_state))
+                         controlLoop_logger.debug('radar {} ch {}: active state: {}'.format(jrad, ch.cnum,ch.active_state))
 
                 # FIRST CUDA_ADD FOR NEW CHANNELS
                 if len(self.newChannelList) != 0:                   
@@ -2667,7 +2667,7 @@ class RadarHardwareManager:
                  channel.active_state          = CS_INACTIVE
                  channel.next_active_state     = CS_INACTIVE
                  # self.nRegisteredChannels -= 1 
-                 channel.logger.debug('last period finished, setting active and next processing state to CS_INACTIVE')
+                 channel.logger.debug('last period finished, setting radar {} cnum {} active and next processing state to CS_INACTIVE'.format(channel.rnum,channel.cnum))
               elif channel.scanManager.isLastPeriod:
                  channel.next_processing_state = CS_LAST_SWING
                  channel.logger.debug('Setting radar {} channel {} processing state to CS_LAST_SWING'.format(channel.rnum,channel.cnum))
@@ -2675,7 +2675,7 @@ class RadarHardwareManager:
                  channel.next_processing_state = CS_READY 
               channel.logger.debug("Switching next processing state (swing {}) of radar {} cnum {} to {}".format(self.swingManager.processingSwing, channel.rnum, channel.cnum, channel.next_processing_state )) 
 
-              channel.logger.debug("Switching processing state (swing {}) state of cnum {} from CS_PROCESSING to CS_SAMPLES_READY".format(self.swingManager.processingSwing, channel.cnum )) 
+              channel.logger.debug("Switching processing state (swing {}) state of radar {} cnum {} from CS_PROCESSING to CS_SAMPLES_READY".format(self.swingManager.processingSwing, channel.rnum, channel.cnum )) 
               channel.processing_state = CS_SAMPLES_READY
  
         # CUDA_ADD & CUDA_GENGERATE for processingSwing 
@@ -3623,9 +3623,9 @@ class RadarChannelHandler:
         self.received_first_SETPAR = True
         RHM = self.parent_RadarHardwareManager
 
-        self.logger.debug("Radar {} Ch {} waiting for Parameter semaphore...".format(self.rnum, self.cnum)) 
+        self.logger.debug("radar {} ch {}: waiting for Parameter semaphore...".format(self.rnum, self.cnum)) 
         RHM.set_par_semaphore.acquire()
-        self.logger.debug("Radar {} Ch {} acquired semaphore, setting parameter".format(self.rnum, self.cnum)) 
+        self.logger.debug("radar {} ch {}: acquired semaphore, setting parameter".format(self.rnum, self.cnum)) 
 
         RHM.n_SetParameterHandlers_active += 1
 
@@ -3643,7 +3643,7 @@ class RadarChannelHandler:
            
            RHM.n_SetParameterHandlers_active -= 1
            RHM.set_par_semaphore.release()
-           self.logger.debug("radar {} Ch {} released set_par_semaphore".format(self.rnum, self.cnum)) 
+           self.logger.debug("radar {} ch {}: released set_par_semaphore".format(self.rnum, self.cnum)) 
            return RMSG_SUCCESS
 
 
@@ -3666,14 +3666,14 @@ class RadarChannelHandler:
               self.logger.debug("CheckChannelCompatability FAIL")
               RHM.n_SetParameterHandlers_active -= 1
               RHM.set_par_semaphore.release()
-              self.logger.debug("radar {} Ch {} released set_par_semaphore".format(self.rnum, self.cnum)) 
+              self.logger.debug("radar {} ch {}: released set_par_semaphore".format(self.rnum, self.cnum)) 
               return RMSG_FAILURE
               
            if self not in self.parent_RadarHardwareManager.newChannelList:
               self.parent_RadarHardwareManager.newChannelList.append(self)
               self.logger.debug("Adding radar {} ch {} to newChannelList ({}) ".format(self.rnum, self.cnum, self.parent_RadarHardwareManager.newChannelList))
            else:
-              self.logger.debug("Radar {} Ch {} already in newChannelList ({}) ".format(self.rnum, self.cnum, self.parent__RadarHardwareManager.newChannelList))
+               self.logger.debug("radar {} ch {}: already in newChannelList ({}) ".format(self.rnum, self.cnum, self.parent__RadarHardwareManager.newChannelList))
 
         # in middle of scan, period already triggerd. only compare with prediction
         elif self.state[current_swing] == CS_PROCESSING or self.state[current_swing] == CS_LAST_SWING: 
@@ -3685,7 +3685,7 @@ class RadarChannelHandler:
            self.ctrlprm_struct.receive(self.conn)
            for key in ctrlprm_old.keys():
               if np.any(ctrlprm_old[key] != self.ctrlprm_struct.payload[key]):
-                  self.logger.debug("radar {} ch {} received new ctrl_prm {} ({}) old ctrl_prm ({})".format(self.rnum, self.cnum, key, self.ctrlprm_struct.payload[key], ctrlprm_old[key] ))
+                  self.logger.debug("radar {} ch {}: received new ctrl_prm {} ({}) old ctrl_prm ({})".format(self.rnum, self.cnum, key, self.ctrlprm_struct.payload[key], ctrlprm_old[key] ))
                   if key == "tfreq" and self.ctrlprm_struct.payload[key] == 12000: # control program always sends 2 SET_PAR. 1st one with tfreq 12MHz
                       continue
                   self.logger.error("radar {} ch {}: received ctrlprm_struct for {} ({}) is not equal with prediction ({})".format(self.rnum, self.cnum, key,self.ctrlprm_struct.payload[key], ctrlprm_old[key] ))
@@ -3699,7 +3699,7 @@ class RadarChannelHandler:
            RHM.n_SetParameterHandlers_active -= 1
 
            RHM.set_par_semaphore.release()
-           self.logger.debug("radar {} Ch {} released set_par_semaphore".format(self.rnum, self.cnum))
+           self.logger.debug("radar {} ch {}: released set_par_semaphore".format(self.rnum, self.cnum))
            return RMSG_FAILURE        
            self.parent_RadarHardwareManager.exit() #How does this ever get executed? (WB)
 
@@ -3709,14 +3709,14 @@ class RadarChannelHandler:
            RHM.n_SetParameterHandlers_active -= 1
 
            RHM.set_par_semaphore.release()
-           self.logger.debug("radar {} Ch {} released set_par_semaphore".format(self.rnum, self.cnum))
+           self.logger.debug("radar {} ch {}: released set_par_semaphore".format(self.rnum, self.cnum))
            return RMSG_FAILURE
 
         RHM.n_SetParameterHandlers_active -= 1
-        self.logger.debug("radar {} ch {} Done SetParametersHandler".format(self.rnum,self.cnum))
+        self.logger.debug("radar {} ch {}: Done SetParametersHandler".format(self.rnum,self.cnum))
 
         RHM.set_par_semaphore.release()
-        self.logger.debug("radar {} Ch {} released set_par_semaphore".format(self.rnum, self.cnum))
+        self.logger.debug("radar {} ch {}: released set_par_semaphore".format(self.rnum, self.cnum))
         return RMSG_SUCCESS
 
     def CheckChannelCompatibility(self):
@@ -3825,7 +3825,7 @@ class RadarChannelHandler:
     
     #@timeit
     def GetDataHandler(self, rmsg):
-        self.logger.debug('start channelHanlder:GetDataHandler radar {} ch: {}'.format(self.rnum, self.cnum))
+        self.logger.debug('start channelHandler:GetDataHandler radar {} ch: {}'.format(self.rnum, self.cnum))
         self.update_ctrlprm_class("current")
         self.dataprm_struct.set_data('samples', self.ctrlprm_struct.payload['number_of_samples'])
 
@@ -3839,12 +3839,12 @@ class RadarChannelHandler:
         # TODO investigate possible race conditions
 
         finishedSwing = self.triggered_swing_list.pop() 
-        self.logger.debug('radar {} ch {}: channelHanlder:GetDataHandler waiting for channel to idle before GET_DATA (finished swing is {})'.format(self.rnum, self.cnum, finishedSwing))
+        self.logger.debug('radar {} ch {}: channelHandler:GetDataHandler waiting for channel to idle before GET_DATA (finished swing is {})'.format(self.rnum, self.cnum, finishedSwing))
         self.logger.debug("start waiting for CS_SAMPLES_READY")
         self._waitForState(finishedSwing, CS_SAMPLES_READY)
         self.logger.debug("end waiting for CS_SAMPLES_READY")
 
-        self.logger.debug('radar{} ch {}: channelHandler:GetDataHandler returning samples'.format(self.rnum, self.cnum))
+        self.logger.debug('radar {} ch {}: channelHandler:GetDataHandler returning samples'.format(self.rnum, self.cnum))
 #        transmit_dtype(self.conn, self.parent_RadarHardwareManager.resultData_nSequences_per_period, np.uint32)  
         self.send_results_to_control_program()
 
