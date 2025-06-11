@@ -2500,7 +2500,7 @@ class RadarHardwareManager:
                     # pdb.set_trace()
                  self.logger.debug('end USRP_TRIGGER')
            else:
-              self.logger.debug('No tranmitting channles available on radar {}. Skipping USRP_TRIGGER'.format(jrad))
+              self.logger.debug('No transmitting channels available on radar {}. Skipping USRP_TRIGGER'.format(jrad))
 
 
 
