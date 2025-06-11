@@ -4084,21 +4084,26 @@ class RadarChannelHandler:
  
     def SetInactiveHandler(channelObject, rmsg):
         RHM = channelObject.parent_RadarHardwareManager
+        RHM.logger.info('ROS:SET_INACTIVE received for radar {} channel {}'.format(channelObject.rnum,channelObject.cnum)))
+        RHM.logger.info('RHM radar {} active channels objects: {}'.format(channelObject.rnum,RHM.active_channels[channelObject.rnum]))
 
         if channelObject in RHM.active_channels[channelObject.rnum]:
-            RHM.logger.info('ROS:SET_INACTVIVE removing channel {} from RHM.active_channels'.format(RHM.channels[channelObject.rnum].index(channelObject)))
-            RHM.active_channels[channelObject.rnum].remove(channelObject)
-           
+            RHM.logger.info('ROS:SET_INACTIVE removing radar {} channel {} from RHM.active_channels'.format(channelObject.rnum,RHM.channels[channelObject.rnum].index(channelObject)))
+            try:
+               RHM.active_channels[channelObject.rnum].remove(channelObject)
+            except:
+               RHM.logger.info('ROS:SET_INACTIVE failed to remove radar {} channel {} from RHM.active_channels'.format(channelObject.rnum,RHM.channels[channelObject.rnum].index(channelObject)))
+
         if channelObject in np.concatenate(RHM.channels).tolist():
-            RHM.logger.info('ROS:SET_INACTVIVE removing channel {} from HardwareManager'.format(RHM.channels[channelObject.rnum].index(channelObject)))
+            RHM.logger.info('ROS:SET_INACTIVE removing radar {} channel {} from HardwareManager'.format(channelObject.rnum,RHM.channels[channelObject.rnum].index(channelObject)))
             RHM.channels[channelObject.rnum].remove(channelObject)
 
             RHM.nRegisteredChannels -= 1
-            if RHM.nRegisteredChannels == 0: 
-                RHM.logger.debug("No channels left, removing commonChannelParameter") 
+            if RHM.nRegisteredChannels == 0:
+                RHM.logger.debug("No channels left, removing commonChannelParameter")
                 RHM.commonChannelParameter = {}
                 radar_active[channelObject.rnum]=False
-                
+
         channelObject.active = False
         # TODO: return failure status if the radar or channel number is invalid?
         return RMSG_SUCCESS
