@@ -18,7 +18,8 @@ def initLogging(logFileName):
     logFileName = os.path.join(logDir, logFileName)
     # set up logging to file
     logging.basicConfig(level=logfileOutputLevel,
-                        format='%(asctime)s %(name)-14s %(levelname)-8s %(message)s',
+                        format='%(asctime)s.%(msecs)03d %(name)-14s %(levelname)-8s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
                         filename=logFileName, 
                         filemode='w')    # new file for every start
     # handler for console output
