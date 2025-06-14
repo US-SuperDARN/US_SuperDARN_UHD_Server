@@ -43,8 +43,8 @@ if write_log:
 def log(msg):
     print(msg)
     if write_log:
-       time_now = datetime.datetime.now(datetime.UTC)
-       log_str = '{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}   {}\n'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute,time_now.second, msg)
+       time_now = datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+       log_str = '{}   {}\n'.format(time_now, msg)
        log_handle.write(log_str)
        log_handle.flush()
 
