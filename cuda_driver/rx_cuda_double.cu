@@ -125,8 +125,8 @@ __global__ void multiply_and_add(double *samples, float *odata, float *filter)
      if (threadIdx.x == 0) {
 
         uint32_t output_idx = iSampleBB *2 + iChannel * nSamplesBB *2 + iAntenna * nChannels * nSamplesBB *2; 
-        odata[output_idx  ] = (double)  itemp[iThread_lin];
-        odata[output_idx+1] = (double)  qtemp[iThread_lin];
+        odata[output_idx  ] = (float)  itemp[iThread_lin];
+        odata[output_idx+1] = (float)  qtemp[iThread_lin];
      }  
 }       
 
