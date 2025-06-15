@@ -37,7 +37,7 @@ class logEntries:
             for line in f:
                 dateStr = line[:23]
                 try:
-                   self.time.append(datetime.strptime(dateStr, '%Y-%m-%d %H:%M:%S,%f'))
+                   self.time.append(datetime.strptime(dateStr, '%Y-%m-%d %H:%M:%S.%f'))
                 except:
                    print("No valid date format: {}".format(dateStr))
                    continue
