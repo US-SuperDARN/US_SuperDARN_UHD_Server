@@ -3007,11 +3007,17 @@ class RadarChannelHandler:
 
         if channelObject in RHM.active_channels:
             RHM.logger.info('ROS:SET_INACTIVE removing channel {} from RHM.active_channels'.format(RHM.channels.index(channelObject)))
-            RHM.active_channels.remove(channelObject)
+            try:
+                RHM.active_channels.remove(channelObject)
+            except:
+                RHM.logger.debug('ROS:SET_INACTIVE failed to remove channel from RHM.active_channels')
            
         if channelObject in RHM.channels:
             RHM.logger.info('ROS:SET_INACTIVE removing channel {} from HardwareManager'.format(RHM.channels.index(channelObject)))
-            RHM.channels.remove(channelObject)
+            try:
+                RHM.channels.remove(channelObject)
+            except:
+                RHM.logger.debug('ROS:SET_INACTIVE failed to remove channel from HardwareManager')
 
             RHM.nRegisteredChannels -= 1
             if RHM.nRegisteredChannels == 0: 
