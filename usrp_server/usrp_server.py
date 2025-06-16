@@ -4102,7 +4102,11 @@ class RadarChannelHandler:
         RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE trying to remove channels from HardwareManager'.format(channelObject.rnum,channelObject.cnum))
         if channelObject in np.concatenate(RHM.channels).tolist():
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE removing channel {} from HardwareManager'.format(channelObject.rnum,channelObject.cnum,RHM.channels[channelObject.rnum].index(channelObject)))
-            RHM.channels[channelObject.rnum].remove(channelObject)
+            try:
+               RHM.channels[channelObject.rnum].remove(channelObject)
+               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE removing from HardwareManager success'.format(channelObject.rnum,channelObject.cnum))
+            except:
+               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE failed to remove from HardwareManager'.format(channelObject.rnum,channelObject.cnum))
 
             RHM.nRegisteredChannels -= 1
             if RHM.nRegisteredChannels == 0:
