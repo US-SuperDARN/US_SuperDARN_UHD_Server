@@ -459,7 +459,7 @@ void mcm_init_rxfe(uhd::usrp::multi_usrp::sptr usrp)
     rxfe_init_settings.att_2_dB = 0;
     rxfe_init_settings.att_4_dB = 0;
     rxfe_init_settings.att_8_dB = 0;
-    rxfe_init_settings.att_8_dB = 0;
+    rxfe_init_settings.att_16_dB = 0;
     
     mcm_set_rxfe(usrp, rxfe_init_settings); 
 }
