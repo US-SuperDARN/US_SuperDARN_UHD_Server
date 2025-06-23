@@ -260,18 +260,18 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
 /**
  * @brief  Processes Spectrum data to find the lowest noise frequency bands 
  * * (returned as clr_freq_bands). Steps are as follows: 
- * * (1) Setup Freq Search parameter data,
- * * (2) Scan Search Range with Bandpass Filter by way of convolution, 
- * * (3) Find Noise of BPF and compare w/ current Clear Freq Bands, and
- * * (4) If appropriate spot found, insert BPF's Range as New Clear Freq Band.
- * * * Overwriting any pre-existing, Intersecting Clear Freq Bands as necesary.  
+ * * (1) Setup Freq Search parameters (Clear Freq Search Range, Clear Freq Bandwidth, etc.),
+ * * (2) Scan Search Range with Bandpass Filter (BPF) by way of convolution, 
+ * * (3) Find Noise of BPF and compare w/ Clear Freq Bands as they are found, and
+ * * (4) If appropriate Clear Freq Band, insert it as New Clear Freq Band in an ascending noise list of clear freq bands.
+ * * * Overwriting any intersecting, higher noise Clear Freq Bands as necesary.  
  * @note   By DF
  * @param  *spectrum: Spectrum Data (Power per Sample)
  * @param  meta_data: Misc info on operating Radar parameters  
  * @param  avg_delta_f: Frequency step per Sample post spectral averaging
- * @param  f_start: Clear Freq Search Bound start
- * @param  f_end: Clear Freq Search Bound end
- * @param  clear_bw: Bandwidth of the Clear Frequency Bands. If 0, default to 40kHz.
+ * @param  f_start: Clear Freq Search Boundary start
+ * @param  f_end: Clear Freq Search Boundary end
+ * @param  clear_bw: Bandwidth of the Clear Frequency Bands
  * @param  *lowest_freq_bands: Passed by reference; Overwritten with an array of the 
  * * lowest noise freq_bands.  
  * @retval None
@@ -374,6 +374,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
             if (intersect_idx != -1) {
                 // Special: If Intersect has worse noise, do not place/skip
                 if (insert_idx > intersect_idx) continue;
+                
                 // log_trace("    Intersecting Insertion found w/...");
                 freq_band inter_band = clr_bands[intersect_idx];
 
