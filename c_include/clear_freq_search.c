@@ -12,13 +12,15 @@
 
 
 // Define Constants
-#define IDX_LAST_IA 19      // Last Interferrometer Array
-#define IDX_LAST_MA 15      // Last Main Array
+#define CLR_NOISE_THRESHOLD 100000  // Noise Threshold for a clear band to be considered a valid usable band
+#define GB_MULT 4                   // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw)
+#define MIN_FREQ_SEP 8000          // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
+                                    // then minimum frequency separation is used instead)
+
+#define IDX_LAST_IA 19              // Last Interferrometer Array
+#define IDX_LAST_MA 15              // Last Main Array
 #define PI 3.14159265358979323846
 #define C  3e8
-#define CLR_BANDS_MAX 6
-// #define CLRFREQ_RES 2e3          
-#define GB_MULT 4         // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw)
 #ifndef CLK_TCK
 #define CLK_TCK 60
 #endif
@@ -242,7 +244,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
                
                 // Apply mask
                 for (int j = mask_sample_start; j <= mask_sample_end && j <= num_samples; j++) spectrum[j] = RAND_MAX;
-                if (VERBOSE) log_trace("    [MASK]              | %d -- %d|", mask_sample_start, mask_sample_end);
+                // if (VERBOSE) log_trace("    [MASK]              | %d -- %d|", mask_sample_start, mask_sample_end);
 
 
                 is_applied = true;
@@ -354,7 +356,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         // Compare curr power with min_powers...
         for (int j = CLR_BANDS_MAX - 1; j >= 0 ; j--) {
             // Update Insert Index; maintaining ascending order 
-            if (curr_band.noise < clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < RAND_MAX) { // XXX: Logic Flip
+            if (curr_band.noise < clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) { // XXX: Logic Flip
                 insert_idx = j;
             }
             // Check for Intersecting Band; get intersecting clr_band index
@@ -365,6 +367,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
             }
             // Continue Intersection Search 
         }
+
         // log_debug("    Intersection Search finished...");
         // log_trace("    intersect_idx: %d    insert_idx: %d", intersect_idx, insert_idx);
 
@@ -415,7 +418,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
 
             // Debug: verify shifting @ sample   
             // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                // log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
+            //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
             // }
         }
     }
