@@ -1497,9 +1497,9 @@ int main() {
                 // Flag abnormal clr_bands in log
                 if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                     clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
-                    log_error("ERROR: Clear Freq Band[%d] is abnornal", i);
+                    log_error("WARN: Clear Freq Band[%d] is abnornal", i);
                     log_error("Clear Freq Band[%d]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
-                    log_error("ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
+                    log_error("ERROR: There COULD be an error in CFS order of operations, or too wide of a guardband/narrow clear search range!");
                 }
             }
             write_clrfreq_shm(selected_clr_band, clrfreq_obj.shm_ptr);
