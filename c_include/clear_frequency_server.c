@@ -40,7 +40,8 @@
 #define ANTENNA_NUM             16
 #define STATIC_ANTENNA_NUM      30 
 #define STATIC_RADAR_NUM        4                   // Max Number of possible radars in an array
-// #define STATIC_CHANNEL_NUM      10                  // Max Number of possible channels in an array
+#define STATIC_CHANNEL_NUM      6                   // Max Number of possible channels in an array
+#define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table 
 #define BEAM_NUM                16                  // Number of beams to process
 #define SAMPLE_TIME             3                   // Time per Sample (in seconds)
 #define STORAGE_TIME            60                  // Total time per Sample Storage Batch (in seconds)
@@ -189,7 +190,7 @@ sample_meta_data meta_data = {0};
 radar_freq_data **radar_table = NULL;
 int radar_table_sizes[] = {
     STATIC_RADAR_NUM,
-    CLR_BANDS_MAX,
+    STATIC_CHANNEL_NUM,
 };
 
 FILE *log_file = NULL;
@@ -813,7 +814,7 @@ void flag_reserved_freqs(int radar_id, int channel_id, int radar_num, freq_band 
     log_info("Reserving clr_bands from and into Radar Table...");
     // For each clr_band in the Radar Table, compare w/ new clr_bands to see if already reserved
     for (int r_idx = 0; r_idx < radar_num; r_idx++) {
-        for (int c_idx = 0; c_idx < CLR_BANDS_MAX; c_idx++) {
+        for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
             radar_freq_data channel_data = radar_table[r_idx][c_idx];
 
             // Skip current channel's reservation
@@ -824,15 +825,23 @@ void flag_reserved_freqs(int radar_id, int channel_id, int radar_num, freq_band 
                 continue;
             }
             
-            // Check any for intersection between identified clr_bands and radar_table
-            if (clr_bands[c_idx].f_start >= channel_data.clr_band.f_start &&
-                clr_bands[c_idx].f_start <  channel_data.clr_band.f_end ||
-                clr_bands[c_idx].f_end   >= channel_data.clr_band.f_start &&
-                clr_bands[c_idx].f_end   <  channel_data.clr_band.f_end) 
-            {
-                // If reserved, flag clr_band as already selected
-                log_trace("     Conflict found with [radar#%d][channel#%d]", r_idx, c_idx);
-                clr_bands[c_idx].is_selected = true;
+            // Scan through clr_bands for intersections
+            for (int i = 0; i < CLR_BANDS_MAX; i++) {
+                // Check if the clr_band is valid
+                if (clr_bands[i].f_start < clr_bands[i].f_end && clr_bands[i].noise < RAND_MAX) {
+                    has_valid_clr_band = true;
+                }
+
+                // Check any for intersection between identified clr_bands and radar_table resevervation
+                if (clr_bands[i].f_start >= channel_data.clr_band.f_start &&
+                    clr_bands[i].f_start <  channel_data.clr_band.f_end ||
+                    clr_bands[i].f_end   >= channel_data.clr_band.f_start &&
+                    clr_bands[i].f_end   <  channel_data.clr_band.f_end) 
+                {
+                    // If reserved, flag clr_band as already selected
+                    log_trace("     Conflict found with [radar#%d][channel#%d]", r_idx, c_idx);
+                    clr_bands[i].is_selected = true;
+                }
             }
         }
     }
@@ -1033,13 +1042,13 @@ int main() {
         exit(EXIT_FAILURE);
     }
     for (int i = 0; i < STATIC_RADAR_NUM; i++) {
-        radar_table[i] = (radar_freq_data *)malloc(CLR_BANDS_MAX * sizeof(radar_freq_data));
+        radar_table[i] = (radar_freq_data *)malloc(STATIC_CHANNEL_NUM * sizeof(radar_freq_data));
         if (radar_table[i] == NULL) {
             log_fatal( "Error allocating memory for radar_table elements");
             perror("Error allocating memory for radar_table elements");
             exit(EXIT_FAILURE);
         }
-        memset(radar_table[i], 0, CLR_BANDS_MAX * sizeof(radar_freq_data));
+        memset(radar_table[i], 0, STATIC_CHANNEL_NUM * sizeof(radar_freq_data));
     }
 
     int cur_channel = 0;
@@ -1372,7 +1381,7 @@ int main() {
                 read_single_int(&cur_channel, channel_id_obj.shm_ptr);
                 log_debug("    channel_id: %d", cur_channel);
 
-                if (cur_channel >= CLR_BANDS_MAX || cur_channel < 0) {
+                if (cur_channel >= STATIC_CHANNEL_NUM || cur_channel < 0) {
                     log_error( "ERROR: Channel ID out of range");
                     log_error( "ERROR: There is likely an error on the CFS client-side, please close and restart all related processes.");
                     perror("ERROR: Channel ID out of range");
@@ -1423,7 +1432,7 @@ int main() {
                     sample_sep,
                     avg_ratio,
                     restricted_freq, 
-                    restricted_num,
+                    restricted_num + RESERV_NUM,
                     meta_data,
                     array_config,
                     clr_bands                
@@ -1451,7 +1460,7 @@ int main() {
                     clr_range[cur_radar],
                     sample_sep,
                     restricted_freq, 
-                    restricted_num,
+                    restricted_num + RESERV_NUM,
                     avg_freq_vector,
                     (int) (meta_data.number_of_samples / avg_ratio),
                     &meta_data,
@@ -1460,13 +1469,13 @@ int main() {
                 log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
             }
             
-            // Flag intersecting freq bands from Radar Table
-            flag_reserved_freqs(cur_radar, cur_channel, radar_num, clr_bands, clr_range[cur_radar]);
+            // // Flag intersecting freq bands from Radar Table
+            // flag_reserved_freqs(cur_radar, cur_channel, radar_num, clr_bands, clr_range[cur_radar]);
 
             // Output Clear Freq Bands
             bool is_clr_band_found = false;
             for (int i = 0; i < CLR_BANDS_MAX; i++) {
-                log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+                log_debug("Clear Freq Band[%d]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
                 
                 // Reserve the best avalible frequency band
                 if (clr_bands[i].is_selected == false && is_clr_band_found == false) {
@@ -1478,6 +1487,12 @@ int main() {
                     radar_table[cur_radar][cur_channel].clr_band = clr_bands[i];
                     radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[0];
                     radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[1];
+                    if (restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel >= RESTRICT_NUM) {
+                        log_error("    ERROR: Reservation into restricted_freq failed due to overflow index!");
+                        perror("ERROR: Reservation into restricted_freq failed due to overflow index!");
+                        exit(EXIT_FAILURE);
+                    }
+                    restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel] = clr_bands[i];
 
                     // Select the best frequency band
                     selected_clr_band = clr_bands[i];
@@ -1487,25 +1502,39 @@ int main() {
                 if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                     clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
                     log_error("ERROR: Clear Freq Band[%d] is abnornal", i);
-                    log_error("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+                    log_error("Clear Freq Band[%d]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
                     log_error("ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
                 }
             }
             write_clrfreq_shm(selected_clr_band, clrfreq_obj.shm_ptr);
 
-
-            log_info( "[TCS] Radar[%d] Storage at [%d/%d] ...", cur_radar, tcs_storage_i[cur_radar] + 1, STORAGE_NUM);
-            if (is_tcs_ready[cur_radar] == true) {
-                log_info( "[TCS] Radar[%d] ready...", cur_radar);
-            }
-
             // Log clear freq bands
             memcpy(clr_bands_storage[cur_radar][clr_storage_i[cur_radar]], clr_bands, CLR_BANDS_MAX * sizeof(freq_band));
             clr_storage_i[cur_radar]++;
-            log_info( "Clr Freq Log Batch: radar[%d] @ %d/%d", cur_radar, clr_storage_i[cur_radar], CLR_STORAGE_NUM);
+            log_info( "Clr Freq Log: Radar[%d] @ %d/%d", cur_radar, clr_storage_i[cur_radar], CLR_STORAGE_NUM);
             if (clr_storage_i[cur_radar] >= CLR_STORAGE_NUM) {
                 write_clr_log_csv(clr_bands_storage[cur_radar], clr_storage_i[cur_radar], cur_radar);
                 clr_storage_i[cur_radar] = 0;
+            }
+            
+            // Display TCS Storage Information
+            log_info( "[TCS] Radar[%d] Storage [%d/%d]", cur_radar, tcs_storage_i[cur_radar] + 1, STORAGE_NUM);
+            if (is_tcs_ready[cur_radar] == true) {
+                log_info( "     [TCS] Radar[%d] ready...", cur_radar);
+            }
+
+            // Display Radar Table Information
+            log_debug( "Radar Table Information:");
+            for (int r_idx = 0; r_idx < radar_num; r_idx++) {
+                for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
+                    if (radar_table[r_idx][c_idx].clr_band.f_start != 0 && radar_table[r_idx][c_idx].clr_band.f_end != 0) {
+                        log_debug( "    Radar[%d] Channel[%d]: | %dHz -- Noise: %f -- %dHz |",
+                            r_idx, c_idx, 
+                            radar_table[r_idx][c_idx].clr_band.f_start, 
+                            radar_table[r_idx][c_idx].clr_band.noise, 
+                            radar_table[r_idx][c_idx].clr_band.f_end);
+                    }
+                }
             }
 
             // Synchronize data writes with program counter
