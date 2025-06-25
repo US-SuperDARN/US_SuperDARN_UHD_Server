@@ -14,7 +14,7 @@
 // Define Constants
 #define CLR_NOISE_THRESHOLD 100000  // Noise Threshold for a clear band to be considered a valid usable band
 #define GB_MULT 4                   // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw)
-#define MIN_FREQ_SEP 8000          // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
+#define MIN_FREQ_SEP 6000          // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
                                     // then minimum frequency separation is used instead)
 
 #define IDX_LAST_IA 19              // Last Interferrometer Array
@@ -564,8 +564,11 @@ void calc_clear_freq_on_raw_samples(
     log_trace("clear_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
 
 
-    // Reciever trasmitter separation
-    float clear_bw = (1e6 * GB_MULT) / smsep;
+    // Trasmission separation
+    int gb = (1e6 * (GB_MULT - 1) ) / (smsep * 2);
+    if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;   // Ensure minimum frequency separation
+    float clear_bw = 1e6 / smsep + gb;          // Clear Bandwidth in Hz
+    log_trace("gb: %d", gb);
     log_trace("smsep: %d", smsep);
     log_trace("clear_bw: %f Hz", clear_bw);
 
@@ -945,10 +948,15 @@ void process_beam_clr_freq(
     //     log_trace("spectrum_pow[%d]: %f", i, avg_spectrum[i]);   
     // }}
 
+    // Clear Freq separation
+    int gb = (1e6 * (GB_MULT - 1) ) / (smsep * 2);  // Dynamic Guardband based on sample separation
+    if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;       // Ensure minimum frequency separation
+    float clear_bw = 1e6 / smsep + gb * 2;          // Clear Bandwidth in Hz
+    log_trace("gb: %d", gb);
+    log_trace("smsep: %d", smsep);
+    log_trace("clear_bw: %f Hz", clear_bw);
+    
     // Find clear frequency
-    double clear_bw = (1e6 * GB_MULT) / smsep;    // Reciever trasmitter separation
-    log_trace("     clear_bw: %f Hz", clear_bw);
-
     clock_t t1, t2;
     t1 = clock();
     find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_bands);
