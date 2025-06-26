@@ -1624,6 +1624,7 @@ class scanManager():
         RHM = self.RHM
 
         RHM.clearFreqRawDataManager.select_clear_freq.acquire()
+        RHM.set_par_semaphore.acquire()
            
         rawData, metaData, recordTime = RHM.clearFreqRawDataManager.get_raw_data(jrad)
 
@@ -1657,6 +1658,7 @@ class scanManager():
 
         self.logger.debug("clear freq result for radar {} channel {}: selected {} , noise level {:2.1f}".format(self.channel.rnum, self.channel.cnum, clearFreq, noise))
         RHM.clearFreqRawDataManager.select_clear_freq.release()
+        RHM.set_par_semaphore.release()
 
         return (clearFreq, noise, recordTime)
 
