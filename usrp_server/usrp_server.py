@@ -742,6 +742,7 @@ class scanManager():
     
         beam_angle = calc_beam_azm_rad(self.numBeams, beamNo, self.beamSep)
         RHM.clearFreqRawDataManager.select_clear_freq.acquire()
+        RHM.set_par_semaphore.acquire()
         self.logger.debug("clear_freq_range: {} on beam {} angle {}".format(self.clear_freq_range_list[iPeriod], beamNo, beam_angle))
    
         all_restricted_freq = self.restricted_frequency_list + RHM.clearFreqRawDataManager.freq_occupied_by_other_channels
@@ -757,6 +758,7 @@ class scanManager():
 
         self.logger.debug("clear freq result for channel {}: selected {} , noise level {:2.1f}".format(self.channel.cnum, clearFreq, noise))
         RHM.clearFreqRawDataManager.select_clear_freq.release()
+        RHM.set_par_semaphore.release()
 
         return (clearFreq, noise, recordTime)
 
