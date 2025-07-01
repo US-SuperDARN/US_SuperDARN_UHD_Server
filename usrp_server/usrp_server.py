@@ -3724,7 +3724,7 @@ class RadarChannelHandler:
         return RMSG_SUCCESS
 
     def CheckChannelCompatibility(self):
-        self.logger.debug('checking channel compatibility for channel {}'.format(self.cnum))
+        self.logger.debug('checking channel compatibility for radar {} channel {}'.format(self.rnum, self.cnum))
         hardwareManager = self.parent_RadarHardwareManager
         commonParList_ctrl = ['number_of_samples', 'baseband_samplerate' ]
         commonParList_seq  = [ 'npulses_per_sequence', 'pulse_sequence_offsets_vector',  'tr_to_pulse_delay', 'integration_period_duration', 'tx_time']
@@ -3789,7 +3789,12 @@ class RadarChannelHandler:
 
         else:   # not first channel => check if new parameters are compatible
             
-            parCompatibleList_seq  = [hardwareManager.commonChannelParameter[parameter] == getattr(self, parameter) for parameter in commonParList_seq]
+            try:
+                parCompatibleList_seq = [hardwareManager.commonChannelParameter[parameter] == getattr(self, parameter) for parameter in commonParList_seq]
+            except KeyError:
+                self.logger.error('Error comparing sequence parameters: radar {} ch {}'.format(self.rnum, self.cnum))
+                return False
+
             parCompatibleList_ctrl = [hardwareManager.commonChannelParameter[parameter] == self.ctrlprm_struct.payload[parameter] for parameter in commonParList_ctrl]
 
             idxOffsetVec = commonParList_seq.index('pulse_sequence_offsets_vector')  # convert vector of bool to scalar
