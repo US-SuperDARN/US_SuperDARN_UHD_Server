@@ -3498,6 +3498,7 @@ class RadarChannelHandler:
     def write_bb_data(channel):
         channel.logger.debug('start saving BB samples')
         time_now = datetime.datetime.now(datetime.UTC)
+#        time_now = datetime.datetime.utcnow() # format for earlier version of datetime
         version = 3 
         hardwareManager = channel.parent_RadarHardwareManager
         
@@ -4090,8 +4091,7 @@ class RadarChannelHandler:
             #self.logger.debug("Resetting swing manager (active={}, processing={})".format(self.swingManager.activeSwing, self.swingManager.processingSwing ))
             return RMSG_SUCCESS
         
- 
-    def SetInactiveHandler(channelObject, rmsg):
+   def SetInactiveHandler(channelObject, rmsg):
         RHM = channelObject.parent_RadarHardwareManager
         RHM.logger.info('ROS:SET_INACTIVE received for radar {} channel {}'.format(channelObject.rnum,channelObject.cnum))
         RHM.logger.info('radar {} ch {}: RHM active channels objects: {}'.format(channelObject.rnum,channelObject.cnum,RHM.active_channels[channelObject.rnum]))
@@ -4127,6 +4127,33 @@ class RadarChannelHandler:
         RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE sending RMSG_SUCCESS'.format(channelObject.rnum,channelObject.cnum))
         # TODO: return failure status if the radar or channel number is invalid?
         return RMSG_SUCCESS
+     
+    # def SetInactiveHandler(channelObject, rmsg):
+    #     RHM = channelObject.parent_RadarHardwareManager
+    #     RHM.logger.info('ROS:SET_INACTVIVE received for radar{} channel {}'.format(channelObject.rnum,channelObject.cnum)))
+    #     RHM.logger.info('RHM radar {} active channels objects: {}'.format(channelObject.rnum,RHM.active_channels[channelObject.rnum]))
+
+    #     if channelObject in RHM.active_channels[channelObject.rnum]:
+    #         RHM.logger.info('ROS:SET_INACTVIVE removing channel {} from RHM.active_channels'.format(RHM.channels[channelObject.rnum].index(channelObject)))
+    #         try:
+    #            RHM.active_channels[channelObject.rnum].remove(channelObject)
+    #         except:
+    #            RHM.logger.info('ROS:SET_INACTVIVE failed to remove channel {} from RHM.active_channels'.format(RHM.channels[channelObject.rnum].index(channelObject)))
+               
+           
+    #     if channelObject in np.concatenate(RHM.channels).tolist():
+    #         RHM.logger.info('ROS:SET_INACTVIVE removing channel {} from HardwareManager'.format(RHM.channels[channelObject.rnum].index(channelObject)))
+    #         RHM.channels[channelObject.rnum].remove(channelObject)
+
+    #         RHM.nRegisteredChannels -= 1
+    #         if RHM.nRegisteredChannels == 0: 
+    #             RHM.logger.debug("No channels left, removing commonChannelParameter") 
+    #             RHM.commonChannelParameter = {}
+    #             radar_active[channelObject.rnum]=False
+                
+    #     channelObject.active = False
+    #     # TODO: return failure status if the radar or channel number is invalid?
+    #     return RMSG_SUCCESS
 
 
 def main():

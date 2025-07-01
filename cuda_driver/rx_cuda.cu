@@ -163,11 +163,11 @@ __global__ void multiply_mix_add(int16_t *samples, float *odata, float *filter)
     if (iSample_rf >= offset) {
         uint32_t idxSample_rf = (iSample_rf - offset) * 2 + iAntenna *  nSamples_rf *2;         // index in memory (account for  I/Q, iAntenna)
 
-        double phi0 = fmod((double)phaseIncrement_NCO_rad[iChannel] * (double)iSample_rf, (double)(2*M_PI));
+        double phi0 = fmod(phaseIncrement_NCO_rad[iChannel] * iSample_rf, 2*M_PI);
 	float mc0=cos(phi0);
 	float ms0=sin(phi0);
 
-        double phi1 = fmod((double)phaseIncrement_NCO_rad[iChannel] * (double)(iSample_rf+1), (double)(2*M_PI));
+        double phi1 = fmod(phaseIncrement_NCO_rad[iChannel] * (iSample_rf+1), 2*M_PI);
 	float mc1=cos(phi1);
 	float ms1=sin(phi1);
 
@@ -237,7 +237,7 @@ __global__ void multiply_mix_add(int16_t *samples, float *odata, float *filter)
         
 	//        itemp[iThread_lin] = itemp[iThread_lin] * cos(phiOffset) - qtemp[iThread_lin] * sin(phiOffset);
         //	  qtemp[iThread_lin] = ltemp * sin(phiOffset) + qtemp[iThread_lin] * cos(phiOffset);
-		  
+
         // write outout
         uint32_t output_idx = iSampleIF *2 + iChannel * nSamplesIF *2 + iAntenna * nChannels * nSamplesIF *2; 
         odata[output_idx  ] = (float) itemp[iThread_lin];

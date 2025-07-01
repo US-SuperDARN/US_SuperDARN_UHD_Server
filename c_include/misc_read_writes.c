@@ -175,7 +175,7 @@ void write_clr_freq_csv(char *filename, freq_band *clr_bands) {
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
     snprintf(name, sizeof(name), filename, timestamp, "csv");
     
-    FILE *file = fopen(filename, "w");
+    FILE *file = fopen(name, "w");
     if (file == NULL) {
         file_access_error(name);
         return;
@@ -473,7 +473,7 @@ void get_timestamp( char* buffer){
 	struct tm *timeinfo;
 	time(&rawtime);
 	timeinfo = gmtime (&rawtime);
-	strftime (buffer,32,"%G.%m%d.%H%M%S",timeinfo);
+	strftime(buffer,32,"%G.%m%d.%H%M%S",timeinfo);
 }
 
 void get_file_name(char* filename, char* filepath){

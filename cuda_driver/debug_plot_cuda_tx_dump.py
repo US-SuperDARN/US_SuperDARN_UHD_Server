@@ -4,12 +4,11 @@ import os
 import matplotlib.pyplot as plt
 import pickle
 
-dump_path = '/data/diagnostic_samples/'
+dump_path = '/data/diagnostic_samples'
 
-fileName = 'cuda_dump_tx_2023-06-15_075303.pkl'
+fileName = 'cuda_dump_tx_2017-11-15_101348.pkl'
 with open(os.path.join(dump_path, fileName), 'rb') as f:
-    # samples, bb_samples = pickle.load(f)
-    samples = pickle.load(f)
+    samples, bb_samples = pickle.load(f)
 print(len(samples))
 print(len(bb_samples[0]))
 
