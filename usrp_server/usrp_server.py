@@ -3752,7 +3752,7 @@ class RadarChannelHandler:
          
         if hardwareManager.nRegisteredChannels == 1 and (len(np.concatenate(hardwareManager.channels).tolist()) == 0 or np.concatenate(hardwareManager.channels).tolist()[0] == self): 
            self.logger.info("Compatibility check: This channel is already registered at HardwareManager and is the only one. Renewing registration.")
-           hardwareManager.nRegisteredChannels = 0
+           # hardwareManager.nRegisteredChannels = 0
 
         if (hardwareManager.nRegisteredChannels <= 0) or (len(hardwareManager.commonChannelParameter) == 0):  # this is the first channel
             hardwareManager.commonChannelParameter = {key: getattr(self, key) for key in commonParList_seq}
