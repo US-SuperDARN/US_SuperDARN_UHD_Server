@@ -2198,7 +2198,8 @@ class RadarHardwareManager:
             self.logger.debug('RHM:unregister_channel_from_HardwareManager {} channels left'.format(len(self.channels[channelObject.rnum])))
 
             self.nRegisteredChannels -= 1
-            if self.nRegisteredChannels == 0:  
+            if self.nRegisteredChannels <= 0:
+                self.nRegisteredChnnels = 0
                 self.commonChannelParameter = {}
 
         else:
@@ -2668,7 +2669,6 @@ class RadarHardwareManager:
                  channel.next_processing_state = CS_INACTIVE
                  channel.active_state          = CS_INACTIVE
                  channel.next_active_state     = CS_INACTIVE
-                 # self.nRegisteredChannels -= 1 
                  channel.logger.debug('last period finished, setting radar {} cnum {} active and next processing state to CS_INACTIVE'.format(channel.rnum,channel.cnum))
               elif channel.scanManager.isLastPeriod:
                  channel.next_processing_state = CS_LAST_SWING
@@ -3728,17 +3728,19 @@ class RadarChannelHandler:
         hardwareManager = self.parent_RadarHardwareManager
         commonParList_ctrl = ['number_of_samples', 'baseband_samplerate' ]
         commonParList_seq  = [ 'npulses_per_sequence', 'pulse_sequence_offsets_vector',  'tr_to_pulse_delay', 'integration_period_duration', 'tx_time']
+        
         if all([self.pulse_lens[0]==self.pulse_lens[i] for i in range(1,len(self.pulse_lens))]):
             pulseLength = self.pulse_lens[0]
         else:
             self.logger.error("Pulse lengths in one sequence have to be the equal! ") # TODO raise error?
             pdb.set_trace()
             return False
+
         if hardwareManager.nRegisteredChannels == 1 and (len(np.concatenate(hardwareManager.channels).tolist()) == 0 or np.concatenate(hardwareManager.channels).tolist()[0] == self): 
            self.logger.info("Compatibility check: This channel is already registered at HardwareManager and is the only one. Renewing registration.")
-           hardwareManager.nRegisteredChannels = 0
+           # hardwareManager.nRegisteredChannels = 0
 
-        if hardwareManager.nRegisteredChannels == 0:  # this is the first channel
+        if (hardwareManager.nRegisteredChannels <= 0) or (len(hardwareManager.commonChannelParameter) == 0):  # this is the first channel
             hardwareManager.commonChannelParameter = {key: getattr(self, key) for key in commonParList_seq}
             hardwareManager.commonChannelParameter.update( {key: self.ctrlprm_struct.payload[key] for key in commonParList_ctrl})
             hardwareManager.commonChannelParameter.update({'pulseLength':pulseLength})
@@ -3781,8 +3783,6 @@ class RadarChannelHandler:
                self.logger.debug("Setting cuda downsampling ratios to {} and {}".format(downSampleRates[0], downSampleRates[1]))
                hardwareManager.commonChannelParameter.update({"downsample_rates":downSampleRates})
                hardwareManager.send_cuda_setup_command()
-
-           
 
             hardwareManager.nRegisteredChannels = 1
             return True
@@ -4115,9 +4115,10 @@ class RadarChannelHandler:
                RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE failed to remove from HardwareManager'.format(channelObject.rnum,channelObject.cnum))
 
             RHM.nRegisteredChannels -= 1
-            if RHM.nRegisteredChannels == 0:
+            if RHM.nRegisteredChannels <= 0:
                 RHM.logger.debug("radar {} ch {}: No channels left, removing commonChannelParameter".format(channelObject.rnum,channelObject.cnum))
                 RHM.commonChannelParameter = {}
+                RHM.nRegisteredChannels = 0
                 radar_active[channelObject.rnum]=False
         else:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from HardwareManager'.format(channelObject.rnum,channelObject.cnum))
@@ -4126,7 +4127,7 @@ class RadarChannelHandler:
         RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE sending RMSG_SUCCESS'.format(channelObject.rnum,channelObject.cnum))
         # TODO: return failure status if the radar or channel number is invalid?
         return RMSG_SUCCESS
-     
+
 
 def main():
     # maybe switch to multiprocessing with manager process
