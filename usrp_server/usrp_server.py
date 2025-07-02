@@ -923,7 +923,20 @@ class ClearFrequencyService():
         
         # If element size is incorrect, Display error
         except AttributeError as e:
-            print("[Frequency Client] ERROR: Element Size is incorrect. send()'s parameters were likely not assigned properly. Please verify...")
+            print("[Frequency Client] ERROR: Element Size is incorrect. send_samples()'s parameters were likely not assigned properly. Please verify...")
+            print(f"AttributeError: {e}")
+            print(f"Object: {obj}, Attributes: {dir(obj)}")
+            raise
+        
+        except ValueError as e:
+            print("[Frequency Client] ERROR: Antenna list mismatch with sample set. send_samples()'s parameters were likely not assigned properly. Please verify...")
+            
+            # Print data difference between the sample set and expected size
+            print("sample bytes:", len(interleaved_data.tobytes()))
+            obj['shm_ptr'].seek(0, 2)  # Seek to end
+            print("expected size:", obj['shm_ptr'].tell())
+            obj['shm_ptr'].seek(0)
+        
             print(f"AttributeError: {e}")
             print(f"Object: {obj}, Attributes: {dir(obj)}")
             raise

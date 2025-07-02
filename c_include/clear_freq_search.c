@@ -11,36 +11,7 @@
 #include "log.h"
 
 
-// Define Constants
-#define CLR_NOISE_THRESHOLD 100000  // Noise Threshold for a clear band to be considered a valid usable band
-#define GB_MULT 4                   // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw)
-#define MIN_FREQ_SEP 6000          // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
-                                    // then minimum frequency separation is used instead)
 
-#define MIN_ANT_PWR 200            // Minimum Antenna Power to consider antenna as not missing
-
-#define IDX_LAST_IA 19              // Last Interferrometer Array
-#define IDX_LAST_MA 15              // Last Main Array
-#define PI 3.14159265358979323846
-#define C  3e8
-#ifndef CLK_TCK
-#define CLK_TCK 60
-#endif
-
-
-// Config and Debug Flags
-#define BIN_OR_CSV_LOG  1   // 0 for Bin, otherwise CSV
-
-#define TEST_SAMPLES 0
-#define TEST_CLR_RANGE 1
-
-// Config Filepaths
-#define SPECTRAL_LOG_FILE   "save_spectra"
-#define LOG_PATH            "log/"
-#define SPECTRUM_FILE       "log/fft_spectrum/fft_spectrum.%s.%s"
-#define CLR_FREQ_FILE       "log/clr_freq/clr_freq.%s.%s"
-#define SAMPLE_RE_FILE      "log/sample_re.csv"
-#define SAMPLE_IM_FILE      "log/sample_im.csv"
 
 
 // TODO: Pass in clr_freq_range via restrict actual file
@@ -339,9 +310,9 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     for (int i = 0; i < CLR_BANDS_MAX; i++) {
         clr_bands[i].f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
         clr_bands[i].f_end = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        clr_bands[i].noise = RAND_MAX; // XXX: Logic Flip
+        clr_bands[i].noise = RAND_MAX;
     };
-    int min_idx[CLR_BANDS_MAX];
+    int min_idx[CLR_BANDS_MAX]; // array of clr_bands' index in the convolve_bw 
     
     // Identify lowest noise bands from convolve results...
     freq_band curr_band;
@@ -357,7 +328,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         // Compare curr power with min_powers...
         for (int j = CLR_BANDS_MAX - 1; j >= 0 ; j--) {
             // Update Insert Index; maintaining ascending order 
-            if (curr_band.noise < clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) { // XXX: Logic Flip
+            if (curr_band.noise < clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
                 insert_idx = j;
             }
             // Check for Intersecting Band; get intersecting clr_band index
@@ -376,7 +347,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         if (insert_idx != -1) {
             // Intersection w/ curr_band was also Found...
             if (intersect_idx != -1) {
-                // Special: If Intersect has worse noise, do not place/skip
+                // Special: If new band has worse noise, do not place/skip
                 if (insert_idx > intersect_idx) continue;
                 
                 // log_trace("    Intersecting Insertion found w/...");
@@ -384,7 +355,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
 
                 // log_trace("        i-band = | %d -- %f -- %d|", inter_band.f_start, inter_band.noise, inter_band.f_end);
 
-                // Special: Shift right till the Intersecting band is overwritten 
+                // Special: Shift inter_band band right till overwritten 
                 if (insert_idx < intersect_idx) {
                     // Debug: verify bands shift properly @ sample
                     // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
@@ -1053,7 +1024,8 @@ void process_avg_ant_pwr (
     fftw_complex *raw_samples, 
     int num_samples, 
     sample_meta_data *meta_data,
-    int *ant_missing_count,
+    int *ant_active_ct,
+    int *active_antennas,
     int *acculated_pwrs
 ) {
     double avg_pwrs[meta_data->num_antennas];
@@ -1064,32 +1036,45 @@ void process_avg_ant_pwr (
     for (int ant_idx = 0; ant_idx < meta_data->num_antennas; ant_idx++) {     
         avg_pwrs[ant_idx] = 0;
 
+        // Average Power of antenna's sample set
         for (int cur_sample = 0; cur_sample < num_samples; cur_sample++) {
-            // if (cur_sample % 250 == 0) log_trace("ant_idx: %d  cur_sample: %d", ant_idx, cur_sample);
 
-            // Calculate Power of each sample ... 
             // Index using the following array format: [cur_ant][cur_sample]
             s_idx = ant_idx * num_samples + cur_sample;
-
+            
+            // Calculate Power of each sample ... 
             double re = creal(raw_samples[s_idx]) * creal(raw_samples[s_idx]);
             double im = cimag(raw_samples[s_idx]) * cimag(raw_samples[s_idx]);
-            
             avg_pwrs[ant_idx] += re + im; // sqrt(re + im);
+            
+            // if (cur_sample % 250 == 0) log_trace("ant_idx: %d  cur_sample: %d", ant_idx, cur_sample);
             // log_trace("    spectra[%d]: %f + j%f", s_idx, creal(raw_samples[s_idx]), cimag(raw_samples[s_idx]));
             // log_trace("         avg_ant_pwr[%d]: %f", ant_idx, avg_pwrs[ant_idx]);
         }
-        // Div by the total elements summed
         avg_pwrs[ant_idx] /= num_samples;
-        // log_trace("         avg_ant_pwr[%d]: %f", ant_idx, avg_pwrs[ant_idx]);
 
-        // if (avg_pwrs[ant_idx] < MIN_ANT_PWR) {
-        //     ant_missing_count[meta_data->antenna_list[ant_idx]]++;
-        //     log_warn("Antenna %d is abnormal! (pwr: %f)", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
-        // }
+        // Check if antenna meets active pwr threshold, ...
+        if (avg_pwrs[ant_idx] > MIN_ANT_PWR && ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
+            log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+            ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
+            active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
 
-        // Accumulate the average powers into the time average powers
-        acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
-        log_trace("         avg_ant_pwr[%d]: %d", ant_idx, acculated_pwrs[ant_idx]);
+            // Accumulate the average power into the sum of averaged powers
+            acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
+        } 
+        // If Inferrometric antennas meets active pwr threshold, ...
+        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && meta_data->antenna_list[ant_idx] >= IDX_LAST_MA && meta_data->antenna_list[ant_idx] < IDX_LAST_IA) {
+            log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+            ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
+            active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
+
+            // Accumulate the average power into the sum of averaged powers
+            acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
+        }
+
+        else {
+            log_debug("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+        }
     }
 
 };
