@@ -2694,6 +2694,7 @@ class RadarHardwareManager:
 
                   if channel in self.channels[channel.rnum]:
                      self.channels[channel.rnum].remove(channel)
+                     self.nRegisteredChannels -= 1
                   if channel in self.active_channels[channel.rnum]:
                      self.active_channels[channel.rnum].remove(channel)
 
