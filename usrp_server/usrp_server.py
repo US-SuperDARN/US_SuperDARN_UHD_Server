@@ -4100,7 +4100,7 @@ class RadarChannelHandler:
             #self.logger.debug("Resetting swing manager (active={}, processing={})".format(self.swingManager.activeSwing, self.swingManager.processingSwing ))
             return RMSG_SUCCESS
         
-   def SetInactiveHandler(channelObject, rmsg):
+    def SetInactiveHandler(channelObject, rmsg):
         RHM = channelObject.parent_RadarHardwareManager
         RHM.logger.info('ROS:SET_INACTIVE received for radar {} channel {}'.format(channelObject.rnum,channelObject.cnum))
         RHM.logger.info('radar {} ch {}: RHM active channels objects: {}'.format(channelObject.rnum,channelObject.cnum,RHM.active_channels[channelObject.rnum]))
