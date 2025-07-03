@@ -122,9 +122,11 @@ int32_t driversock = 0;
 int32_t driverconn = 0;
 int32_t verbose = 0;
 
-void uhd_term_message_handler(uhd::msg::type_t type, const std::string &msg){
-    ;
-}
+// header msg.hpp disappeared from uhd distribution in 4.8
+
+// void uhd_term_message_handler(uhd::msg::type_t type, const std::string &msg){
+//     ;
+// }
 
 void *open_sample_shm(int32_t ant, int32_t dir, int32_t side, int32_t swing, size_t shm_size) {
     void *pshm = NULL;
@@ -487,6 +489,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
     DEBUG_PRINT("usrp_driver debug mode enabled\n");
 
+    
     // header msg.hpp disappeared from uhd distribution in 4.8
 
     // if (SUPRESS_UHD_PRINTS) {
