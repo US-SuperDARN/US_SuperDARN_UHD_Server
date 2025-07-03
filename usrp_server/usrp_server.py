@@ -1427,6 +1427,15 @@ class clearFrequencyRawDataManager():
             self.logger.debug('start record_clrfreq_raw_samples on radar {}'.format(jrad))
             self.rawData[jrad], self.antennaList[jrad] = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(jrad), self.number_of_samples, self.center_freq[jrad], self.sampling_rate)
             self.logger.debug('end record_clrfreq_raw_samples')
+            
+            # Debug: Periodically send empty samples to the CFS
+            self.cycleTicker += 1
+            if self.cycleTicker % 100 == 0:     # send fully empty samples every 100 cycles
+                self.logger.debug("clearFreqRawData: sending empty samples to CFS")
+                self.rawData[jrad] = np.zeros((len(self.antennaList[jrad]), self.number_of_samples), dtype=np.complex64)                
+            if self.cycleTicker % 10 == 0:      # send partially empty samples every 10 cycles
+                self.logger.debug("clearFreqRawData: sending partially empty samples to CFS")
+                self.rawData[jrad][0] = np.zeros(self.number_of_samples, dtype=np.complex64)  # set first antenna to empty            
 
             self.metaData[jrad]['antenna_list'] = self.antennaList[jrad]
             self.CFS.send_samples(self.rawData[jrad], int(jrad), int(self.center_freq[jrad]), meta_data=self.metaData[jrad])
