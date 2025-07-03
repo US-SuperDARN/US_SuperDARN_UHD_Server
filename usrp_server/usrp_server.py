@@ -1380,6 +1380,8 @@ class clearFrequencyRawDataManager():
 
         self.logger = logging.getLogger('clearFrequency')
         self.logger.debug('clearFrequencyRawDataManager initialized')
+        
+        self.cycleTicker = 0
 
 
     def set_usrp_driver_connections(self, jrad, usrp_driver_socks):
@@ -1693,7 +1695,7 @@ class scanManager():
         RHM.clearFreqRawDataManager.add_channel(clearFreq, bandwidth)
 
         self.logger.debug("clear freq result for channel {}: selected {} , noise level {:2.1f}".format(self.channel.cnum, clearFreq, noise))
-        RHM.set_par_semaphore.acquire()
+        RHM.set_par_semaphore.release()
         RHM.clearFreqRawDataManager.select_clear_freq.release()
 
         return (clearFreq, noise, recordTime)
