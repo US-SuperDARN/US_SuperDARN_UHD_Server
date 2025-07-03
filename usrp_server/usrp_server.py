@@ -47,7 +47,7 @@ USRP_SERVER_HOST = 'localhost'
 #USRP_SERVER_HOST = '192.168.100.1'
 
 MAX_CHANNELS = 4
-USRP_BANDWIDTH_RESTRICTION = 5000 # in Hz. No channels allowed on both edges of the URSP bandwidth to avoid aliasing 
+USRP_BANDWIDTH_RESTRICTION = 300000 # in Hz. No channels allowed on both edges of the URSP bandwidth to avoid aliasing
 USRP_SOCK_TIMEOUT = 7 # sec
 
 RMSG_SUCCESS = 0
