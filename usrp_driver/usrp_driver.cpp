@@ -34,7 +34,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/transport/udp_simple.hpp>
 #include <uhd/exception.hpp>
-#include <uhd/utils/msg.hpp>
+// #include <uhd/utils/msg.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -487,9 +487,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
     DEBUG_PRINT("usrp_driver debug mode enabled\n");
 
-    if (SUPRESS_UHD_PRINTS) {
-        uhd::msg::register_handler(&uhd_term_message_handler);
-    }
+    // header msg.hpp disappeared from uhd distribution in 4.8
+
+    // if (SUPRESS_UHD_PRINTS) {
+    //     uhd::msg::register_handler(&uhd_term_message_handler);
+    // }
 
     nerrors = arg_parse(argc,argv,argtable);
     if (nerrors > 0) {
