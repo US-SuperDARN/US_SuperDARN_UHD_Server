@@ -410,7 +410,7 @@ class usrpMixingFreqManager():
        self.channelList         = []
 
     def add_new_freq_band(self, channel):
-       """ Checks if new channel is covered with current mixing frequency and bandwidth. 
+       """ Checks if new channel is covered with current mixing frequency and bandwidth.
            Retruns True/False if channel can/cannot be added. If changing the mixing frequency
            allows to add the new channel, the new mixing frequency will be output argument.
        """
@@ -458,26 +458,37 @@ class usrpMixingFreqManager():
           else:
              newMixingFreq = self.current_mixing_freq[jrad]
 
+          shift = -1
           attempt = 0
           invalid = [True] * len(tmpRangeList)
           while any(invalid):
              for idx, tmpCh in enumerate(tmpRangeList):
-                while ( (tmpCh[0] < newMixingFreq+50) and
-                        (newMixingFreq-50 < tmpCh[1]) ):
+                while ( ((tmpCh[0] < newMixingFreq+50) and
+                         (newMixingFreq-50 < tmpCh[1])) or
+                        (tmpCh[0] < newMixingFreq - self.usrp_bandwidth/2) or
+                        (tmpCh[1] > newMixingFreq + self.usrp_bandwidth/2) ):
+
                    invalid[:] = [True] * len(tmpRangeList)
-                   newMixingFreq -= 50
+                   newMixingFreq += shift*50
+
+                   if newMixingFreq < RHM.hardwareLimit_freqRange[0]:
+                      shift = 1
+
+                   if newMixingFreq > RHM.hardwareLimit_freqRange[1]:
+                      shift = -1
+
                    attempt += 1
-                   if attempt > 50 or newMixingFreq < RHM.hardwareLimit_freqRange[0]:
+                   if attempt > 1000:
                       channel.logger.error("radar {} ch {}: Could not adjust mixing frequency to avoid overlap with channel range {}".format(channel.rnum, channel.cnum, tmpCh))
                       return False
                 invalid[idx] = False
 
-          if newMixingFreq is not self.current_mixing_freq[jrad]:
+          if newMixingFreq == self.current_mixing_freq[jrad]:
+             result = True
+          else:
              channel.logger.info("calculated new usrp mixing frequency: {} kHz (old was {} kHz)".format(newMixingFreq, self.current_mixing_freq[jrad]))
              self.current_mixing_freq[jrad] = newMixingFreq
              result = newMixingFreq
-          else:
-             result = True
 
        self.semaphore.release()
        channel.logger.debug("radar {} ch {}: released semaphore of usrpMixingFreqManager".format(channel.rnum, channel.cnum))
