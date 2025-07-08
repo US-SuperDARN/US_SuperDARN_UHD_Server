@@ -1457,19 +1457,9 @@ int main() {
                     tcs_storage_i[cur_radar] = 0;
                 }
 
-                // Special: Restrict Clr Range to Usrp Range
-                if (clr_range[cur_radar][0] < (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate))) {
-                    // Restrict lower bound to lower bound of Usrp Range
-                    clr_range[cur_radar][0] = (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate));
-                }
-                if (clr_range[cur_radar][1] > (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate))) {
-                    // Restrict upper bound to upper bound of Usrp Range
-                    clr_range[cur_radar][1] = (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate));
-                }
-
                 // Fail: Clr Range exceeds Usrp Range and has no intersection
-                if (clr_range[cur_radar][1] < (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate)) ||
-                    clr_range[cur_radar][0] > (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate))) 
+                if (clr_range[cur_radar][1] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) ||
+                    clr_range[cur_radar][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) 
                 {
                     log_error("ERROR: Clear Range is out of Usrp Range!");
                     log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
@@ -1483,6 +1473,16 @@ int main() {
 
                     // Prevent further CFS from processing search
                     fl_clr_range_out_bounds = true;
+                }
+
+                // Special: Restrict Clr Range to Usrp Range
+                if (clr_range[cur_radar][0] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2))) {
+                    // Restrict lower bound to lower bound of Usrp Range
+                    clr_range[cur_radar][0] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2));
+                }
+                if (clr_range[cur_radar][1] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) {
+                    // Restrict upper bound to upper bound of Usrp Range
+                    clr_range[cur_radar][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
                 }
             }
             
