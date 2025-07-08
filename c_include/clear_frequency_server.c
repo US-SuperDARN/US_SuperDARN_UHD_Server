@@ -22,7 +22,7 @@
 
 
 // Logging Vars
-#define LOG_TERMINAL_LEVEL 2                         // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
+#define LOG_TERMINAL_LEVEL 1                         // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
 #define LOG_FILE_LEVEL 1
 #define LOG_PREFIX "[CFS] %s"               // *Unused* Prefix for log messages
 #define LOG_FILEPATH "log/cfs/cfs.%s.log"
@@ -780,7 +780,7 @@ bool has_tcs_param_changed(int old_tcs_param[3], int new_tcs_param[3]) {
 }
 
 /**
- * @brief  Updates the active antennas based on the antenna_list.
+ * @brief  Clears the list of active antennas.
  * @note   
  * @param  active_antennas: Array of active antennas
  * @retval None
@@ -788,7 +788,7 @@ bool has_tcs_param_changed(int old_tcs_param[3], int new_tcs_param[3]) {
 void clear_active_antennas(int active_antennas[]) {
     // Set the active antennas based on the antenna_list
     for (int i = 0; i < STATIC_ANTENNA_NUM; i++) {
-        active_antennas[active_antennas[i]] = 0;
+        active_antennas[i] = 0;
     }
 }
 
@@ -1065,7 +1065,7 @@ int main() {
     int ccn_invalid_sample_cyles = 0;                                   // num of times in a row invalid samples were in send() cycle
     int accu_avg_ant_pwr[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};   // integrated avg antenna power from sample sets for an accurate avg ant power
     int active_antennas[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};    // active antennas for each radar
-    int cur_active_ant_num = 0;
+    int active_ant_num = 0;
     int ant_active_ct[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // num of times antenna was active
     int clr_storage_i[STATIC_RADAR_NUM] = {0};
     int tcs_storage_i[STATIC_RADAR_NUM] = {0};
@@ -1193,7 +1193,7 @@ int main() {
                 
 
                 for (int j = 0; j < meta_data.num_antennas; j++) {
-                    log_debug("    antenna_list[%d]: %d", j, meta_data.antenna_list[j]);
+                    log_trace("    antenna_list[%d]: %d", j, meta_data.antenna_list[j]);
                 }
                 log_debug("     num_antennas: %d", meta_data.num_antennas);
                 log_debug("     num_samples : %d", meta_data.number_of_samples);
@@ -1304,19 +1304,16 @@ int main() {
             );
 
             // Check that antennas are active & reset list
-            cur_active_ant_num = 0;
+            active_ant_num = 0;
             for (int i = 0; i < meta_data.num_antennas; i++) {
                 // Ignore inferrometer array
                 if (active_antennas[cur_radar][i] > 0 && (i <= IDX_LAST_MA || i > IDX_LAST_IA) ) {
-                    cur_active_ant_num++;
+                    active_ant_num++;
                 }
-
-                // Reset active antenna list
-                active_antennas[cur_radar][i] = 0;
             }
-            log_info("Active Antennas: %d", cur_active_ant_num);
+            log_info("Active Main Array Antennas: %d", active_ant_num);
             // If has an active antenna, Increment # of valid sample sets 
-            if (cur_active_ant_num > 0) {
+            if (active_ant_num > 0) {
                 valid_sample_cycles++;
                 ccn_invalid_sample_cyles = 0;
             }
@@ -1324,7 +1321,7 @@ int main() {
 
 
             // Process and Store Spectra Data
-            if (tcs_storage_i[cur_radar] < STORAGE_NUM && cur_active_ant_num > 0) { // Ignore empty sample sets
+            if (tcs_storage_i[cur_radar] < STORAGE_NUM && active_ant_num > 0) { // Ignore empty sample sets
                 log_info( "Processing Spectra Data...");
 
                 // If clr_range is not set, default clr_range to usrp_fcenter -/+ 0.5 * usrp_rf_rate
@@ -1340,6 +1337,7 @@ int main() {
                 // Fill Spectra Storage
                 process_all_beamformed_spectras(
                         temp_samples,
+                        active_antennas[cur_radar],
                         clr_range[cur_radar], 
                         sample_sep, 
                         restricted_freq, 
@@ -1361,8 +1359,8 @@ int main() {
                     tcs_storage_i[cur_radar] = 0;
                 } 
             }
-            else if (cur_active_ant_num == 0) {
-                log_info( "[TCS] No active antennas found for Radar[%d], skipping spectra storage...", cur_radar);
+            else if (active_ant_num == 0) {
+                log_info( "[TCS] No active main antennas found for Radar[%d], skipping spectra storage...", cur_radar);
             }
 
             log_info( "Stored Samples successfully...");
@@ -1478,13 +1476,13 @@ int main() {
             if (is_tcs_ready[cur_radar] == false) {
                 
                 // Fail: No active antennas and no sample data from prior clr freqs
-                if (cur_active_ant_num == 0 && clr_bands[0].noise == 0) {
+                if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
                     log_error("ERROR: No main array antennas active and no computed clr freqs...CFS can't compensate.");
                     log_error("ERROR: Please refer to usrp_server for no main array antenna and unordered CFS sends/requests.");
                 } 
 
                 // Special: No active antennas, but usable sample data from prior CFS cycle
-                else if (cur_active_ant_num = 0 && clr_bands != 0) {
+                else if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
                     log_warn("WARN: No main array antennas active, but computed clr freqs... using old clr freqs...");
 
                     // "Output Clear Freq Bands" handles the selection of clr freqs... 
@@ -1496,6 +1494,7 @@ int main() {
                     log_info( "Starting Clear Freq Search...");
                     clear_freq_search(
                         temp_samples, 
+                        active_antennas[cur_radar],
                         clr_range[cur_radar],
                         cur_beam,
                         sample_sep,
@@ -1541,7 +1540,7 @@ int main() {
             
             // Output Clear Freq Bands
             bool is_clr_band_found = false;
-            if (clr_bands[0].noise != 0) {  // if clr_bands was filled before
+            if (clr_bands[0].noise != 0 && clr_bands[0].noise != RAND_MAX) {  // if clr_bands was filled before
                 for (int i = 0; i < CLR_BANDS_MAX; i++) {
                     log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", 
                         i, 
@@ -1576,15 +1575,20 @@ int main() {
                     if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                         clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
                         log_error("ERROR: Clear Freq Band[%d] is abnornal", i);
-                        log_error("Clear Freq Band[%d]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+                        log_error("Clear Freq Band[%d]: | %dHz -- Noise: %f -- %dHz |", i, 
+                            clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end
+                        );
                         log_error("ERROR: There COULD be an error in CFS order of operations, or too wide of a guardband/narrow clear search range!");
                     }
                 }
             }
             // Fail: clr_bands not yet computed with proper data 
             else {
-                selected_clr_band = clr_bands[0];
-                log_error("ERROR: Prior sample set had no main array antennas active so CFS can't compute a clr freq.");
+                selected_clr_band.f_start = 0;
+                selected_clr_band.f_end = 0;
+                selected_clr_band.noise = 0;
+                selected_clr_band.is_selected = false;
+                log_error("ERROR: CFS couldn't compute valid Clear Freqs. See eariler logs for details.");
             }
             write_clrfreq_shm(selected_clr_band, clrfreq_obj.shm_ptr);
 
@@ -1597,23 +1601,25 @@ int main() {
                 clr_storage_i[cur_radar] = 0;
             }
             
+
             // Display TCS Storage Information
             log_info( "[TCS] Radar[%d] Storage [%d/%d]", cur_radar, tcs_storage_i[cur_radar] + 1, STORAGE_NUM);
             if (is_tcs_ready[cur_radar] == true) log_info( "[TCS] Radar[%d] is Ready...", cur_radar);
             else log_info( "[TCS] Radar[%d] is NOT Ready...", cur_radar);
 
-            // Display Average Antenna Power   
+            // Display Average Antenna Power, reset active antennas, and warn of antenna abnormalities
             log_debug( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
             for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
                 int avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / ant_active_ct[cur_radar][ant_idx];
-                log_debug( "->  PWR[radar#%d][ant#%d]: %d (missed %d)", 
-                    cur_radar, 
+                log_debug( "-> ant#%d[radar#%d][%s]: %d (missed %d)", 
                     ant_idx,
+                    cur_radar, 
+                    (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) ? "  active" : "inactive",
                     avg_ant_pwr,
                     valid_sample_cycles - ant_active_ct[cur_radar][ant_idx]
                 );
             }
-            // If several poor sets in row received, forwarn negative effects
+            // If several poor sample sets received in row, forwarn negative effects
             if (ccn_invalid_sample_cyles >= STORAGE_NUM) {
                 log_error("ERROR: CFS's time integrated samples have been filled with invalid samples. CFS can no longer compensate!");
             }
@@ -1621,6 +1627,13 @@ int main() {
                 log_warn( "WARN: High number of invalid/poor main array sample sets sent! Will drastically effect clr freqs!");
                 log_debug( "[TCS] Invalid sample sets: %d/%d", ccn_invalid_sample_cyles, STORAGE_NUM);
             }
+            // // If active antennas are less than # passed to CFS, flag
+            // if (active_ant_num < meta_data.num_antennas) {
+            //     log_warn( "WARN: Main Active antennas (%d) < passed antennas (%d) results in less noise", 
+            //         active_ant_num, 
+            //         meta_data.num_antennas
+            //     );
+            // }
 
             // Display Radar Table Information
             log_debug( "Radar Table Information:");
@@ -1635,6 +1648,7 @@ int main() {
                     }
                 }
             }
+
 
             // Synchronize data writes with program counter
             if (msync(clrfreq_obj.shm_ptr, CLR_BANDS_SHM_SIZE, MS_SYNC) == -1) {

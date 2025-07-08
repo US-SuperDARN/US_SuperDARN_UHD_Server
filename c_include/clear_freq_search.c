@@ -409,6 +409,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
 
 void calc_clear_freq_on_raw_samples(
     fftw_complex *raw_samples, 
+    int *active_antennas,
     sample_meta_data *meta_data, 
     freq_band *restricted_bands, 
     int restricted_num, 
@@ -456,7 +457,17 @@ void calc_clear_freq_on_raw_samples(
     //     }
     // }
 
-    phasing_and_beamforming(beam_angle, clear_freq_range, meta_data, phasing_vector, antennas, num_samples, raw_samples, beamformed_samples);
+    phasing_and_beamforming(
+        beam_angle, 
+        clear_freq_range, 
+        meta_data, 
+        phasing_vector, 
+        antennas, 
+        num_samples, 
+        raw_samples, 
+        active_antennas,
+        beamformed_samples
+    );
 
     // if (VERBOSE) {for (int i = 0; i < num_samples; i++) if (i < 5) log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));}
     
@@ -590,7 +601,7 @@ void calc_clear_freq_on_raw_samples(
 
 
 /**
- * @brief  Phases and beamforms the raw samples.
+ * @brief  Phases and beamforms the raw samples. Also masks inactive antennas.
  * @note   By DF
  * @param  beam_angle: Angle of the beam to be formed.
  * @param  *clear_freq_range: Frequency range for the clear frequencies.
@@ -602,23 +613,36 @@ void calc_clear_freq_on_raw_samples(
  * @param  *beamformed_samples: Output array for the beamformed samples.
  * @retval None
  */
-void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_meta_data *meta_data, fftw_complex *phasing_vector, int *antennas, int num_samples, fftw_complex *raw_samples, fftw_complex *beamformed_samples)
-{
+void phasing_and_beamforming(
+    double beam_angle, 
+    int *clear_freq_range, 
+    sample_meta_data *meta_data, 
+    fftw_complex *phasing_vector, 
+    int *antennas, 
+    int num_samples, 
+    fftw_complex *raw_samples, 
+    int *active_antennas,
+    fftw_complex *beamformed_samples
+) {
     // Calculate and Apply phasing vector
     float phase_increment = 0;
     log_trace("clear_freq_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
     phase_increment = calc_phase_increment(beam_angle, (clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
     if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
 
-    for (int aidx = 0; aidx < meta_data->num_antennas; aidx++) {
-        if (antennas[aidx] <= IDX_LAST_MA || antennas[aidx] > IDX_LAST_IA) {
-            phasing_vector[aidx] = rad_to_rect(antennas[aidx] * phase_increment);
+    for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
+        // log_debug("antenna[%d](%d)", a_idx, meta_data->antenna_list[a_idx]);
+
+        if ((antennas[a_idx] <= IDX_LAST_MA || antennas[a_idx] > IDX_LAST_IA) &&
+        (active_antennas[a_idx] == 1)) {
+            // log_debug("antenna[%d] is active", a_idx);
+            phasing_vector[a_idx] = rad_to_rect(antennas[a_idx] * phase_increment);
         } 
-        else phasing_vector[aidx] = 0;
+        else phasing_vector[a_idx] = 0;
 
         // if (VERBOSE) {
         //     // log_trace("ant[%d]: %d", i, antennas[i]);
-        //     log_trace("phasing vec[%d]: %f + %fi", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
+            // log_trace("phasing vec[%d]: %f + %fi", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
         // }
     }
 
@@ -627,14 +651,14 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
         double real_sum = 0.0;
         double imag_sum = 0.0;
 
-        for (int aidx = 0; aidx < meta_data->num_antennas; aidx++) {
-            double real_sample = creal(raw_samples[aidx * num_samples + i]);
-            double imag_sample = cimag(raw_samples[aidx * num_samples + i]);
-            double real_phase = creal(phasing_vector[aidx]);
-            double imag_phase = cimag(phasing_vector[aidx]);
+        for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
+            double real_sample = creal(raw_samples[a_idx * num_samples + i]);
+            double imag_sample = cimag(raw_samples[a_idx * num_samples + i]);
+            double real_phase = creal(phasing_vector[a_idx]);
+            double imag_phase = cimag(phasing_vector[a_idx]);
             if (VERBOSE && i == 2499) {
-                log_trace("sample[%d][2499]    = %f + %fi", aidx, real_sample, imag_sample);
-                log_trace("phase[%d]           = %f + %fi", aidx, real_phase, imag_phase);
+                log_trace("sample[%d][2499]    = %f + %fi", a_idx, real_sample, imag_sample);
+                log_trace("phase[%d]           = %f + %fi", a_idx, real_phase, imag_phase);
             }
 
             real_sum += real_sample * real_phase - imag_sample * imag_phase;
@@ -649,7 +673,7 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
 
 
 /**
- * @brief  Processes all beam spectra.
+ * @brief  Processes all beams' fft spectrum.
  * @note   By DF
  * @param  *raw_samples: Raw samples to be processed.
  * @param  clear_freq_range: Frequency range for the clear frequencies.
@@ -662,6 +686,7 @@ void phasing_and_beamforming(double beam_angle, int *clear_freq_range, sample_me
  */
 void process_all_beamformed_spectras(
         fftw_complex *raw_samples, 
+        int *active_antennas,
         int clear_freq_range[],
         int smsep,
         freq_band *restricted_bands, 
@@ -731,7 +756,15 @@ void process_all_beamformed_spectras(
     for (int cur_beam = 0; cur_beam < beam_total; cur_beam++) {
         current_beam_samples = beamformed_samples + cur_beam * num_samples;
         phasing_and_beamforming(
-            (double) (beam_angle[cur_beam]), clear_freq_range, meta_data, &(phasing_vector[cur_beam * num_samples]), antennas, num_samples, raw_samples, current_beam_samples
+            (double) (beam_angle[cur_beam]), 
+            clear_freq_range, 
+            meta_data, 
+            &(phasing_vector[cur_beam * num_samples]), 
+            antennas, 
+            num_samples, 
+            raw_samples, 
+            active_antennas,
+            current_beam_samples
         );
         // for (int i = 0; i < num_samples; i++) if (i < 5 || i > 2495) log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[cur_beam * num_samples + i]), cimag(beamformed_samples[cur_beam * num_samples + i]));
     }
@@ -962,6 +995,7 @@ void process_beam_clr_freq(
  */
 clear_freq clear_freq_search(
         fftw_complex *raw_samples, 
+        int *active_antennas,
         int clear_freq_range[],
         int cur_beam,
         int smsep,
@@ -1005,6 +1039,7 @@ clear_freq clear_freq_search(
     // Find Clear Frequency Bands
     calc_clear_freq_on_raw_samples(
         raw_samples, 
+        active_antennas,
         &meta_data, 
         restricted_bands, 
         restrict_num, 
@@ -1063,7 +1098,7 @@ void process_avg_ant_pwr (
             acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
         } 
         // If Inferrometric antennas meets active pwr threshold, ...
-        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && meta_data->antenna_list[ant_idx] >= IDX_LAST_MA && meta_data->antenna_list[ant_idx] < IDX_LAST_IA) {
+        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && (meta_data->antenna_list[ant_idx] >= IDX_LAST_MA && meta_data->antenna_list[ant_idx] < IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
             active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
@@ -1071,9 +1106,8 @@ void process_avg_ant_pwr (
             // Accumulate the average power into the sum of averaged powers
             acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
         }
-
         else {
-            log_debug("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+            log_trace("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
         }
     }
 
