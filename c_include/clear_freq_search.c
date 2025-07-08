@@ -399,8 +399,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     free(convolve_result);
 
     if (clr_search_sample_bw <= CLR_BANDS_MAX) {
-        log_warn("Clear Sample Bandwidth <= %d Clear Freq Bands; expect RAND_MAX in the worst Clear Freqs", CLR_BANDS_MAX);
-        log_warn("    Increase CFSFREQ_RES or CLRFREQ_RES in config file to increase number of searchable bands");
+        log_warn("Clear Search Bandwidth can't accomdate >= %d Clear Freq Bands; expect RAND_MAX in the worst Clear Freqs", CLR_BANDS_MAX);
+        log_warn("    Decrease CFSFREQ_RES or Increase Clear Search Bandwidth in config file to increase number of searchable bands");
     }
 
     log_debug("Exiting find_clear_freqs()...");
@@ -1093,22 +1093,19 @@ void process_avg_ant_pwr (
             log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
             active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
-
-            // Accumulate the average power into the sum of averaged powers
-            acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
         } 
         // If Inferrometric antennas meets active pwr threshold, ...
-        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && (meta_data->antenna_list[ant_idx] >= IDX_LAST_MA && meta_data->antenna_list[ant_idx] < IDX_LAST_IA)) {
+        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
             active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
-
-            // Accumulate the average power into the sum of averaged powers
-            acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
         }
         else {
             log_trace("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
         }
+
+        // Accumulate the average power into the sum of averaged powers
+        acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
     }
 
 };

@@ -1073,6 +1073,8 @@ int main() {
     int clr_range[STATIC_RADAR_NUM][2] = {0};
     freq_band selected_clr_band = {0};
     
+    // Failure flags
+    bool fl_clr_range_out_bounds = false; // Flag for Clear Search Range being out of bounds
     
     // Parameters for Reading Restricted Frequencies
     char restrict_file[255] = "";
@@ -1303,11 +1305,12 @@ int main() {
                 accu_avg_ant_pwr[cur_radar]
             );
 
-            // Check that antennas are active & reset list
+            // Check that main array antennas are active
             active_ant_num = 0;
             for (int i = 0; i < meta_data.num_antennas; i++) {
+                int ant_idx = meta_data.antenna_list[i];
                 // Ignore inferrometer array
-                if (active_antennas[cur_radar][i] > 0 && (i <= IDX_LAST_MA || i > IDX_LAST_IA) ) {
+                if (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA) ) {
                     active_ant_num++;
                 }
             }
@@ -1453,6 +1456,34 @@ int main() {
                     is_tcs_ready[cur_radar] = false;
                     tcs_storage_i[cur_radar] = 0;
                 }
+
+                // Special: Restrict Clr Range to Usrp Range
+                if (clr_range[cur_radar][0] < (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate))) {
+                    // Restrict lower bound to lower bound of Usrp Range
+                    clr_range[cur_radar][0] = (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate));
+                }
+                if (clr_range[cur_radar][1] > (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate))) {
+                    // Restrict upper bound to upper bound of Usrp Range
+                    clr_range[cur_radar][1] = (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate));
+                }
+
+                // Fail: Clr Range exceeds Usrp Range and has no intersection
+                if (clr_range[cur_radar][1] < (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate)) ||
+                    clr_range[cur_radar][0] > (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate))) 
+                {
+                    log_error("ERROR: Clear Range is out of Usrp Range!");
+                    log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
+                    // print usrp range and clr range
+                    log_error("Usrp Range: %d -- %d", 
+                        (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate)), 
+                        (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate))
+                    );
+                    log_error("Clr Range: %d -- %d", clr_range[cur_radar][0], clr_range[cur_radar][1]);
+                    log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
+
+                    // Prevent further CFS from processing search
+                    fl_clr_range_out_bounds = true;
+                }
             }
             
             // Unmask old current channel's reserved frequency
@@ -1468,79 +1499,84 @@ int main() {
             radar_table[cur_radar][cur_channel].clr_band.noise = 0;
             radar_table[cur_radar][cur_channel].clr_band.f_end = 0;
 
+
             log_info( "    avg_ratio: %d", avg_ratio);
             log_info( "    delta_f: %d", (int) (meta_data.usrp_rf_rate / samples_num) );
 
+
             // Clear Freq Processing
-            // If TCS is not ready, process new clrfreq per unique beam request
-            if (is_tcs_ready[cur_radar] == false) {
-                
-                // Fail: No active antennas and no sample data from prior clr freqs
-                if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
-                    log_error("ERROR: No main array antennas active and no computed clr freqs...CFS can't compensate.");
-                    log_error("ERROR: Please refer to usrp_server for no main array antenna and unordered CFS sends/requests.");
-                } 
+            // If no fail flags, proceed with Clear Frequency Search
+            if (fl_clr_range_out_bounds == false) {
+                // If TCS is not ready, process new clrfreq per unique beam request
+                if (is_tcs_ready[cur_radar] == false) {
+                    
+                    // Fail: No active antennas and no sample data from prior clr freqs
+                    if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
+                        log_error("ERROR: No main array antennas active and no computed clr freqs...CFS has no data to compensate with.");
+                    } 
 
-                // Special: No active antennas, but usable sample data from prior CFS cycle
-                else if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
-                    log_warn("WARN: No main array antennas active, but computed clr freqs... using old clr freqs...");
+                    // Special: No active antennas, but usable sample data from prior CFS cycle
+                    else if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
+                        log_warn("WARN: No main array antennas active, but computed clr freqs... using old clr freqs to compensate...");
 
-                    // "Output Clear Freq Bands" handles the selection of clr freqs... 
-                } 
+                        // "Output Clear Freq Bands" handles the selection of clr freqs... 
+                    } 
 
-                // Default: Process basic Clear Search
+                    // Default: Process Clear Search
+                    else {
+                        log_info( "Clr Freq @ Beam #%d ...", cur_beam);
+                        log_info( "Starting Clear Freq Search...");
+                        clear_freq_search(
+                            temp_samples, 
+                            active_antennas[cur_radar],
+                            clr_range[cur_radar],
+                            cur_beam,
+                            sample_sep,
+                            avg_ratio,
+                            restricted_freq, 
+                            restricted_num + RESERV_NUM,
+                            meta_data,
+                            array_config,
+                            clr_bands                
+                        );
+                    }                
+                } // end of Clear Search (CS) 
+                // If TCS ready, process beam-specific clr freq
                 else {
-                    log_info( "Clr Freq @ Beam #%d ...", cur_beam);
-                    log_info( "Starting Clear Freq Search...");
-                    clear_freq_search(
-                        temp_samples, 
-                        active_antennas[cur_radar],
-                        clr_range[cur_radar],
+                    log_info( "[TCS] Clr Freq @ Beam #%d ...", cur_beam);
+                    process_avg_beam_spectra(
+                        &(spectra_storage[cur_radar * STORAGE_NUM * beam_total * samples_num]),
+                        avg_ratio, 
+                        meta_data.number_of_samples,
                         cur_beam,
+                        beam_total,
+                        STORAGE_NUM,
+                        &meta_data,
+                        avg_beam_spectrum,
+                        avg_freq_vector
+                    );
+                    log_trace( "    Avg Beam Spectrum done...");
+
+                    process_beam_clr_freq(
+                        avg_beam_spectrum,
+                        cur_beam,
+                        clr_range[cur_radar],
                         sample_sep,
-                        avg_ratio,
                         restricted_freq, 
                         restricted_num + RESERV_NUM,
-                        meta_data,
-                        array_config,
-                        clr_bands                
+                        avg_freq_vector,
+                        (int) (meta_data.number_of_samples / avg_ratio),
+                        &meta_data,
+                        clr_bands
                     );
-                }                
-            }
-            // If TCS ready, process beam-specific clr freq
-            else {
-                log_info( "[TCS] Clr Freq @ Beam #%d ...", cur_beam);
-                process_avg_beam_spectra(
-                    &(spectra_storage[cur_radar * STORAGE_NUM * beam_total * samples_num]),
-                    avg_ratio, 
-                    meta_data.number_of_samples,
-                    cur_beam,
-                    beam_total,
-                    STORAGE_NUM,
-                    &meta_data,
-                    avg_beam_spectrum,
-                    avg_freq_vector
-                );
-                log_trace( "    Avg Beam Spectrum done...");
+                    log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
+                } // end of TCS 
+            } // end of Clear Freq Processing
 
-                process_beam_clr_freq(
-                    avg_beam_spectrum,
-                    cur_beam,
-                    clr_range[cur_radar],
-                    sample_sep,
-                    restricted_freq, 
-                    restricted_num + RESERV_NUM,
-                    avg_freq_vector,
-                    (int) (meta_data.number_of_samples / avg_ratio),
-                    &meta_data,
-                    clr_bands
-                );
-                log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
-            }
-            
-            // Output Clear Freq Bands
+
+            // Clear Freq Selection and Display 
             bool is_clr_band_found = false;
-            if (clr_bands[0].noise != 0 && clr_bands[0].noise != RAND_MAX) {  // if clr_bands was filled before
+            if (clr_bands[0].noise != 0 && clr_bands[0].noise != RAND_MAX) {  // if clr_bands filled correctly, proceed to Freq Selection
                 for (int i = 0; i < CLR_BANDS_MAX; i++) {
                     log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", 
                         i, 
