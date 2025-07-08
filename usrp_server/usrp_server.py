@@ -406,8 +406,8 @@ class usrpMixingFreqManager():
        self.usrp_bandwidth      = bandWidth - USRP_BANDWIDTH_RESTRICTION*2/1000   # in kHz (to be compatible with control program)
        self.semaphore = posix_ipc.Semaphore('usrp_mixing_freq', posix_ipc.O_CREAT)
        self.semaphore.release()
-       self.channelRangeList    = []
-       self.channelList         = []
+       self.channelRangeList    = [[] for jrad in range(N_RADARs)]
+       self.channelList         = [[] for jrad in range(N_RADARs)]
 
     def add_new_freq_band(self, channel):
        """ Checks if new channel is covered with current mixing frequency and bandwidth.
@@ -428,15 +428,15 @@ class usrpMixingFreqManager():
 
        if newLower > (self.current_mixing_freq[jrad] - self.usrp_bandwidth/2) and newUpper < (self.current_mixing_freq[jrad] + self.usrp_bandwidth/2):
           channel.logger.debug("channel range is within USRP bandwidth")
-          self.channelRangeList.append([newLower, newUpper])
-          self.channelList.append(channel)
+          self.channelRangeList[jrad].append([newLower, newUpper])
+          self.channelList[jrad].append(channel)
           result = True
        else:
           #determine range of all channels
           allCh_lower = newLower
           allCh_upper = newUpper
 
-          for otherChRange in self.channelRangeList:
+          for otherChRange in self.channelRangeList[jrad]:
              allCh_lower = min(allCh_lower, otherChRange[0])
              allCh_upper = max(allCh_upper, otherChRange[1])
 
@@ -452,7 +452,7 @@ class usrpMixingFreqManager():
 
        # adjust mixing freq to avoid overlap with channels
        if result is not False:
-          tmpRangeList = self.channelRangeList
+          tmpRangeList = self.channelRangeList[jrad]
           if result is not True:
              tmpRangeList.append([newLower, newUpper])
           else:
