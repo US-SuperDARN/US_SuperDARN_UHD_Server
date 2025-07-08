@@ -22,7 +22,7 @@ write_log = True
 
 # usrp server file
 server_status_file = os.path.join(logPath, "usrp_server_status.txt")
-file_age_limit = 30 + 10 # sec 
+file_age_limit = 90 + 10 # sec
 usrp_restart_period = 60*5 # sec to next restart
 
 
