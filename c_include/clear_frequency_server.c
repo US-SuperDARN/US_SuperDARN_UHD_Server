@@ -22,7 +22,7 @@
 
 
 // Logging Vars
-#define LOG_TERMINAL_LEVEL 1                         // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
+#define LOG_TERMINAL_LEVEL  0                        // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
 #define LOG_FILE_LEVEL      0
 #define LOG_PREFIX          "[CFS] %s"               // *Unused* Prefix for log messages
 #define LOG_FILEPATH        "log/cfs/cfs.%s.log"
@@ -1486,7 +1486,7 @@ int main() {
                 }
             }
             
-            // Unmask old current channel's reserved frequency
+            // Unmask current channel's old reserved frequency
             log_debug("Unmasking old reserved clr band[%d]: | %dHz -- %dHz |", 
                 restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel,
                 restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_start, 
@@ -1588,6 +1588,28 @@ int main() {
                     
                     // Reserve the best avalible frequency band
                     if (clr_bands[i].is_selected == false && is_clr_band_found == false) {
+                        // Compare with Radar/Reservation Table
+                        bool cur_freq_intersects = false;
+                        for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
+                            for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
+                                freq_band compare_freq = radar_table[cur_radar][c_idx].clr_band;
+    
+                                // If cur freq intersects w/ reservations, flag to skip the freq 
+                                if ((compare_freq.f_start <= clr_bands[i].f_start   && clr_bands[i].f_start < compare_freq.f_end ) ||
+                                     compare_freq.f_start <= clr_bands[i].f_end      && clr_bands[i].f_end <= compare_freq.f_end ) {
+                                        clr_bands[i].is_selected = true;
+                                        cur_freq_intersects = true;
+
+                                        // If this warning occurs, CFS' find_clr_freq method could be causing the issue
+                                        log_warn("WARN: CFS Freq Reservation failsafe has prevented an intersecting clear freq when it shouldn't have needed to...");
+                                        break;
+                                    }
+                            }
+                            if (cur_freq_intersects == true) {break;} 
+                        }
+                        // Skip the freq; Do NOT select it
+                        if (cur_freq_intersects == true) {continue;}
+
                         log_debug("    Reserving frequency into RadarTable...", i);
                         is_clr_band_found = true;
                         clr_bands[i].is_selected = true;
@@ -1618,13 +1640,23 @@ int main() {
                     }
                 }
             }
-            // Fail: clr_bands not yet computed with proper data 
-            else {
+            // Fail: A valid clr freq could not be found 
+            else if (is_clr_band_found == false) {
                 selected_clr_band.f_start = 0;
                 selected_clr_band.f_end = 0;
                 selected_clr_band.noise = 0;
                 selected_clr_band.is_selected = false;
                 log_error("ERROR: CFS couldn't compute valid Clear Freqs. See eariler logs for details.");
+
+                // If prev reservation for radar's channel exists, maintain freq
+                if (radar_table[cur_radar][cur_channel].clr_band.noise > 0 && radar_table[cur_radar][cur_channel].clr_band.noise < RAND_MAX) {
+                    selected_clr_band = radar_table[cur_radar][cur_channel].clr_band;
+                    restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel] = radar_table[cur_radar][cur_channel].clr_band;
+
+                    log_warn("CFS resorted to old reservation: | %dHz -- Noise: %f -- %dHz |", 
+                            selected_clr_band.f_start, selected_clr_band.noise, selected_clr_band.f_end
+                        );
+                }
             }
             write_clrfreq_shm(selected_clr_band, clrfreq_obj.shm_ptr);
 
