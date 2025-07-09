@@ -411,7 +411,7 @@ class usrpMixingFreqManager():
 
     def add_new_freq_band(self, channel):
        """ Checks if new channel is covered with current mixing frequency and bandwidth.
-           Retruns True/False if channel can/cannot be added. If changing the mixing frequency
+           Returns True/False if channel can/cannot be added. If changing the mixing frequency
            allows to add the new channel, the new mixing frequency will be output argument.
        """
 
@@ -419,20 +419,18 @@ class usrpMixingFreqManager():
        jrad = channel.rnum
        newLower, newUpper = self.get_range_of_channel(channel)
        if newLower < RHM.hardwareLimit_freqRange[0] or newUpper > RHM.hardwareLimit_freqRange[1]:
-          channel.logger.error("Channel bandwidth ({} MHz- {} MHz) is not covered by radar hardware limits ({} MHz - {} MHz)".format(newLower/1000, newUpper/1000, RHM.hardwareLimit_freqRange[0]/1000, RHM.hardwareLimit_freqRange[1]/1000))
+          channel.logger.error("radar {} ch {}: channel bandwidth ({} - {} MHz) is not covered by radar hardware limits ({} - {} MHz)".format(channel.rnum, channel.cnum, newLower/1000, newUpper/1000, RHM.hardwareLimit_freqRange[0]/1000, RHM.hardwareLimit_freqRange[1]/1000))
           return False
 
        channel.logger.debug("radar {} ch {}: waiting for semaphore of usrpMixingFreqManager".format(channel.rnum, channel.cnum))
        self.semaphore.acquire()
-       channel.logger.debug("radar {} ch {}: acquired semaphore of usrpMixingFreqManager".format(channel.rnum,channel.cnum))
+       channel.logger.debug("radar {} ch {}: acquired semaphore of usrpMixingFreqManager".format(channel.rnum, channel.cnum))
 
-       if newLower > (self.current_mixing_freq[jrad] - self.usrp_bandwidth/2) and newUpper < (self.current_mixing_freq[jrad] + self.usrp_bandwidth/2):
-          channel.logger.debug("channel range is within USRP bandwidth")
-          self.channelRangeList[jrad].append([newLower, newUpper])
-          self.channelList[jrad].append(channel)
+       if newLower >= (self.current_mixing_freq[jrad] - self.usrp_bandwidth/2) and newUpper <= (self.current_mixing_freq[jrad] + self.usrp_bandwidth/2):
+          channel.logger.debug("radar {} ch {}: channel range is within USRP bandwidth".format(channel.rnum, channel.cnum))
           result = True
        else:
-          #determine range of all channels
+          # determine range of all channels
           allCh_lower = newLower
           allCh_upper = newUpper
 
@@ -441,9 +439,10 @@ class usrpMixingFreqManager():
              allCh_upper = max(allCh_upper, otherChRange[1])
 
           if (allCh_upper - allCh_lower) > self.usrp_bandwidth:
-             channel.logger.error("new channel can not be added. USRP bandwidth too small")
+             channel.logger.error("radar {} ch {}: new channel can not be added. USRP bandwidth too small".format(channel.rnum, channel.cnum))
              result = False
           else:
+             channel.logger.debug("radar {} ch {}: trying to adjust mixing frequency to support new channel".format(channel.rnum, channel.cnum))
              newMixingFreq = (allCh_upper - allCh_lower)/2 + allCh_lower
              # adjust mixing freq that everything is in overall bandwidth
              newMixingFreq = max(newMixingFreq, RHM.hardwareLimit_freqRange[0]+self.usrp_bandwidth/2)
@@ -453,9 +452,8 @@ class usrpMixingFreqManager():
        # adjust mixing freq to avoid overlap with channels
        if result is not False:
           tmpRangeList = self.channelRangeList[jrad]
-          if result is not True:
-             tmpRangeList.append([newLower, newUpper])
-          else:
+          tmpRangeList.append([newLower, newUpper])
+          if result is True:
              newMixingFreq = self.current_mixing_freq[jrad]
 
           shift = -1
@@ -479,14 +477,16 @@ class usrpMixingFreqManager():
 
                    attempt += 1
                    if attempt > 1000:
-                      channel.logger.error("radar {} ch {}: Could not adjust mixing frequency to avoid overlap with channel range {}".format(channel.rnum, channel.cnum, tmpCh))
+                      channel.logger.error("radar {} ch {}: could not adjust mixing frequency to avoid overlap with channel range {}".format(channel.rnum, channel.cnum, tmpCh))
                       return False
                 invalid[idx] = False
 
           if newMixingFreq == self.current_mixing_freq[jrad]:
+             self.channelRangeList[jrad].append([newLower, newUpper])
+             self.channelList[jrad].append(channel)
              result = True
           else:
-             channel.logger.info("calculated new usrp mixing frequency: {} kHz (old was {} kHz)".format(newMixingFreq, self.current_mixing_freq[jrad]))
+             channel.logger.info("radar {} ch {}: calculated new usrp mixing frequency: {} kHz (old was {} kHz)".format(channel.rnum, channel.cnum, newMixingFreq, self.current_mixing_freq[jrad]))
              self.current_mixing_freq[jrad] = newMixingFreq
              result = newMixingFreq
 
