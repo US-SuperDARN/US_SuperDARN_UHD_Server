@@ -71,10 +71,10 @@ int ini_parse(const char* filename, ini_handler handler, void* user);
 // Define Constants
 #define CLR_NOISE_THRESHOLD 100000  // Noise Threshold for a clear band to be considered a valid usable band
 #define GB_MULT 4                   // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw)
-#define MIN_FREQ_SEP 6000          // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
-                                    // then minimum frequency separation is used instead)
+#define MIN_FREQ_SEP 6000           // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
+                                    // then minimum frequency separation is used then ceiling-ed to be a factor of (# of avgs * freq per sample))
 
-#define MIN_ANT_PWR 10            // Minimum Antenna Power to consider antenna as active
+#define MIN_ANT_PWR 10              // Minimum Antenna Power to consider antenna as active
 
 #define IDX_LAST_IA 19              // Last Interferrometer Array
 #define IDX_LAST_MA 15              // Last Main Array

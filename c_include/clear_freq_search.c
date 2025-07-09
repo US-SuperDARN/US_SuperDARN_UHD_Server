@@ -254,8 +254,8 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     
     log_debug("Entered find_clear_freqs()...");
     int clear_sample_bw = ceil(clear_bw / avg_delta_f);  // Always round up to avoid any overlapping bands
-    log_info("    Clear Sample Bandwidth: %d samples", clear_sample_bw);
-
+    log_info("    Clear Freq Bandwidth: %d samples", clear_sample_bw);
+    
     
     // Define Range of Clear Freq Search (f_start, f_end into clr_search_sample_start, clr_search_sample_end)
     int spectrum_sample_start = (int) ((meta_data.usrp_fcenter * 1000 - meta_data.usrp_rf_rate / 2) / avg_delta_f);
@@ -263,7 +263,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     int spectrum_sample_bw = spectrum_sample_end - spectrum_sample_start;
     int clr_search_sample_start = (int) (f_start / avg_delta_f) - spectrum_sample_start;
     int clr_search_sample_end = (int) (f_end / avg_delta_f) - spectrum_sample_start;
-
+    
     // Set Search Range to within bounds of Spectrum Range
     if (clr_search_sample_start < 0) clr_search_sample_start = 0;
     else if (clr_search_sample_start > spectrum_sample_bw) clr_search_sample_start = spectrum_sample_bw;
@@ -273,6 +273,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
 
     // Trim Spectrum Data to only Clear Search Range (Used for convolving)
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
+    log_info("    Clear Search Bandwidth: %d samples", clr_search_sample_bw);
     double clr_search_band[clr_search_sample_bw];
     memset(clr_search_band, 0, clr_search_sample_bw * sizeof(double));
     for (int i = 0; i < clr_search_sample_bw; i++) {
@@ -398,9 +399,13 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     // Free allocated memory
     free(convolve_result);
 
-    if (clr_search_sample_bw <= CLR_BANDS_MAX) {
-        log_warn("Clear Search Bandwidth can't accomdate >= %d Clear Freq Bands; expect RAND_MAX in the worst Clear Freqs", CLR_BANDS_MAX);
-        log_warn("    Decrease CFSFREQ_RES or Increase Clear Search Bandwidth in config file to increase number of searchable bands");
+    if (clr_search_sample_bw < (CLR_BANDS_MAX * clear_sample_bw) ) {
+        log_error("ERROR: Clear Search Bandwidth can't accomdate >= %d Clear Freq Bands of %d sample bandwidth; expect RAND_MAX in the worst Clear Freqs", 
+            CLR_BANDS_MAX, clear_sample_bw);
+        log_error("    Decrease CFSFREQ_RES or Increase Clear Search Bandwidth in config file to increase number of searchable bands");
+    } 
+    if (clr_search_sample_bw < (25 * clear_sample_bw) ) {
+        log_warn("WARN: Clear Search Bandwidth is severly limiting CFS to: %d possible Clr Freqs", clr_search_sample_bw / clear_sample_bw);
     }
 
     log_debug("Exiting find_clear_freqs()...");
