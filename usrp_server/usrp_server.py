@@ -25,6 +25,7 @@ import posix_ipc
 import mmap
 import pickle
 import struct
+from collections import Counter
 
 
 sys.path.insert(0, '../python_include')
@@ -407,6 +408,7 @@ class usrpMixingFreqManager():
        self.semaphore = posix_ipc.Semaphore('usrp_mixing_freq', posix_ipc.O_CREAT)
        self.semaphore.release()
        self.channelRangeList    = [[] for jrad in range(N_RADARs)]
+       self.channelUniqueList   = [[] for jrad in range(N_RADARs)]
        self.channelList         = [[] for jrad in range(N_RADARs)]
 
     def add_new_freq_band(self, channel):
@@ -449,44 +451,50 @@ class usrpMixingFreqManager():
              newMixingFreq = min(newMixingFreq, RHM.hardwareLimit_freqRange[1]-self.usrp_bandwidth/2)
              result = newMixingFreq
 
-       # adjust mixing freq to avoid overlap with channels
+       # adjust mixing freq to avoid overlap with channel search ranges
        if result is not False:
-          tmpRangeList = self.channelRangeList[jrad]
-          tmpRangeList.append([newLower, newUpper])
+          uniqueList = self.get_unique_ranges(channel)
           if result is True:
              newMixingFreq = self.current_mixing_freq[jrad]
 
           shift = -1
           attempt = 0
-          invalid = [True] * len(tmpRangeList)
+          invalid = [True] * len(uniqueList)
           while any(invalid):
-             for idx, tmpCh in enumerate(tmpRangeList):
+             for idx, tmpCh in enumerate(uniqueList):
                 while ( ((tmpCh[0] < newMixingFreq+50) and
                          (newMixingFreq-50 < tmpCh[1])) or
                         (tmpCh[0] < newMixingFreq - self.usrp_bandwidth/2) or
                         (tmpCh[1] > newMixingFreq + self.usrp_bandwidth/2) ):
 
-                   invalid[:] = [True] * len(tmpRangeList)
+                   # conflict with this range, so must check all others after adjusting
+                   invalid[:] = [True] * len(uniqueList)
+
+                   # adjust mixing frequency by 50 kHz
                    newMixingFreq += shift*50
 
-                   if newMixingFreq < RHM.hardwareLimit_freqRange[0]:
-                      shift = 1
+                   # shift in the other direction if a hardware limit is reached
+                   if (newMixingFreq < RHM.hardwareLimit_freqRange[0] or
+                       newMixingFreq > RHM.hardwareLimit_freqRange[1]):
+                      shift *= -1
 
-                   if newMixingFreq > RHM.hardwareLimit_freqRange[1]:
-                      shift = -1
-
+                   # stop adjusting after too many attempts
                    attempt += 1
                    if attempt > 1000:
                       channel.logger.error("radar {} ch {}: could not adjust mixing frequency to avoid overlap with channel range {}".format(channel.rnum, channel.cnum, tmpCh))
                       return False
+
+                # this search range does not conflict with the mixing freq or bandwidth edges
                 invalid[idx] = False
 
           if newMixingFreq == self.current_mixing_freq[jrad]:
              self.channelRangeList[jrad].append([newLower, newUpper])
+             self.channelUniqueList[jrad].append(uniqueList)
              self.channelList[jrad].append(channel)
              result = True
           else:
              channel.logger.info("radar {} ch {}: calculated new usrp mixing frequency: {} kHz (old was {} kHz)".format(channel.rnum, channel.cnum, newMixingFreq, self.current_mixing_freq[jrad]))
+             self.channelUniqueList[jrad].append(uniqueList)
              self.current_mixing_freq[jrad] = newMixingFreq
              result = newMixingFreq
 
@@ -506,6 +514,28 @@ class usrpMixingFreqManager():
           lower = channel.scanManager.fixFreq
           upper = channel.scanManager.fixFreq
        return lower, upper
+
+    def get_unique_ranges(self, channel):
+       if channel.scanManager.fixFreq in [ None, -1, 0]:
+          # get list of all clear search ranges in scan
+          rangeList = channel.scanManager.clear_freq_range_list
+
+          # get unique search ranges from any other channels
+          if self.channelUniqueList[channel.rnum]:
+             channelUniqueList = self.channelUniqueList[channel.rnum][0]
+             rangeList.append(channelUniqueList[0])
+
+          # get unique clear search ranges
+          ctr = Counter(frozenset(x) for x in rangeList)
+
+          # re-order search ranges so lower boundary comes first
+          tmpList = [(y,x) for x,y in ctr]
+
+          # sort unique search ranges from lowest to highest
+          uniqueList = sorted([list(x) for x in tmpList])
+       else:
+          uniqueList = [channel.scanManager.fixFreq, channel.scanManager.fixFreq]
+       return uniqueList
 
 class ClearFrequencyService():
     # TODO: Look into loading Constants by .ini or .env
