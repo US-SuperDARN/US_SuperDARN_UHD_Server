@@ -517,7 +517,7 @@ class usrpMixingFreqManager():
           upper = rangeList[0][1]
           for periodRange in rangeList[1:]:
              lower = min(lower, periodRange[0])
-             upper = max(lower, periodRange[1])
+             upper = max(upper, periodRange[1])
        else:
           lower = channel.scanManager.fixFreq
           upper = channel.scanManager.fixFreq
