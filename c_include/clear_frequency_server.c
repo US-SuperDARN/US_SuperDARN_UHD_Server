@@ -1677,10 +1677,10 @@ int main() {
             else log_info( "[TCS] Radar[%d] is NOT Ready...", cur_radar);
 
             // Display Average Antenna Power, reset active antennas, and warn of antenna abnormalities
-            log_debug( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
+            log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
             for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
                 int avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / ant_active_ct[cur_radar][ant_idx];
-                log_debug( "-> ant#%d[radar#%d][%s]: %d (missed %d)", 
+                log_info( "-> ant#%d[radar#%d][%s]: %d (missed %d)", 
                     ant_idx,
                     cur_radar, 
                     (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) ? "  active" : "inactive",
