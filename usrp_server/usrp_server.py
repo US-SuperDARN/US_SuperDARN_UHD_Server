@@ -487,8 +487,7 @@ class usrpMixingFreqManager():
                 # this search range does not conflict with the mixing freq or bandwidth edges
                 invalid[idx] = False
 
-          for x in range(len(uniqueList)):
-             self.channelUniqueList[jrad].append(uniqueList[x])
+          self.channelUniqueList[jrad] = uniqueList
 
           if newMixingFreq == self.current_mixing_freq[jrad]:
              self.channelRangeList[jrad].append([newLower, newUpper])
