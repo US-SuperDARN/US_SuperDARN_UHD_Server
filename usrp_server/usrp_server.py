@@ -490,6 +490,8 @@ class usrpMixingFreqManager():
                    attempt += 1
                    if attempt > 1000:
                       channel.logger.error("radar {} ch {}: could not adjust mixing frequency to avoid overlap with channel range {}".format(channel.rnum, channel.cnum, tmpCh))
+                      self.semaphore.release()
+                      channel.logger.debug("radar {} ch {}: released semaphore of usrpMixingFreqManager".format(channel.rnum, channel.cnum))
                       return False
 
                 # this search range does not conflict with the mixing freq or bandwidth edges
