@@ -524,27 +524,38 @@ class usrpMixingFreqManager():
        return lower, upper
 
     def get_unique_ranges(self, channel):
+       # get list of all clear search ranges in scan
        if channel.scanManager.fixFreq in [ None, -1, 0]:
-          # get list of all clear search ranges in scan
           rangeList = channel.scanManager.clear_freq_range_list
+       else:
+          rangeList = [[channel.scanManager.fixFreq, channel.scanManager.fixFreq]]
 
-          # get unique search ranges from any other channels
-          if self.channelUniqueList[channel.rnum]:
-             channelUniqueList = self.channelUniqueList[channel.rnum]
-             for x in range(len(channelUniqueList)):
-                rangeList.append(channelUniqueList[x])
+       # get unique search ranges from any other channels
+       if self.channelUniqueList[channel.rnum]:
+          channelUniqueList = self.channelUniqueList[channel.rnum]
+          for unique in channelUniqueList:
+             rangeList.append(unique)
 
+       if len(rangeList) == 1:
+          return rangeList
+       else:
           # get unique clear search ranges
           ctr = Counter(frozenset(x) for x in rangeList)
 
-          # re-order search ranges so lower boundary comes first
-          tmpList = [(y,x) if y<x else (x,y) for x,y in ctr]
+          # convert frozenset of unique search ranges to list
+          # and check for any fixed frequencies
+          tmpList = [list(x) for x in ctr]
+          for tmp in tmpList:
+            if len(tmp) == 1:
+              fixfrq = tmp[0]
+              tmp = []
+              tmp = [fixfrq, fixfrq]
 
           # sort unique search ranges from lowest to highest
-          uniqueList = sorted([list(x) for x in tmpList])
-       else:
-          uniqueList = [channel.scanManager.fixFreq, channel.scanManager.fixFreq]
-       return uniqueList
+          uniqueList = sorted([[y,x] if y<x else [x,y] for x,y in tmpList])
+
+          return uniqueList
+
 
 class ClearFrequencyService():
     # TODO: Look into loading Constants by .ini or .env
