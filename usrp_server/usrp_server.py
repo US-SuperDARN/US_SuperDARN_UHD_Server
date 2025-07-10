@@ -487,14 +487,15 @@ class usrpMixingFreqManager():
                 # this search range does not conflict with the mixing freq or bandwidth edges
                 invalid[idx] = False
 
+          for x in range(len(uniqueList)):
+             self.channelUniqueList[jrad].append(uniqueList[x])
+
           if newMixingFreq == self.current_mixing_freq[jrad]:
              self.channelRangeList[jrad].append([newLower, newUpper])
-             self.channelUniqueList[jrad].append(uniqueList)
              self.channelList[jrad].append(channel)
              result = True
           else:
              channel.logger.info("radar {} ch {}: calculated new usrp mixing frequency: {} kHz (old was {} kHz)".format(channel.rnum, channel.cnum, newMixingFreq, self.current_mixing_freq[jrad]))
-             self.channelUniqueList[jrad].append(uniqueList)
              self.current_mixing_freq[jrad] = newMixingFreq
              result = newMixingFreq
 
@@ -522,14 +523,15 @@ class usrpMixingFreqManager():
 
           # get unique search ranges from any other channels
           if self.channelUniqueList[channel.rnum]:
-             channelUniqueList = self.channelUniqueList[channel.rnum][0]
-             rangeList.append(channelUniqueList[0])
+             channelUniqueList = self.channelUniqueList[channel.rnum]
+             for x in range(len(channelUniqueList)):
+                rangeList.append(channelUniqueList[x])
 
           # get unique clear search ranges
           ctr = Counter(frozenset(x) for x in rangeList)
 
           # re-order search ranges so lower boundary comes first
-          tmpList = [(y,x) for x,y in ctr]
+          tmpList = [(y,x) if y<x else (x,y) for x,y in ctr]
 
           # sort unique search ranges from lowest to highest
           uniqueList = sorted([list(x) for x in tmpList])
