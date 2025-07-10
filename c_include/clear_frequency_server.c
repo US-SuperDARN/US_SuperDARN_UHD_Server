@@ -1457,16 +1457,26 @@ int main() {
                     tcs_storage_i[cur_radar] = 0;
                 }
 
-                // Fail: Clr Range exceeds Usrp Range and has no intersection
+                // Special: Restrict Clr Range to Usrp Range
+                // Restrict lower bound to lower bound of Usrp Range
+                if (clr_range[cur_radar][0] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2))) {
+                    clr_range[cur_radar][0] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2));
+                }
+                // Restrict upper bound to upper bound of Usrp Range
+                if (clr_range[cur_radar][1] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) {
+                    clr_range[cur_radar][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
+                }
+                
+                // Fail: Clr Range has no intersection with Usrp Range 
                 if (clr_range[cur_radar][1] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) ||
                     clr_range[cur_radar][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) 
                 {
                     log_error("ERROR: Clear Range is out of Usrp Range!");
-                    log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
+                    log_error("ERROR: Please check your Clear Range and Usrp frequency settings.");
                     // print usrp range and clr range
-                    log_error("Usrp Range: %d -- %d", 
-                        (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate)), 
-                        (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate))
+                    log_error("Usrp Range: %d -- %d",
+                        (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)),
+                        (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))
                     );
                     log_error("Clr Range: %d -- %d", clr_range[cur_radar][0], clr_range[cur_radar][1]);
                     log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
@@ -1475,15 +1485,6 @@ int main() {
                     fl_clr_range_out_bounds = true;
                 }
 
-                // Special: Restrict Clr Range to Usrp Range
-                if (clr_range[cur_radar][0] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2))) {
-                    // Restrict lower bound to lower bound of Usrp Range
-                    clr_range[cur_radar][0] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2));
-                }
-                if (clr_range[cur_radar][1] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) {
-                    // Restrict upper bound to upper bound of Usrp Range
-                    clr_range[cur_radar][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
-                }
             }
             
             // Unmask current channel's old reserved frequency
