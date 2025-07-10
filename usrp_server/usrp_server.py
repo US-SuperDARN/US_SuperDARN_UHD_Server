@@ -419,6 +419,14 @@ class usrpMixingFreqManager():
 
        RHM = channel.parent_RadarHardwareManager
        jrad = channel.rnum
+
+       # if channel is already in list then this must be a new scan,
+       # so remove all channel and search range information
+       if channel.cnum in self.channelList[jrad]:
+          self.channelRangeList[jrad] = []
+          self.channelUniqueList[jrad] = []
+          self.channelList[jrad] = []
+
        newLower, newUpper = self.get_range_of_channel(channel)
        if newLower < RHM.hardwareLimit_freqRange[0] or newUpper > RHM.hardwareLimit_freqRange[1]:
           channel.logger.error("radar {} ch {}: channel bandwidth ({} - {} MHz) is not covered by radar hardware limits ({} - {} MHz)".format(channel.rnum, channel.cnum, newLower/1000, newUpper/1000, RHM.hardwareLimit_freqRange[0]/1000, RHM.hardwareLimit_freqRange[1]/1000))
@@ -488,10 +496,10 @@ class usrpMixingFreqManager():
                 invalid[idx] = False
 
           self.channelUniqueList[jrad] = uniqueList
+          self.channelRangeList[jrad].append([newLower, newUpper])
+          self.channelList[jrad].append(channel.cnum)
 
           if newMixingFreq == self.current_mixing_freq[jrad]:
-             self.channelRangeList[jrad].append([newLower, newUpper])
-             self.channelList[jrad].append(channel)
              result = True
           else:
              channel.logger.info("radar {} ch {}: calculated new usrp mixing frequency: {} kHz (old was {} kHz)".format(channel.rnum, channel.cnum, newMixingFreq, self.current_mixing_freq[jrad]))
