@@ -93,8 +93,8 @@ int ini_parse(const char* filename, ini_handler handler, void* user);
 
 // Config Filepaths
 #define SPECTRAL_LOG_FILE   "save_spectra"
-#define LOG_PATH            "log/"
-#define SPECTRUM_FILE       "log/fft_spectrum/fft_spectrum.%s.%s"
-#define CLR_FREQ_FILE       "log/clr_freq/clr_freq.%s.%s"
-#define SAMPLE_RE_FILE      "log/sample_re.csv"
-#define SAMPLE_IM_FILE      "log/sample_im.csv"
+#define LOG_PATH            "/data/log/"
+#define SPECTRUM_FILE       "/data/log/fft_spectrum/fft_spectrum.%s.%s"
+#define CLR_FREQ_FILE       "/data/log/clr_freq/clr_freq.%s.%s"
+#define SAMPLE_RE_FILE      "/data/log/sample_re.csv"
+#define SAMPLE_IM_FILE      "/data/log/sample_im.csv"
