@@ -354,13 +354,13 @@ class usrpSockManager():
        tmp_antenna_list = self.antennaList_inactive
        tmp_hostname_list = self.hostnameList_inactive
        tmp_driverHostname_list = self.driverHostnameList_inactive
-       self.addressList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
-       self.antennaList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
-       self.hostnameList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
-       self.driverHostnameList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
+       self.addressList_inactive   = [[] for jrad in range(self.RHM.N_RADARs)]
+       self.antennaList_inactive   = [[] for jrad in range(self.RHM.N_RADARs)]
+       self.hostnameList_inactive   = [[] for jrad in range(self.RHM.N_RADARs)]
+       self.driverHostnameList_inactive   = [[] for jrad in range(self.RHM.N_RADARs)]
 
        do_resync = False
-       for jrad in range(RHM.N_RADARs):
+       for jrad in range(self.RHM.N_RADARs):
          for iUSRP,usrp in enumerate(tmp_address_list[jrad]):
 
             if usrp in self.addressList_active[jrad]:
