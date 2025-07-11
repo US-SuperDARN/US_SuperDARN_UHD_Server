@@ -278,7 +278,7 @@ class usrpSockManager():
                if jrad is None:
                   socks = np.concatenate(self.socks).tolist()
                   badsock=socks[iSock-offset]
-                  for jjrad in range(RHM.N_RADARs):
+                  for jjrad in range(self.RHM.N_RADARs):
                      if badsock in self.socks[jjrad]:
                         jrad = jjrad
                         index = self.socks[jrad].index(badsock)
@@ -291,7 +291,7 @@ class usrpSockManager():
                offset += 1 
 
        SomeActiveUSRPs=False
-       for jrad in range(RHM.N_RADARs):
+       for jrad in range(self.RHM.N_RADARs):
          if len(self.socks[jrad]) != 0:
             SomeActiveUSRPs = True
                
@@ -1561,7 +1561,7 @@ class scanManager():
        
         self.channel = channel
         self.RHM = channel.parent_RadarHardwareManager
-        self.clearFreqService = ClearFrequencyService(sid=ThisRadar)
+        self.clearFreqService = ClearFrequencyService(sid=self.RHM.ThisRadar)
         self.beamSep = self.RHM.array_beam_sep
         self.numBeams = self.RHM.array_nBeams
 
