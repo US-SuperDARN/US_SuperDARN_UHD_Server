@@ -40,8 +40,7 @@ from profiling_tools import *
 import logging_usrp
 import utils
 
-N_RADARs = 2
-radar_active=np.zeros(N_RADARs,dtype=bool)
+radar_active=np.zeros(2,dtype=bool)
 
 RMSG_PORT = 45000
 USRP_SERVER_HOST = 'localhost'
@@ -57,7 +56,6 @@ RMSG_FAILURE = -1
 RADAR_STATE_TIME = .0001
 CHANNEL_STATE_TIMEOUT = 120
 # TODO: move this out to a config file
-ThisRadar="cve"
 nSwings = 2 
 
 debug = True 
@@ -155,16 +153,16 @@ class statusUpdater():
 
 class usrpSockManager():
    def __init__(self, RHM):
-      self.addressList_active     = [[] for jrad in range(N_RADARs)] # tuple of IP and port
-      self.antennaList_active     = [[] for jrad in range(N_RADARs)]
-      self.hostnameList_active    = [[] for jrad in range(N_RADARs)]
-      self.driverHostnameList_active    = [[] for jrad in range(N_RADARs)]
-      self.addressList_inactive   = [[] for jrad in range(N_RADARs)]
-      self.antennaList_inactive   = [[] for jrad in range(N_RADARs)]
-      self.hostnameList_inactive  = [[] for jrad in range(N_RADARs)]
-      self.driverHostnameList_inactive  = [[] for jrad in range(N_RADARs)]
+      self.addressList_active     = [[] for jrad in range(RHM.N_RADARs)] # tuple of IP and port
+      self.antennaList_active     = [[] for jrad in range(RHM.N_RADARs)]
+      self.hostnameList_active    = [[] for jrad in range(RHM.N_RADARs)]
+      self.driverHostnameList_active    = [[] for jrad in range(RHM.N_RADARs)]
+      self.addressList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
+      self.antennaList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
+      self.hostnameList_inactive  = [[] for jrad in range(RHM.N_RADARs)]
+      self.driverHostnameList_inactive  = [[] for jrad in range(RHM.N_RADARs)]
 
-      self.socks = [[] for jrad in range(N_RADARs)]
+      self.socks = [[] for jrad in range(RHM.N_RADARs)]
       usrp_driver_base_port = int(RHM.ini_network_settings['USRPDriverPort'])
       self.RHM = RHM
       self.logger = logging.getLogger("usrpManager")      
@@ -223,7 +221,7 @@ class usrpSockManager():
 
 
       SomeActiveUSRPs=False
-      for jrad in range(N_RADARs):
+      for jrad in range(RHM.N_RADARs):
          self.logger.debug("len socks[{}]: {}".format(jrad,len(self.socks[jrad])))
          if len(self.socks[jrad]) != 0:
             SomeActiveUSRPs = True
@@ -280,7 +278,7 @@ class usrpSockManager():
                if jrad is None:
                   socks = np.concatenate(self.socks).tolist()
                   badsock=socks[iSock-offset]
-                  for jjrad in range(N_RADARs):
+                  for jjrad in range(RHM.N_RADARs):
                      if badsock in self.socks[jjrad]:
                         jrad = jjrad
                         index = self.socks[jrad].index(badsock)
@@ -293,7 +291,7 @@ class usrpSockManager():
                offset += 1 
 
        SomeActiveUSRPs=False
-       for jrad in range(N_RADARs):
+       for jrad in range(RHM.N_RADARs):
          if len(self.socks[jrad]) != 0:
             SomeActiveUSRPs = True
                
@@ -356,13 +354,13 @@ class usrpSockManager():
        tmp_antenna_list = self.antennaList_inactive
        tmp_hostname_list = self.hostnameList_inactive
        tmp_driverHostname_list = self.driverHostnameList_inactive
-       self.addressList_inactive   = [[] for jrad in range(N_RADARs)]
-       self.antennaList_inactive   = [[] for jrad in range(N_RADARs)]
-       self.hostnameList_inactive   = [[] for jrad in range(N_RADARs)]
-       self.driverHostnameList_inactive   = [[] for jrad in range(N_RADARs)]
+       self.addressList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
+       self.antennaList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
+       self.hostnameList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
+       self.driverHostnameList_inactive   = [[] for jrad in range(RHM.N_RADARs)]
 
        do_resync = False
-       for jrad in range(N_RADARs):
+       for jrad in range(RHM.N_RADARs):
          for iUSRP,usrp in enumerate(tmp_address_list[jrad]):
 
             if usrp in self.addressList_active[jrad]:
@@ -402,7 +400,7 @@ class usrpMixingFreqManager():
     """ Manages usrp mixing frequency based on channels. Ensures that only one channel
         at a time can call add_new_freq_band().  """
   
-    def __init__(self, cFreq, bandWidth):
+    def __init__(self, cFreq, bandWidth, N_RADARs):
        self.current_mixing_freq = [cFreq for jrad in range(N_RADARs)] # in kHz (to be compatible with control program)
        self.usrp_bandwidth      = bandWidth - USRP_BANDWIDTH_RESTRICTION*2/1000   # in kHz (to be compatible with control program)
        self.semaphore = posix_ipc.Semaphore('usrp_mixing_freq', posix_ipc.O_CREAT)
@@ -1420,7 +1418,7 @@ class ClearFrequencyService():
 class clearFrequencyRawDataManager():
     """ Buffers the raw clearfrequency data for all channels
     """
-    def __init__(self, antenna_spacing, usrpManager):
+    def __init__(self, antenna_spacing, usrpManager, N_RADARs, ThisRadar):
         self.rawData      = [None for jrad in range(N_RADARs)]
         self.antennaList  = [None for jrad in range(N_RADARs)]
         self.recordTime   = [None for jrad in range(N_RADARs)]
@@ -1804,14 +1802,14 @@ class RadarHardwareManager:
         self.nControlPrograms  = 0  # number of control programs, also include unregistered channels
         self.channel_manager_consecutive_number = 10 # serial number shown in logger of channel_manager
 
-        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.array_x_spacing, self.usrpManager)
-        for jrad in range(N_RADARs):
+        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.array_x_spacing, self.usrpManager, self.N_RADARs, self.ThisRadar)
+        for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 
            self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, self.usrp_rf_rx_rate / CLRFREQ_RES)
            
-        self.active_channels     = [[] for jrad in range(N_RADARs)]
-        self.channels            = [[] for jrad in range(N_RADARs)]   # all channels that are really transmitting
+        self.active_channels     = [[] for jrad in range(self.N_RADARs)]
+        self.channels            = [[] for jrad in range(self.N_RADARs)]   # all channels that are really transmitting
         self.newChannelList      = []   # waiting list for channels to be added at the right time (between two trigger_next() calls)
         self.swingManager        = swingManager()
 
@@ -1872,12 +1870,12 @@ class RadarHardwareManager:
 
                 # check if there are any disconnected URSPs
 
-                for jrad in range(N_RADARs):
+                for jrad in range(self.N_RADARs):
                    if len(self.usrpManager.addressList_inactive[jrad]):
                       self.usrpManager.restore_lost_connections()
 
                 # CLEAR FREQ SEARCH: recoring when ever requested (independent of swing, state or channel)
-                for jrad in range(N_RADARs):                   
+                for jrad in range(self.N_RADARs):                   
                    if self.clearFreqRawDataManager.outstanding_request[jrad]:
                       controlLoop_logger.debug('start self.clearFreqRawDataManager.record_new_data({})'.format(jrad))
                       self.clearFreqRawDataManager.record_new_data(jrad)
@@ -1893,16 +1891,16 @@ class RadarHardwareManager:
 
                 # FIRST CUDA_ADD FOR NEW CHANNELS
                 if len(self.newChannelList) != 0:                   
-                   for jrad in range(N_RADARs):
+                   for jrad in range(self.N_RADARs):
                       self.logger.debug("active_channel list: {} on radar {}".format([active_ch.cnum for active_ch in self.active_channels[jrad]],jrad))
                       
-                   for jrad in range(N_RADARs):
+                   for jrad in range(self.N_RADARs):
                       self.logger.debug("channel list: {} on radar {}".format([(ch.cnum, ch.rnum) for ch in self.channels[jrad]],jrad))
 
                    self.logger.debug("new channel list: {} on radar {}".format([ch.cnum for ch in self.newChannelList],[ch.rnum for ch in self.newChannelList]))
 
 
-                   for jrad in range(N_RADARs):
+                   for jrad in range(self.N_RADARs):
                       for active_ch in self.active_channels[jrad]:
                          while (active_ch not in (self.channels[jrad] + self.newChannelList)):
                             self.logger.info("Waiting for radar {} ch {} to be added to newChannelList".format(jrad, active_ch.cnum))
@@ -1969,28 +1967,6 @@ class RadarHardwareManager:
 
     # read in ini config files..
     def ini_file_init(self):
-        # READ driver_config.ini
-        driver_config = configparser.ConfigParser()
-        driver_config.read('../driver_config.ini')
-        self.ini_shm_settings     = driver_config['shm_settings']
-        self.ini_cuda_settings    = driver_config['cuda_settings']
-        self.ini_network_settings = driver_config['network_settings']
-
-        # READ usrp_config.ini
-        usrp_config = configparser.ConfigParser()
-        usrp_config.read('../usrp_config.ini')
-        usrp_configs = []
-        self.antenna_idx_list_main = [[] for jrad in range(N_RADARs)]
-        self.antenna_idx_list_back = [[] for jrad in range(N_RADARs)]
-        for usrp in usrp_config.sections():
-            usrp_configs.append(usrp_config[usrp])
-            if usrp_config[usrp]['mainarray'].lower() in ['true', 1]:
-               self.antenna_idx_list_main[int(usrp_config[usrp]['radar'])].append(int(usrp_config[usrp]['array_idx']))
-            else:
-               self.antenna_idx_list_back[int(usrp_config[usrp]['radar'])].append(int(usrp_config[usrp]['array_idx']))
-            
-        self.ini_usrp_configs = usrp_configs
-
         # READ array_config.ini
         array_config = configparser.ConfigParser()
         array_config.read('../array_config.ini')
@@ -2010,18 +1986,41 @@ class RadarHardwareManager:
         if len(self.mute_antenna_list):
             self.logger.info("Mute antennas before beamforming: {}".format(self.mute_antenna_list))
 
-
         self.ini_array_settings = array_config['array_info']
+        self.ThisRadar       =       self.ini_array_settings['stid']
         self.array_beam_sep  = float(self.ini_array_settings['beam_sep'] ) # degrees
+        self.N_RADARs        = int(  self.ini_array_settings['nradars'] )
         self.array_nBeams    = int(  self.ini_array_settings['nbeams'] )
         self.array_x_spacing = float(self.ini_array_settings['x_spacing'] ) # meters 
         self.hardwareLimit_freqRange = [float(array_config['hardware_limits']['minimum_tfreq'] ) /1000, float(array_config['hardware_limits']['maximum_tfreq'] )/1000] # converted to kHz
+
+        # READ driver_config.ini
+        driver_config = configparser.ConfigParser()
+        driver_config.read('../driver_config.ini')
+        self.ini_shm_settings     = driver_config['shm_settings']
+        self.ini_cuda_settings    = driver_config['cuda_settings']
+        self.ini_network_settings = driver_config['network_settings']
+
+        # READ usrp_config.ini
+        usrp_config = configparser.ConfigParser()
+        usrp_config.read('../usrp_config.ini')
+        usrp_configs = []
+        self.antenna_idx_list_main = [[] for jrad in range(self.N_RADARs)]
+        self.antenna_idx_list_back = [[] for jrad in range(self.N_RADARs)]
+        for usrp in usrp_config.sections():
+            usrp_configs.append(usrp_config[usrp])
+            if usrp_config[usrp]['mainarray'].lower() in ['true', 1]:
+               self.antenna_idx_list_main[int(usrp_config[usrp]['radar'])].append(int(usrp_config[usrp]['array_idx']))
+            else:
+               self.antenna_idx_list_back[int(usrp_config[usrp]['radar'])].append(int(usrp_config[usrp]['array_idx']))
+            
+        self.ini_usrp_configs = usrp_configs
 
     def usrp_init(self):
         self.usrpManager = usrpSockManager(self)
         self.usrp_rf_tx_rate   = int(self.ini_cuda_settings['FSampTX'])
         self.usrp_rf_rx_rate   = int(self.ini_cuda_settings['FSampRX'])
-        self.mixingFreqManager = usrpMixingFreqManager(DEFAULT_USRP_MIXING_FREQ, self.usrp_rf_tx_rate/1000)
+        self.mixingFreqManager = usrpMixingFreqManager(DEFAULT_USRP_MIXING_FREQ, self.usrp_rf_tx_rate/1000, self.N_RADARs)
         self._resync_usrps(first_sync = True)
         self.logger.debug("usrp_init() complete")
 
@@ -2031,7 +2030,7 @@ class RadarHardwareManager:
          self.logger.debug("Skipping call of cuda_setup because up/down samplingRates are unknown.")
       else:
          self.logger.debug("start CUDA_SETUP")
-         for jrad in range(N_RADARs):
+         for jrad in range(self.N_RADARs):
             cmd = cuda_setup_command(self.cudasocks[jrad], self.commonChannelParameter['upsample_rate'],self.commonChannelParameter['downsample_rates'][0],self.commonChannelParameter['downsample_rates'][1], self.mixingFreqManager.current_mixing_freq[jrad]*1000 )
             cmd.transmit()
             time.sleep(0.001)
@@ -2044,7 +2043,7 @@ class RadarHardwareManager:
        iResync = 1
        
        SomeActiveUSRPs=False
-       for jrad in range(N_RADARs):
+       for jrad in range(self.N_RADARs):
           if len(self.usrpManager.socks[jrad]) != 0:
              SomeActiveUSRPs = True
              
@@ -2072,7 +2071,7 @@ class RadarHardwareManager:
                 usrptimes.append(cmd.recv_time(usrpsock))
              except:
                 self.logger.error("Error in sync USRPs for {}. Removing it...".format(self.usrpManager.hostnameList_active[jrad][iUSRP]))
-                for jrad in range(N_RADARs):
+                for jrad in range(self.N_RADARs):
                    if usrpsock in self.usrpManager.socks[jrad]:
                       self.usrpManager.remove_sock(jrad,usrpsock)
            
@@ -2090,7 +2089,7 @@ class RadarHardwareManager:
              time.sleep(0.1)
                  
        if not first_sync:        
-          for jrad in range(N_RADARs):
+          for jrad in range(self.N_RADARs):
              if radar_active[jrad]:
                 self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) 
 
@@ -2110,7 +2109,7 @@ class RadarHardwareManager:
            self.logger.warning('attenuation ({}) for rxfe in array.ini is > 31.5 dB. using maximum atenuation of 31.5 dB'.format(att))
            att = 31.5
 
-        for jrad in range(N_RADARs):
+        for jrad in range(self.N_RADARs):
            if radar_active[jrad]:
               self.logger.info("Setting RXFE: Amp1={}, Amp2={}, Attenuation={} dB".format(amp1, amp2, att)) 
               cmd = usrp_rxfe_setup_command(self.usrpManager.socks[jrad], amp1, amp2, att*2) # *2 since LSB is 0.5 dB 
@@ -2150,7 +2149,7 @@ class RadarHardwareManager:
 
             # loop over jradar
             
-            for jrad in range(N_RADARs):
+            for jrad in range(self.N_RADARs):
                cmd = usrp_rxfe_setup_command(self.usrpManager.socks[jrad], amp1, amp2, att*2) # *2 since LSB is 0.5 dB 
                cmd.transmit()
                time.sleep(0.001)
@@ -2176,7 +2175,7 @@ class RadarHardwareManager:
         ]
 
         cuda_driver_socks = []
-        for jrad in range(N_RADARs):
+        for jrad in range(self.N_RADARs):
            socks=[]
            for c in cuda_driver_hostnames[jrad]:
               try:
@@ -2205,7 +2204,7 @@ class RadarHardwareManager:
     def initialize_channel(RHM):
         """ Adds first period of channel for new channel or after CS_INACTIVE. Also appends channel to RHM.channels if not already done."""
         wait_start_time = time.time()
-        while (time.time() - wait_start_time < 0.1) and (RHM.nControlPrograms > np.sum([len(RHM.channels[jr]) for jr in range(N_RADARs)])+ len(RHM.newChannelList) ):
+        while (time.time() - wait_start_time < 0.1) and (RHM.nControlPrograms > np.sum([len(RHM.channels[jr]) for jr in range(RHM.N_RADARs)])+ len(RHM.newChannelList) ):
            RHM.logger.debug("initialize_channel: waiting 10 ms for other control program to SET_PARAMETER")
            time.sleep(0.010)
 
@@ -2245,7 +2244,7 @@ class RadarHardwareManager:
         # CUDA_GENERATE for first period
         RHM.logger.debug('start CUDA_GENERATE_PULSE swing {} (1st period) '.format(RHM.swingManager.activeSwing))
 
-        for jrad in range(N_RADARs):
+        for jrad in range(RHM.N_RADARs):
            if radar_active[jrad]:
               RHM.logger.debug('CUDA_GENERATE_PULSE jrad {} socket {}'.format(jrad,RHM.cudasocks[jrad]))
               cmd = cuda_generate_pulse_command(RHM.cudasocks[jrad], RHM.swingManager.activeSwing, RHM.mixingFreqManager.current_mixing_freq[jrad]*1000)
@@ -2331,7 +2330,7 @@ class RadarHardwareManager:
 
            # loop over jradar
            
-           for jrad in range(N_RADARs):
+           for jrad in range(self.N_RADARs):
               if radar_active[jrad]:
                  cmd = usrp_exit_command(self.usrpManager.socks[jrad])
                  cmd.transmit()
@@ -2339,7 +2338,7 @@ class RadarHardwareManager:
                     sock.close()
 
         if hasattr(self, 'cudasocks'):
-           for jrad in range(N_RADARs):
+           for jrad in range(self.N_RADARs):
               cmd = cuda_exit_command(self.cudasocks[jrad])
               cmd.transmit()
 
@@ -2464,8 +2463,8 @@ class RadarHardwareManager:
         # START LOOP OVER RADARS
         
         # look for one active channel
-        transmittingChannelAvailable = [False for j in range(N_RADARs)]
-        for jrad in range(N_RADARs):
+        transmittingChannelAvailable = [False for j in range(self.N_RADARs)]
+        for jrad in range(self.N_RADARs):
            self.logger.debug("in trigger_next_swing() checking if any transmitting channels available on radar {}".format(jrad))
            if not radar_active[jrad]:
               continue
@@ -2535,7 +2534,7 @@ class RadarHardwareManager:
 
         usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
 
-        for jrad in range(N_RADARs):
+        for jrad in range(self.N_RADARs):
 
            if not radar_active[jrad]:
               continue
@@ -2605,7 +2604,7 @@ class RadarHardwareManager:
 
 
 
-        for jrad in range(N_RADARs):
+        for jrad in range(self.N_RADARs):
            if not radar_active[jrad]:
               continue
 
@@ -2817,7 +2816,7 @@ class RadarHardwareManager:
 
         # CUDA_GENERATE for next period
         self.logger.debug('start CUDA_GENERATE_PULSE')
-        for jrad in range(N_RADARs):
+        for jrad in range(self.N_RADARs):
            if radar_active[jrad]:
               self.logger.debug('start CUDA_GENERATE_PULSE jrad {}  socket {}'.format(jrad,self.cudasocks[jrad]))
               cmd = cuda_generate_pulse_command(self.cudasocks[jrad], self.swingManager.processingSwing, self.mixingFreqManager.current_mixing_freq[jrad]*1000)
@@ -2826,7 +2825,7 @@ class RadarHardwareManager:
         self.logger.debug('end CUDA_GENERATE_PULSE')
 
         all_usrps_report_failure = True
-        for jrad in range(N_RADARs):
+        for jrad in range(self.N_RADARs):
            if not radar_active[jrad]:
               continue
            
@@ -2897,7 +2896,7 @@ class RadarHardwareManager:
         self.logger.debug('switching swings to: active={}, processing={}'.format(self.swingManager.activeSwing, self.swingManager.processingSwing))
  
         # START CUDA_PROCESS
-        for jrad in range(N_RADARs):
+        for jrad in range(self.N_RADARs):
            if transmittingChannelAvailable[jrad]:
               if trigger_next_period:
                  # CUDA_PROCESS for processingSwing
