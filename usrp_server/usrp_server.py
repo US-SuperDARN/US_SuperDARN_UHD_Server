@@ -545,11 +545,11 @@ class usrpMixingFreqManager():
           # convert frozenset of unique search ranges to list
           # and check for any fixed frequencies
           tmpList = [list(x) for x in ctr]
-          for tmp in tmpList:
-            if len(tmp) == 1:
-              fixfrq = tmp[0]
-              tmp = []
-              tmp = [fixfrq, fixfrq]
+          for x in range(len(tmpList)):
+            if len(tmpList[x]) == 1:
+              fixfrq = tmpList[x]
+              tmpList[x] = []
+              tmpList[x] = [fixfrq, fixfrq]
 
           # sort unique search ranges from lowest to highest
           uniqueList = sorted([[y,x] if y<x else [x,y] for x,y in tmpList])
