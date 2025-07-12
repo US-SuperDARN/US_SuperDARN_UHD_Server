@@ -93,18 +93,15 @@ class integrationTimeManager():
 
       return delay_time
 
-
-
    def estimate_calc_time(self):
       int_time = self.RHM.commonChannelParameter['integration_period_duration']  
       # TODO optimize by tracking times of last periods
-      overhead_time = 0.30
+      if self.RHM.N_RADARs > 1:
+         overhead_time = 0.30
+      else:
+         overhead_time = 0.20
 
       return overhead_time
-    
-
- 
-   
 
 
 class statusUpdater():
