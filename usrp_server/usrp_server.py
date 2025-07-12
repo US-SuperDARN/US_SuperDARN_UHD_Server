@@ -2673,7 +2673,7 @@ class RadarHardwareManager:
                                 iAntenna = self.antenna_idx_list_back[jrad].index(antIdx)
                                 back_samples[iChannel][iAntenna] = samples[:]
                              else:
-                                self.logger.error("Cuda tranmitted antenna ({}) that is not in main array list ({}) and back array list ({}). (Maybe differnt antenna definietions in usrp_config.ini on both computers?)".format(antIdx, self.antenna_idx_list_main[jrad], self.antenna_idx_list_back[jrad]))
+                                self.logger.error("Cuda transmitted antenna ({}) that is not in main array list ({}) and back array list ({}). (Maybe different antenna definitions in usrp_config.ini on both computers?)".format(antIdx, self.antenna_idx_list_main[jrad], self.antenna_idx_list_back[jrad]))
                                 sys.exit(1)
                        else:
                           channel.logger.debug("Receiving NOTHING for channel {} because processing_state is {}".format( channel.cnum, channel.processing_state))
@@ -2749,7 +2749,7 @@ class RadarHardwareManager:
                        channel.write_if_data()
                      
               else:
-                 self.logger.debug('No processing channles available for radar {}. Skipping CUDA_GET_DATA and rx beamforming'.format(jrad))
+                 self.logger.debug('No processing channels available for radar {}. Skipping CUDA_GET_DATA and rx beamforming'.format(jrad))
 
 
         # PERIOD FINISHED        
