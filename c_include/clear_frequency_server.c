@@ -1621,8 +1621,8 @@ int main() {
                         
                         // Reserve the frequency band 
                         radar_table[cur_radar][cur_channel].clr_band = clr_bands[i];
-                        radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[0];
-                        radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[1];
+                        radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[cur_radar][0];
+                        radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[cur_radar][1];
                         if (restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel >= RESTRICT_NUM) {
                             log_error("    ERROR: Reservation into restricted_freq failed due to overflow index!");
                             perror("ERROR: Reservation into restricted_freq failed due to overflow index!");
