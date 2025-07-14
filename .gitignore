@@ -12,6 +12,7 @@ log/clr_freq/*
 log/fft_spectrum/*
 
 driver_config.ini
+array_config.ini
 usrp_config.ini
 
 cf_server
