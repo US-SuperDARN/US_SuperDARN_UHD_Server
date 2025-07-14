@@ -1986,9 +1986,9 @@ class RadarHardwareManager:
 
         self.ini_array_settings = array_config['array_info']
         self.ThisRadar       =       self.ini_array_settings['stid']
-        self.array_beam_sep  = float(self.ini_array_settings['beam_sep'] ) # degrees
         self.N_RADARs        = int(  self.ini_array_settings['nradars'] )
         self.array_nBeams    = int(  self.ini_array_settings['nbeams'] )
+        self.array_beam_sep  = float(self.ini_array_settings['beam_sep'] ) # degrees
         self.array_x_spacing = float(self.ini_array_settings['x_spacing'] ) # meters 
         self.hardwareLimit_freqRange = [float(array_config['hardware_limits']['minimum_tfreq'] ) /1000, float(array_config['hardware_limits']['maximum_tfreq'] )/1000] # converted to kHz
 
