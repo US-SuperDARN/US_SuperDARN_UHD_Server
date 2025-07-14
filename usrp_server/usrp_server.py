@@ -1420,7 +1420,7 @@ class clearFrequencyRawDataManager():
             rec_new_samples = data_age > MAX_AGE_OF_AUTO_CLEAR_FREQ
 
         if rec_new_samples:
-            self.logger.debug("clearFreqRawData: age of data is {:2.2f} s. Recoring new data ".format(data_age))
+            self.logger.debug("clearFreqRawData: age of data is {:2.2f} s. Recording new data ".format(data_age))
             self.logger.debug('start record_clrfreq_raw_samples on radar {}'.format(jrad))
             self.rawData[jrad], self.antennaList[jrad] = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(jrad), self.number_of_samples, self.center_freq[jrad], self.sampling_rate)
             self.logger.debug('end record_clrfreq_raw_samples')
@@ -1583,8 +1583,9 @@ class scanManager():
     # add to restricted
     def period_finished(self):
       #  print("swing manager period finished... ")
-        self.current_clrFreq_result = self.next_clrFreq_result
-        self.next_clrFreq_result = None
+        if self.next_clrFreq_result is not None:
+           self.current_clrFreq_result = self.next_clrFreq_result
+           self.next_clrFreq_result = None
         if self.isPrePeriod:
            self.isPrePeriod = False
            return
