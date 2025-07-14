@@ -923,7 +923,20 @@ class ClearFrequencyService():
         
         # If element size is incorrect, Display error
         except AttributeError as e:
-            print("[Frequency Client] ERROR: Element Size is incorrect. send()'s parameters were likely not assigned properly. Please verify...")
+            print("[Frequency Client] ERROR: Element Size is incorrect. send_samples()'s parameters were likely not assigned properly. Please verify...")
+            print(f"AttributeError: {e}")
+            print(f"Object: {obj}, Attributes: {dir(obj)}")
+            raise
+        
+        except ValueError as e:
+            print("[Frequency Client] ERROR: Antenna list mismatch with sample set. send_samples()'s parameters were likely not assigned properly. Please verify...")
+            
+            # Print data difference between the sample set and expected size
+            print("sample bytes:", len(interleaved_data.tobytes()))
+            obj['shm_ptr'].seek(0, 2)  # Seek to end
+            print("expected size:", obj['shm_ptr'].tell())
+            obj['shm_ptr'].seek(0)
+        
             print(f"AttributeError: {e}")
             print(f"Object: {obj}, Attributes: {dir(obj)}")
             raise
@@ -1202,12 +1215,7 @@ class ClearFrequencyService():
             
             for i in range(self.SAMPLE_PARAM_NUM, self.SAMPLE_PARAM_NUM + 3):
                 
-                # If sample separation present, send and update, else skip
-                if input_data[i - self.SAMPLE_PARAM_NUM] is not None and self.old_smsep != input_data[i - self.SAMPLE_PARAM_NUM]:
-                    self.old_smsep = input_data[i - self.SAMPLE_PARAM_NUM]
-                else: continue
-                
-                # Write present data
+                # If data present, write to SHM
                 if input_data[i - self.SAMPLE_PARAM_NUM] is not None:
                     print(f"[Frequency Client] Data Write: {self.shm_objects[i]['name']}") 
                     self.write_data(self.shm_objects[i], input_data[i - self.SAMPLE_PARAM_NUM])
