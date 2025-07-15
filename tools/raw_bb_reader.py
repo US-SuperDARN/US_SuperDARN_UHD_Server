@@ -30,7 +30,7 @@ if len(sys.argv) == 1:
     import glob
     import os
     print('No input. Looking for newest file in {} ...'.format(raw_path))
-    file_with_path = max(glob.iglob('{}*.iraw.*'.format(raw_path)), key=os.path.getctime)
+    file_with_path = max(glob.iglob('{}*.iraw'.format(raw_path)), key=os.path.getctime)
     fileName = file_with_path[len(raw_path):]
     print('found :{}'.format(fileName))
 else:
@@ -69,24 +69,26 @@ def read_raw_file(file_with_path):
         if period_dict['version'] != 3:
             print("Error: only Version 3 exports are supported!")
             return 0
-        period_dict['year'] = data[curr_idx+1]
-        period_dict['month'] = data[curr_idx+2]
-        period_dict['day'] = data[curr_idx+3]
-        period_dict['hour'] = data[curr_idx+4]
-        period_dict['minute'] = data[curr_idx+5]
-        period_dict['second'] = data[curr_idx+6]
-        period_dict['microsecond'] = data[curr_idx+7]
-        period_dict['nrang'] = data[curr_idx+8]
-        period_dict['mpinc'] = data[curr_idx+9]
-        period_dict['smsep'] = data[curr_idx+10]
-        period_dict['lagfr'] = data[curr_idx+11]
-        period_dict['pulseLength'] = data[curr_idx+12]
-        period_dict['beam'] = data[curr_idx+13]
+        period_dict['stid'] = data[curr_idx+1]
+        period_dict['channel'] = data[curr_idx+2]
+        period_dict['year'] = data[curr_idx+3]
+        period_dict['month'] = data[curr_idx+4]
+        period_dict['day'] = data[curr_idx+5]
+        period_dict['hour'] = data[curr_idx+6]
+        period_dict['minute'] = data[curr_idx+7]
+        period_dict['second'] = data[curr_idx+8]
+        period_dict['microsecond'] = data[curr_idx+9]
+        period_dict['nrang'] = data[curr_idx+10]
+        period_dict['mpinc'] = data[curr_idx+11]
+        period_dict['smsep'] = data[curr_idx+12]
+        period_dict['lagfr'] = data[curr_idx+13]
+        period_dict['pulseLength'] = data[curr_idx+14]
+        period_dict['beam'] = data[curr_idx+15]
        
-        period_dict['rfreq'] = data[curr_idx+14]
-        period_dict['mppul'] = data[curr_idx+15]
-        period_dict['ppat'] = data[curr_idx+16:curr_idx+16+period_dict['mppul']]
-        curr_idx = curr_idx+16+period_dict['mppul']
+        period_dict['rfreq'] = data[curr_idx+16]
+        period_dict['mppul'] = data[curr_idx+17]
+        period_dict['ppat'] = data[curr_idx+18:curr_idx+18+period_dict['mppul']]
+        curr_idx = curr_idx+18+period_dict['mppul']
        
         period_dict['nbaud'] = data[curr_idx]
         period_dict['pcode'] = data[curr_idx+1:curr_idx+period_dict['nbaud']+1]
@@ -149,8 +151,8 @@ class RawDataGUI:
         if event.key == 'right':
             self.iSequence = (self.iSequence+1) % self.nSequences
             self.updateGUI()
-
         elif event.key == 'left':
+            self.iSequence = (self.iSequence-1) % self.nSequences
             self.updateGUI()
         elif event.key == 'up':
             self.iPeriod = (self.iPeriod+1) % self.nPeriods
@@ -214,7 +216,7 @@ class RawDataGUI:
         dont_print_list = ["antenna_list","seq_list", "pcode" ]
         par_txt = ""
         for iPar,par in enumerate(par_list):
-            if  par not in dont_print_list:
+            if par not in dont_print_list:
                 if ((iPar+1) % 5):
                     par_txt += "{}={},  ".format(par, self.data[self.iPeriod][par])
                 else:

@@ -58,7 +58,7 @@
 
 //Added by Alex for usrp
 #include <uhd/usrp/multi_usrp.hpp>
-#include <uhd/utils/thread_priority.hpp>
+#include <uhd/utils/thread.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/utils/static.hpp>
 #include <uhd/exception.hpp>
@@ -168,6 +168,10 @@ void init_timing_signals(
     char bank_name[4];
     int iSide;
 
+    float priority=1;
+    bool realtime=true;
+    uhd::set_thread_priority_safe(priority,realtime);
+
     double debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("DIO queing GPIO commands at usrp_time %2.4f\n", debugt);
     
@@ -261,7 +265,7 @@ void send_timing_for_sequence(
 
     char bank_name[4];
     sprintf(bank_name, "FP0");
-    int iSide;
+    //int iSide;
     time_t current_time;
     struct tm *gmt;
 
@@ -302,7 +306,8 @@ void send_timing_for_sequence(
         c.port     = bank_name;
         cmdq.push(c);
 
-        if (mimic_active) {
+        // if (mimic_active) {
+        if (0) {
            // DEBUG_PRINT("DIO.cpp: using mimic target with %2.4f ms delay\n", mimic_delay*1000);
             // set mimic TX high, mimic RX low   
             c.port     = "TXA";
@@ -454,7 +459,7 @@ void mcm_init_rxfe(uhd::usrp::multi_usrp::sptr usrp)
     rxfe_init_settings.att_2_dB = 0;
     rxfe_init_settings.att_4_dB = 0;
     rxfe_init_settings.att_8_dB = 0;
-    rxfe_init_settings.att_8_dB = 0;
+    rxfe_init_settings.att_16_dB = 0;
     
     mcm_set_rxfe(usrp, rxfe_init_settings); 
 }

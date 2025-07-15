@@ -45,7 +45,6 @@ __global__ void multiply_and_add(double *samples, float *odata, float *filter)
     uint32_t iSampleBB            = blockIdx.x;
     uint32_t iAntenna             = blockIdx.y;
     uint32_t nSamplesBB           = gridDim.x;
-//    uint32_t nAntennas            = gridDim.y; 
 
     uint32_t iThread_lin = iFilterSampleTimes2 + iChannel*nFilterSamplesDivBy2;   // linear thread index in block
 
@@ -147,7 +146,6 @@ __global__ void multiply_mix_add(int16_t *samples, double *odata, float *filter)
     uint32_t iSampleIF            = blockIdx.x;
     uint32_t iAntenna             = blockIdx.y;
     uint32_t nSamplesIF           = gridDim.x;
-   // uint32_t nAntennas            = gridDim.y; 
 
     uint32_t iThread_lin = threadIdx.y*blockDim.x+threadIdx.x;
     
@@ -238,13 +236,6 @@ __global__ void multiply_mix_add(int16_t *samples, double *odata, float *filter)
      __syncthreads();
      
      if (threadIdx.x == 0) {
-        // the NCO inclueded in the filter causes a phase error. this is the correction
-	//        double phiOffset = fmod(phaseIncrement_NCO_rad[iChannel] * iSampleIF*decimationRate_rf2if, 2*M_PI);
-        //	  double ltemp = (double) itemp[iThread_lin]; // TODO: avoid numerical errors?? why only itemp? (mgu)
-        
-        //	itemp[iThread_lin] = itemp[iThread_lin] * cos(phiOffset) - qtemp[iThread_lin] * sin(phiOffset);
-        //	qtemp[iThread_lin] = ltemp * sin(phiOffset) + qtemp[iThread_lin] * cos(phiOffset);
-
         // write outout
         uint32_t output_idx = iSampleIF *2 + iChannel * nSamplesIF *2 + iAntenna * nChannels * nSamplesIF *2; 
         odata[output_idx  ] = itemp[iThread_lin];

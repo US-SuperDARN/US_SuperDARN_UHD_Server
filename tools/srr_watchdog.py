@@ -4,6 +4,7 @@ import datetime
 import sys
 import time 
 basePath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+logPath = '/data/log/'
 sys.path.insert(0, basePath )
 import srr
 import subprocess
@@ -20,8 +21,8 @@ restart_driver  = True
 write_log = True
 
 # usrp server file
-server_status_file = os.path.join(basePath, 'log', "usrp_server_status.txt")
-file_age_limit = 30 + 10 # sec 
+server_status_file = os.path.join(logPath, "usrp_server_status.txt")
+file_age_limit = 90 + 10 # sec
 usrp_restart_period = 60*5 # sec to next restart
 
 
@@ -29,8 +30,8 @@ watch_usrp_server = "server" in sys.argv
 
 # LOG FILE 
 if write_log:
-    log_file_path = os.path.join(basePath, "log/watchdog")
-    time_now = datetime.datetime.now()
+    log_file_path = os.path.join(logPath, "watchdog")
+    time_now = datetime.datetime.now(datetime.UTC)
     fileName = 'watchdog__{:04d}{:02d}{:02d}_{:02d}{:02d}{:02d}.log'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute,time_now.second)
     print(log_file_path)
     if not os.path.isdir(log_file_path):
@@ -42,8 +43,8 @@ if write_log:
 def log(msg):
     print(msg)
     if write_log:
-       time_now = datetime.datetime.now()
-       log_str = '{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}   {}\n'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute,time_now.second, msg)
+       time_now = datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+       log_str = '{}   {}\n'.format(time_now, msg)
        log_handle.write(log_str)
        log_handle.flush()
 
@@ -146,8 +147,11 @@ restart_server = False
 while True:
 
    if watch_usrp_server:
-       # check age of server status file 
-       m_time = os.path.getmtime(server_status_file)
+       if os.path.isfile(server_status_file):
+           # check age of server status file
+           m_time = os.path.getmtime(server_status_file)
+       else:
+           m_time = 0
        now = time.mktime(time.localtime())
        file_age = now - m_time
        restart_server = file_age_limit < file_age 

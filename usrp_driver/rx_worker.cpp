@@ -15,7 +15,7 @@
 #include <math.h>
 
 #include <uhd/usrp/multi_usrp.hpp>
-#include <uhd/utils/thread_priority.hpp>
+#include <uhd/utils/thread.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/utils/static.hpp>
 #include <uhd/exception.hpp>
@@ -44,6 +44,10 @@ void usrp_rx_worker(
     uhd::time_spec_t start_time,
     int32_t *return_status
 ){
+
+    float priority=1;
+    bool realtime=true;
+    uhd::set_thread_priority_safe(priority,realtime);
 
     float debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("entering RX_WORKER %2.4f\n",debugt);
@@ -85,13 +89,14 @@ void usrp_rx_worker(
 
     // DEBUG to check timing
     double time_to_start;
+    useconds_t usecs=200;
     rx_usrp_pre_stream_time = usrp->get_time_now();
     time_to_start = start_time.get_real_secs() - rx_usrp_pre_stream_time.get_real_secs();
     fprintf(stderr,"#timing: time left for rx_worker  %f ms\n", time_to_start*1000);
-    DEBUG_PRINT("rx_worker: samples_remaining_to stream: %d  max_samples_per_stream: %d\n",samples_remaining_to_stream,max_samples_per_stream);
+    DEBUG_PRINT("rx_worker: samples_remaining_to stream: %ld  max_samples_per_stream: %ld\n",samples_remaining_to_stream,max_samples_per_stream);
 
 
-    int counter=0;
+    //int counter=0;
     if(samples_remaining_to_stream > max_samples_per_stream) {
         // each stream command should request the around the maximum number of samples possible that is a multiple of the recv stream packet size
         // so, issue NUM_SAMPS_AND_MORE commands until there are fewer than max_samples_per_packet remaining 
@@ -105,7 +110,7 @@ void usrp_rx_worker(
         stream_cmd.stream_now = false;
         usrp->issue_stream_cmd(stream_cmd); 
 	debugt = usrp->get_time_now().get_real_secs();
-	DEBUG_PRINT("RX_WORKER: issued stream command %2.4f\n",debugt,++counter);
+	DEBUG_PRINT("RX_WORKER: issued stream command %2.4f\n",debugt);//,++counter);
 
         samples_remaining_to_stream -= max_samples_per_stream;
 
@@ -115,8 +120,9 @@ void usrp_rx_worker(
         while(samples_remaining_to_stream > max_samples_per_stream) {
             usrp->issue_stream_cmd(stream_cmd); 
             samples_remaining_to_stream -= max_samples_per_stream;
+	    usleep(usecs);
 	    debugt = usrp->get_time_now().get_real_secs();
-	    DEBUG_PRINT("RX_WORKER: issued stream command %2.4f\n",debugt,++counter);
+	    DEBUG_PRINT("RX_WORKER: issued stream command %2.4f\n",debugt);//,++counter);
         }
         
         // finally, issue a NUM_SAMPS_AND_DONE command for the last command
@@ -124,8 +130,9 @@ void usrp_rx_worker(
         stream_cmd.stream_now = true;
         stream_cmd.num_samps = samples_remaining_to_stream;
         usrp->issue_stream_cmd(stream_cmd); 
+	usleep(usecs);
 	debugt = usrp->get_time_now().get_real_secs();
-	DEBUG_PRINT("RX_WORKER: issued last stream command %2.4f\n",debugt,++counter);
+	DEBUG_PRINT("RX_WORKER: issued last stream command %2.4f\n",debugt);//,++counter);
     }
     
     else {
@@ -160,13 +167,7 @@ void usrp_rx_worker(
         }
 
         size_t num_rx_samps = rx_stream->recv(buff_ptrs , samp_request, md, timeout);
-       // DEBUG print
-//        if (num_rx_samps == 1996) {
-      //     DEBUG_PRINT("|");
-//             DEBUG_PRINT("%d  ",num_acc_samps);
- //       } else {
-//           DEBUG_PRINT("(rxed %d) ", num_rx_samps);
-//        }
+	usleep(usecs);
     
         timeout = 0.1;
 

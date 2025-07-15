@@ -30,13 +30,13 @@
 #     rtserver                     : real time display server (no restart)
 #   
 #     uaf_fix (or uafscan_fix)     : starts uafscan fast with fixfreq 14000 (only start)
-#     uaf_fix ch_No                : starts uaf_fix on channel cd_No (1-4)
+#     uaf_fix ch_No                : starts uaf_fix on channel ch_No (1-4)
 #     uaf_fix_onesec [ch_No]       : starts uafscan (onsec, fixfreq) default ch_No=1
 #
 #  Available PROCESS GROUPS:
 #     driver                       : cuda_driver and usrp_driver
 #     all                          : cuda_driver, usrp_driver and usrp_server
-#     allscans                     : all porcesses with scan in their name
+#     allscans                     : all processes with scan in their name
 #
 #
 #  TIP:
@@ -63,6 +63,9 @@ import subprocess
 import time
 import errno
 import signal
+from pathlib import Path
+
+homePath = str(Path.home())
 
 basePath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, basePath + '/tools')
@@ -100,7 +103,7 @@ def waitFor(nSeconds):
       print('.', end="", flush=True)
       time.sleep(1)
    else:
-      print
+      print()
 ######################
 ## init
 def initialize(inputArg):
@@ -212,35 +215,35 @@ def print_status():
     srrProcesses = get_known_processes(processList)
    
     myPrint("Local: Found {} processes:".format(len(srrProcesses)))
-    for line in srrProcesses:
+    for line in sorted(srrProcesses):
        myPrint("  {}".format(line))
 
     remote_pc_list = get_remote_driver_host()
     for remote_pc in remote_pc_list:
        myPrint(" ")
-       respond = remote_command_echo("radar", remote_pc, "ps -aux", verbose=False)
+       respond = remote_command_echo("radar_user", remote_pc, "ps -aux", verbose=False)
        processList = respond.decode("UTF-8").split("\n")
        srrProcesses = get_known_processes(processList)
        myPrint("Remote {}: Found {} processes:".format(remote_pc, len(srrProcesses)))
-       for line in srrProcesses:
+       for line in sorted(srrProcesses):
           myPrint("  {}".format(line))
 
 def remote_stop_all():
     remote_pc_list = get_remote_driver_host()
     for remote_pc in remote_pc_list:
         myPrint(" calling srr stop for {}".format(remote_pc))
-        respond = remote_command_echo("radar", remote_pc, "srr stop", verbose=False)
+        respond = remote_command_echo("radar_user", remote_pc, "srr stop", verbose=False)
         print(respond)
 
 def get_known_processes(processList):
-    kownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "rawacfwrite", "errlog", "rtserver", "python3 /home/radar/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd"]
+    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd", "normalscan", "onebeamscan", "uafscan", "pcodescan", "interleavescan", "normalsound", "themisscan", "noopscan", "./cf_server"]
     srrProcesses = []
     for line in processList:
         wordList = [word for word in line.split(" " ) if word != ""]
         if len(wordList):
            commandString = " ".join(wordList[10:]) 
-           for knowProcess in kownProcessList:
-               if commandString.startswith(knowProcess):
+           for knownProcess in knownProcessList:
+               if commandString.startswith(knownProcess):
                   srrProcesses.append( " " + commandString + "  (PID " + wordList[1] + ")")
                   break
     return srrProcesses
@@ -410,7 +413,7 @@ def stop_cuda_driver():
                sock.connect(('localhost',CUDADriverPort))
                sock.sendall(np.uint8(CUDA_EXIT).tobytes())
             except:
-                myPrint(" soft extit failed: localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
+                myPrint(" soft exit failed: localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
                 
         
        time.sleep(1)
@@ -425,7 +428,7 @@ def stop_usrp_server():
     if len(serverProcesses):
       try:
           for process in serverProcesses:
-               myPrint("  sending SEVER_EXIT to localhost:{} (pid {})".format(USRP_SERVER_PORT, process['pid']))
+               myPrint("  sending SERVER_EXIT to localhost:{} (pid {})".format(USRP_SERVER_PORT, process['pid']))
                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                sock.connect(('localhost', USRP_SERVER_PORT))
                time.sleep(0.3)
@@ -605,10 +608,14 @@ def start_cuda_driver():
     subprocess.Popen(['./cuda_driver.py' ])
     os.chdir(basePath)
 
+def start_clear_frequency_server():
+    myPrint("Starting clear_frequency_server...")
+    subprocess.Popen(['./cf_server' ])
 
 def start_usrp_server():
     myPrint("Starting usrp_server...")
-    os.chdir(os.path.join(basePath, "usrp_server") )   
+    os.chdir(os.path.join(basePath, "usrp_server") )
+    print(os.getcwd())
     subprocess.Popen(['./usrp_server.py' ])
     os.chdir(basePath)
 
@@ -697,9 +704,27 @@ def restart_all():
    myPrint("Restarting all processes")
    restart_driver()
    myPrint("done starting usrps.. waiting....")
+   restart_clear_frequency_service()
    waitFor(delay_between_driver_and_server)
    myPrint("done  waiting.... starting server")
    start_usrp_server()
+
+def restart_clear_frequency_service():
+   server_was_running = stop_clear_frequency_service()
+   if server_was_running:
+      waitFor(nSecs_restart_pause)
+   stop_clear_frequency_service()
+   start_clear_frequency_server()
+
+def stop_clear_frequency_service():
+    myPrint(" Stopping clear frequency service...")
+    serverProcesses = get_process_ids("cf_server") + get_process_ids("./cf_server")
+    if len(serverProcesses):
+       terminate_all(serverProcesses)
+       return 1
+    else:
+       myPrint("  No clear_frequency_server process found...")
+       return 0
 
 def restart_driver():
     server_was_running = stop_usrp_server() 
@@ -762,10 +787,11 @@ def main():
       elif firstArg.lower() in ["network", "networktool", "net"]:
            start_network_tool()  
       elif firstArg == "start":
-         if nArguments == 1 or inputArg[1].lower == "all":
+         if nArguments == 1 or inputArg[1].lower() == "all":
             myPrint("Starting all...")
             start_cuda_driver()
             start_usrp_driver()
+            start_clear_frequency_server()
             waitFor(delay_between_driver_and_server)
             start_usrp_server()
          elif inputArg[1].lower() in ["usrp_driver", "usrps"]:
@@ -800,7 +826,7 @@ def main():
             show_help()
    
       elif firstArg == "restart":
-         if nArguments == 1 or inputArg[1].lower == "all":
+         if nArguments == 1 or inputArg[1].lower() == "all":
             restart_all()
 
          elif inputArg[1].lower() in ["usrp_driver", "usrps"]:
@@ -827,11 +853,12 @@ def main():
    
    
       elif firstArg == "stop":
-         if nArguments == 1 or inputArg[1].lower == "all":
+         if nArguments == 1 or inputArg[1].lower() == "all":
             myPrint("Stopping all...")
             remote_stop_all()
             stop_watchdog()
             server_was_running = stop_usrp_server() 
+            stop_clear_frequency_service()
             if server_was_running:
                 waitFor(5)
             stop_usrp_driver()

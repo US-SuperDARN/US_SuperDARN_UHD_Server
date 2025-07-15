@@ -1,5 +1,5 @@
 #include <uhd/usrp/multi_usrp.hpp>
-#include <uhd/utils/thread_priority.hpp>
+#include <uhd/utils/thread.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/utils/static.hpp>
 #include <uhd/exception.hpp>
@@ -43,13 +43,13 @@ uhd::time_spec_t offset_time_spec(uhd::time_spec_t t0, double toffset)
 {
     uhd::time_spec_t t1;
     
-    time_t full_sec = t0.get_full_secs();
+    int64_t full_sec = t0.get_full_secs();
     double frac_sec = t0.get_frac_secs();
 
     frac_sec += toffset;
     
-    full_sec += floor(frac_sec);
-    frac_sec -= floor(frac_sec);
+    full_sec += (int64_t)floor(frac_sec);
+    frac_sec -= (double)floor(frac_sec);
 
 
     t1 = uhd::time_spec_t(full_sec, frac_sec);

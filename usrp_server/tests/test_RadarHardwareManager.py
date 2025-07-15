@@ -1,6 +1,9 @@
 
+import sys
+sys.path.append("..")
+sys.path.insert(0, '../../python_include')
 
-from usrp_server.usrp_server import RadarHardwareManager
+from usrp_server import RadarHardwareManager
 
 
 def test_default_rhm():

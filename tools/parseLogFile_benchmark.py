@@ -4,8 +4,8 @@ Function parses usrp_server log file and plots timing of main function calls.
 Therefore logger level has to be set to DEBUG (in python_include/logging_usrp.py).
 Function call:
 
- - no argument:         looks for newest file in ../log/
- - only filename:       looks for that file in ../log/
+ - no argument:         looks for newest file in /data/log/
+ - only filename:       looks for that file in /data/log/
  - filename with path:  takes this file
 
 Created on Thu Nov 17 18:42:45 2016
@@ -37,7 +37,7 @@ class logEntries:
             for line in f:
                 dateStr = line[:23]
                 try:
-                   self.time.append(datetime.strptime(dateStr, '%Y-%m-%d %H:%M:%S,%f'))
+                   self.time.append(datetime.strptime(dateStr, '%Y-%m-%d %H:%M:%S.%f'))
                 except:
                    print("No valid date format: {}".format(dateStr))
                    continue
@@ -104,8 +104,8 @@ class timeSpans():
                 currStartIdx +=1
         print('number pairs found: {}\n number remaining entries: {}'.format(len(self.msg), len(data.msg)))
         
-        for idx in range(len(data.msg)):
-            print(data.msg[idx])
+        #for idx in range(len(data.msg)):
+        #    print(data.msg[idx])
         self.remainingLogEntries = data
         
         
@@ -113,7 +113,7 @@ class timeSpans():
 
 
 # %% try input arguments ...
-raw_path = "../log/"
+raw_path = "/data/log/"
 
 if len(sys.argv) == 1:
     import glob
@@ -131,6 +131,18 @@ else:
 
 server = logEntries(file_with_path)          
 timSpansServer = timeSpans(server)
+
+if len(sys.argv) >= 3:
+    startPlot = int(sys.argv[2])
+else:
+    startPlot = 0
+
+if len(sys.argv) == 4:
+    stopPlot = int(sys.argv[3])
+    if stopPlot <= 0:
+        stopPlot = 20
+else:
+    stopPlot = 20
 
 # %% plot data
 
@@ -154,7 +166,7 @@ for idx in range(len(timSpansServer.startTime)):
     startSec = (timSpansServer.startTime[idx] - t0).total_seconds()
     duration = (timSpansServer.stopTime[idx] - timSpansServer.startTime[idx]).total_seconds()
     ax.barh(nameIdx, duration, left= startSec, align='center')
-    ax.text(startSec+duration/2, nameIdx, "{:3.0f} ms".format(duration*1000), rotation=45, backgroundcolor='gray', alpha=0.5, ha='center', va='center' )
+    ax.text(startSec+duration/2, nameIdx, "{:3.0f} ms".format(duration*1000), rotation=45, backgroundcolor='gray', alpha=0.5, ha='center', va='center', bbox=dict(facecolor='gray', edgecolor='black'), clip_on=True)
     if nameIdx == trigger_idx:
         all_trigger_time_list.append(startSec)
 
@@ -163,13 +175,13 @@ if trigger_idx != None:
     for iTrigger in range(len(all_trigger_time_list)-1):
         delta_t = all_trigger_time_list[iTrigger+1] - all_trigger_time_list[iTrigger]
         plot_position =all_trigger_time_list[iTrigger] + delta_t /2
-        ax.text(plot_position, trigger_idx, "{:3.0f} ms".format(delta_t*1000), rotation=0, backgroundcolor='red', alpha=0.85, ha='center', va='center' )
+        ax.text(plot_position, trigger_idx, "{:3.0f} ms".format(delta_t*1000), rotation=0, backgroundcolor='red', alpha=0.85, ha='center', va='center', bbox=dict(facecolor='red', edgecolor='black'), clip_on=True)
 
-
+plt.title(fileName)
 plt.xlabel('Time in s')
 
 plt.yticks(range(len(uniqueMessages)), uniqueMessages)
-ax.axis([0,20, -0.5,len(uniqueMessages)-0.5])
+ax.axis([startPlot,startPlot+stopPlot, -1.25,len(uniqueMessages)+0.25])
 
 plt.grid(True)
 plt.show()    

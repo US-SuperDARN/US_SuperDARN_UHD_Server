@@ -96,7 +96,7 @@ class timeSpans():
         
 # %% parse log files
 
-server = logEntries('../log/test_swing.log')          
+server = logEntries('/data/log/test_swing.log')
 timSpansServer = timeSpans(server)
 
 # %% plot data

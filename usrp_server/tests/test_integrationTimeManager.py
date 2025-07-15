@@ -1,7 +1,11 @@
 
 import pytest
 
-from usrp_server.usrp_server import integrationTimeManager, RadarHardwareManager
+import sys
+sys.path.append("..")
+sys.path.insert(0, '../../python_include')
+
+from usrp_server import integrationTimeManager, RadarHardwareManager
 
 '''
 @pytest.fixture

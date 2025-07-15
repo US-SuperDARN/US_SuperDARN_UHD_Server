@@ -3,7 +3,9 @@
 
 import numpy as np
 
-C = 3e8
+from scipy.constants import speed_of_light as C
+#C = 3e8
+
 verbose = False
 
 # returns a complex number from a phase in radians
