@@ -1,21 +1,13 @@
 name: Enforce Branch Naming
-
-on:
-  push:
-    branches-ignore:
-      - 'stable'    # exempt default branch
-      - 'devel'     # exempt dev branch
-      - 'dev/**'    # exempt pre-exisiting and to-be-merged dev sub-branches
+on: push
 
 jobs:
   check-branch-name:
     runs-on: ubuntu-latest
     steps:
-      - name: Check branch naming
-        run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          if [[ ! "$BRANCH_NAME" =~ ^(feat|fix|docs|chore|hotfix)/[a-z0-9-]+$ ]]; then
-            echo "Invalid branch name: 'BRANCH_NAME'"
-            echo "Branch names must match: ^(feat|fix|docs|chore|hotfix)/[a-z0-9-]+$"
-            exit 1
-          fi
+      - uses: deepakputhraya/action-branch-name@master
+        with:
+          regex: '([a-z])+\/([a-z])+'
+          allowed_prefixes: 'feat,fix,hotfix,dev'
+          ignore: devel,stable
+          
