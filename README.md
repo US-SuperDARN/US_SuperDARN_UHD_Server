@@ -1,6 +1,7 @@
+
+<!---
 # H1
 ## H2
-<!---
 *BOLD*
 1. List
 2. Second List
@@ -12,10 +13,10 @@ print('hello')
 -->
 
 # SuperDARN USRP Imaging Overview
-This repository houses code for a experimental rewrite of SuperDARN ROS code to adapt them use Ettus software defined radios.
-The first deployment is planned for Kodiak radar.
+This repository houses code for the US SuperDARN group's UHD Server code and adapts the use of Ettus software defined radios for our radar sites.
+The branches are currently being renamed with tags to distigush which are stable, being developed, used for quick fixes, etc.
 
-This code is intended to integrate with existing code SuperDARN ROS Linux computers.
+This code is intended to integrate with the existing SuperDARN ROS repository and for use on Ubuntu 24.04 computers.
 It replaces all software from arby\_server on down, including the timing, dio, and receiver cards.
 
 ## usrp\_server.py
