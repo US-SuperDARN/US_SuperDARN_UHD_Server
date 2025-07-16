@@ -1084,6 +1084,7 @@ void process_avg_ant_pwr (
     int *acculated_pwrs
 ) {
     double avg_pwrs[meta_data->num_antennas];
+    double overall_avg_pwr = 0;
 
     log_trace("Entered process_avg_ant_pwr()...");
     // Average antenna powers from all samples
@@ -1094,7 +1095,7 @@ void process_avg_ant_pwr (
         // Average Power of antenna's sample set
         for (int cur_sample = 0; cur_sample < num_samples; cur_sample++) {
 
-            // Index using the following array format: [cur_ant][cur_sample]
+            // Index samples using the following array format: [cur_ant][cur_sample]
             s_idx = ant_idx * num_samples + cur_sample;
             
             // Calculate Power of each sample ... 
@@ -1107,16 +1108,27 @@ void process_avg_ant_pwr (
             // log_trace("         avg_ant_pwr[%d]: %f", ant_idx, avg_pwrs[ant_idx]);
         }
         avg_pwrs[ant_idx] /= num_samples;
+        overall_avg_pwr += avg_pwrs[ant_idx];
+
+        // Accumulate the average power into the sum of averaged powers
+        acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
+    }
+
+    overall_avg_pwr = meta_data->num_antennas;
+    int min_pwr_threshold = overall_avg_pwr * MIN_ANT_PWR_MULT;
+
+    // Filter out active vs inactive antennas
+    for (int ant_idx = 0; ant_idx < meta_data->num_antennas; ant_idx++) {
 
         // Check if antenna meets active pwr threshold, ...
-        if (avg_pwrs[ant_idx] > MIN_ANT_PWR && //MAX_ANT_PWR > avg_pwrs[ant_idx] &&
+        if (avg_pwrs[ant_idx] > min_pwr_threshold && 
             ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
             active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
         } 
         // If Inferrometric antennas meets active pwr threshold, ...
-        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && //MAX_ANT_PWR > avg_pwrs[ant_idx] &&
+        else if (avg_pwrs[ant_idx] > min_pwr_threshold && 
             (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
@@ -1125,9 +1137,5 @@ void process_avg_ant_pwr (
         else {
             log_trace("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
         }
-
-        // Accumulate the average power into the sum of averaged powers
-        acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
     }
-
 };

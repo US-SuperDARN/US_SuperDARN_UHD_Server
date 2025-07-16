@@ -34,6 +34,7 @@
 // Filepaths Vars
 #define ARRAY_CONFIG_FILEPATH           "array_config.ini"
 #define RADAR_CONST_CONFIG_FILEPATH     "python_include/radar_config_constants.py"
+#define DEFAULT_SITE_STSTR             "sys"       // Default site config to use if not passed from usrp_server 
 
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500
@@ -1220,7 +1221,6 @@ int main() {
                 // Get site specific restrict file and join with path
                 if (strcmp(new_site_id,"lab") != 0) {
                     log_info( "Using /site.%s/restrict.dat.inst in ststr\n", ststr);
-                    // str_f_result = asprintf(&restrict_file,"%s/tables/superdarn/site/site.%s/restrict.dat.inst",rst_path,ststr);
                     str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, ststr);
                     if (str_f_result < 1) {
                         log_error( " site path format failed");
@@ -1230,8 +1230,12 @@ int main() {
 
                 // Default: Get lab testing restrict file
                 else {
-                    log_warn("WARNING: Parameter \'ststr\' is missing or set to a \"lab\" setting!");
-                    strcpy(restrict_file, "/home/df/Desktop/PSU-SuperDARN/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.sys/restrict.dat.inst\0");
+                    log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
+                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, DEFAULT_SITE_STSTR);
+                    if (str_f_result < 1) {
+                        log_error( " site path format failed");
+                        return 1;
+                    }
                 }
 
                 log_info("Using restrict file path: %s\n", restrict_file);
@@ -1617,8 +1621,8 @@ int main() {
                         
                         // Reserve the frequency band 
                         radar_table[cur_radar][cur_channel].clr_band = clr_bands[i];
-                        radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[0];
-                        radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[1];
+                        radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[cur_radar][0];
+                        radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[cur_radar][1];
                         if (restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel >= RESTRICT_NUM) {
                             log_error("    ERROR: Reservation into restricted_freq failed due to overflow index!");
                             perror("ERROR: Reservation into restricted_freq failed due to overflow index!");
