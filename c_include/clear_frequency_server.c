@@ -1472,7 +1472,7 @@ int main() {
                     clr_range[cur_radar][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) 
                 {
                     log_error("ERROR: Clear Range is out of Usrp Range!");
-                    log_error("ERROR: Please check your Clear Range and Usrp frequency settings.");
+                    log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
                     // print usrp range and clr range
                     log_error("Usrp Range: %d -- %d",
                         (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)),

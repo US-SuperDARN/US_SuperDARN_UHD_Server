@@ -652,6 +652,7 @@ void phasing_and_beamforming(
     }
 
     // Apply beamforming
+    int avg_pwr[meta_data->num_antennas];
     for (int i = 0; i < num_samples; i++) {
         double real_sum = 0.0;
         double imag_sum = 0.0;
@@ -661,18 +662,32 @@ void phasing_and_beamforming(
             double imag_sample = cimag(raw_samples[a_idx * num_samples + i]);
             double real_phase = creal(phasing_vector[a_idx]);
             double imag_phase = cimag(phasing_vector[a_idx]);
-            if (VERBOSE && i == 2499) {
-                log_trace("sample[%d][2499]    = %f + %fi", a_idx, real_sample, imag_sample);
-                log_trace("phase[%d]           = %f + %fi", a_idx, real_phase, imag_phase);
-            }
+            // if (VERBOSE && i == 2499) {
+            //     log_trace("sample[%d][2499]    = %f + %fi", meta_data->antenna_list[a_idx], real_sample, imag_sample);
+            //     log_trace("phase[%d]           = %f + %fi", meta_data->antenna_list[a_idx], real_phase, imag_phase);
+            // }
 
             real_sum += real_sample * real_phase - imag_sample * imag_phase;
             imag_sum += real_sample * imag_phase + imag_sample * real_phase;
+
+            // Debug: Accumulate for average power
+            if (i == 0) { avg_pwr[a_idx] = real_sample * real_sample + imag_sample * imag_sample;}
+            else {avg_pwr[a_idx] += real_sample * real_sample + imag_sample * imag_sample;}
+
+            // Debug: On last sample, divide for average power
+            if (i >= num_samples - 1) {
+                avg_pwr[a_idx] = avg_pwr[a_idx] / num_samples;
+                log_trace("   avg_pwr[%d]    = %d", meta_data->antenna_list[a_idx], avg_pwr[a_idx]);
+                if (avg_pwr[a_idx] > MAX_ANT_PWR) {
+                    log_warn("   ant#%d Pwr is high", meta_data->antenna_list[a_idx]);
+                }
+            }
         }
         beamformed_samples[i] = real_sum + I * imag_sum;
 
-        if (VERBOSE && i == 2499)
-            log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
+        // if (VERBOSE && i == 2499) {
+        //     log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));
+        // }
     }
 }
 
@@ -1094,13 +1109,15 @@ void process_avg_ant_pwr (
         avg_pwrs[ant_idx] /= num_samples;
 
         // Check if antenna meets active pwr threshold, ...
-        if (avg_pwrs[ant_idx] > MIN_ANT_PWR && ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
+        if (avg_pwrs[ant_idx] > MIN_ANT_PWR && //MAX_ANT_PWR > avg_pwrs[ant_idx] &&
+            ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
             active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
         } 
         // If Inferrometric antennas meets active pwr threshold, ...
-        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
+        else if (avg_pwrs[ant_idx] > MIN_ANT_PWR && //MAX_ANT_PWR > avg_pwrs[ant_idx] &&
+            (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
             active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
