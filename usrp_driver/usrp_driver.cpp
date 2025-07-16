@@ -32,6 +32,7 @@
 #include <uhd/utils/thread.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
+#include <uhd/usrp_clock/multi_usrp_clock.hpp>
 #include <uhd/transport/udp_simple.hpp>
 #include <uhd/exception.hpp>
 
@@ -432,6 +433,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     uint32_t tx_worker_active;
 
     uhd::time_spec_t start_time, rx_start_time;
+    uhd::usrp_clock::multi_usrp_clock::sptr gps_clock;
 
     // vector of all pulse start times over an integration period
     std::vector<uhd::time_spec_t> pulse_time_offsets;
@@ -454,7 +456,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     txshm_size = std::stoi(pt.get<std::string>("shm_settings.txshm_size"));
 
     usrp_driver_base_port = std::stoi(pt.get<std::string>("network_settings.USRPDriverPort"));
-    
+
+    std::string addr = "addr=" + pt.get<std::string>("network_settings.GPSOctoclockHostname");
+    const char *clk_addr = addr.c_str();
+
     boost::property_tree::ptree pt_array;
     DEBUG_PRINT("%s: USRP_DRIVER starting to read array_config.ini\n", get_log_time());
     boost::property_tree::ini_parser::read_ini("../array_config.ini", pt_array);
@@ -619,6 +624,26 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     else {
     // sync clock with external 10 MHz and PPS
         DEBUG_PRINT("%s: Set clock: external\n", get_log_time());
+        gps_clock = uhd::usrp_clock::multi_usrp_clock::make(uhd::device_addr_t(clk_addr));
+
+        if (gps_clock->get_sensor("gps_detected").value == "false") {
+            DEBUG_PRINT("%s: No GPSDO detected on clock.", get_log_time());
+        } else {
+            DEBUG_PRINT("%s: GPSDO detected on clock.\n", get_log_time());
+        }
+
+        if (gps_clock->get_sensor("using_ref").value != "internal") {
+            DEBUG_PRINT("%s: Clock is not using an internal reference (bad!)\n", get_log_time());
+        } else {
+            DEBUG_PRINT("%s: Clock is using an internal reference (good!)\n", get_log_time());
+        }
+
+        while (!(gps_clock->get_sensor("gps_locked").to_bool())) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            DEBUG_PRINT("%s: Waiting for gps lock...\n", get_log_time());
+        }
+        DEBUG_PRINT("%s: GPS is locked.\n", get_log_time());
+
         usrp->set_clock_source("external", 0);
         DEBUG_PRINT("%s: Set time: external\n", get_log_time());
         usrp->set_time_source("external", 0);
@@ -1053,9 +1078,37 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         usrp->set_time_next_pps(uhd::time_spec_t(0.0));
                         boost::this_thread::sleep(boost::posix_time::milliseconds(1100));
                  */
-                        DEBUG_PRINT("%s: Start setting unknown pps\n", get_log_time());
-                        usrp->set_time_unknown_pps(uhd::time_spec_t(11.0));
-                        DEBUG_PRINT("%s: end setting unknown pps\n", get_log_time());
+                        //DEBUG_PRINT("%s: Start setting unknown pps\n", get_log_time());
+                        //usrp->set_time_unknown_pps(uhd::time_spec_t(11.0));
+                        //DEBUG_PRINT("%s: end setting unknown pps\n", get_log_time());
+
+                        auto wait_for_update = [&]() {
+                            uhd::time_spec_t last = usrp->get_time_last_pps();
+                            uhd::time_spec_t next = usrp->get_time_last_pps();
+                            while (next == last) {
+                                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                                last = next;
+                                next = usrp->get_time_last_pps();
+                            }
+                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                        };
+
+                        DEBUG_PRINT("%s: Starting sync to PPS.\n", get_log_time());
+                        wait_for_update();
+                        usrp->set_time_next_pps(uhd::time_spec_t(static_cast<double>(gps_clock->get_time() + 1)));
+                        wait_for_update();
+                        DEBUG_PRINT("%s: Finished sync to PPS.\n", get_log_time());
+
+                        auto clock_time = uhd::time_spec_t(static_cast<double>(gps_clock->get_time()));
+
+                        for (uint32_t board=0; board < usrp->get_num_mboards(); board++) {
+                            auto usrp_time = usrp->get_time_last_pps(board);
+                            auto time_diff = clock_time - usrp_time;
+
+                            DEBUG_PRINT("%s: Time difference between USRPs and gps clock for board %d is %f\n",
+                                        get_log_time(), board, time_diff.get_real_secs());
+                        }
+
                      }
 
                     sock_send_uint8(driverconn, UHD_SYNC);
