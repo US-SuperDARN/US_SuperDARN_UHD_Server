@@ -2088,8 +2088,7 @@ class RadarHardwareManager:
                  
        if not first_sync:        
           for jrad in range(self.N_RADARs):
-             if radar_active[jrad]:
-                self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) 
+             self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) 
 
 
     #@timeit
@@ -2108,12 +2107,11 @@ class RadarHardwareManager:
            att = 31.5
 
         for jrad in range(self.N_RADARs):
-           if radar_active[jrad]:
-              self.logger.info("Setting RXFE: Amp1={}, Amp2={}, Attenuation={} dB".format(amp1, amp2, att)) 
-              cmd = usrp_rxfe_setup_command(self.usrpManager.socks[jrad], amp1, amp2, att*2) # *2 since LSB is 0.5 dB 
-              cmd.transmit()
-              time.sleep(0.001)
-              self.usrpManager.eval_client_return(cmd, jrad)
+           self.logger.info("Setting RXFE: Amp1={}, Amp2={}, Attenuation={} dB".format(amp1, amp2, att)) 
+           cmd = usrp_rxfe_setup_command(self.usrpManager.socks[jrad], amp1, amp2, att*2) # *2 since LSB is 0.5 dB 
+           cmd.transmit()
+           time.sleep(0.001)
+           self.usrpManager.eval_client_return(cmd, jrad)
 
 
     def test_rxfe_control(self):
