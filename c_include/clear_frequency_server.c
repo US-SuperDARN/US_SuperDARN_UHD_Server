@@ -34,6 +34,7 @@
 // Filepaths Vars
 #define ARRAY_CONFIG_FILEPATH           "array_config.ini"
 #define RADAR_CONST_CONFIG_FILEPATH     "python_include/radar_config_constants.py"
+#define DEFAULT_SITE_STSTR              "cve"       // Default site config to use if not passed from usrp_server 
 
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500
@@ -1220,7 +1221,6 @@ int main() {
                 // Get site specific restrict file and join with path
                 if (strcmp(new_site_id,"lab") != 0) {
                     log_info( "Using /site.%s/restrict.dat.%s in ststr\n", ststr, ststr);
-                    // str_f_result = asprintf(&restrict_file,"%s/tables/superdarn/site/site.%s/restrict.dat.inst",rst_path,ststr);
                     str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr, ststr);
                     if (str_f_result < 1) {
                         log_error( " site path format failed");
@@ -1230,8 +1230,8 @@ int main() {
 
                 // Default: Get lab testing restrict file
                 else {
-                    log_warn("WARNING: Parameter \'ststr\' is missing or set to a \"lab\" setting!");
-                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.cve/restrict.dat.cve", rst_path);
+                    log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
+                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, DEFAULT_SITE_STR, DEFAULT_SITE_STSTR);
                     if (str_f_result < 1) {
                         log_error( " site path format failed");
                         return 1;
@@ -1476,7 +1476,7 @@ int main() {
                     clr_range[cur_radar][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) 
                 {
                     log_error("ERROR: Clear Range is out of Usrp Range!");
-                    log_error("ERROR: Please check your Clear Range and Usrp frequency settings.");
+                    log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
                     // print usrp range and clr range
                     log_error("Usrp Range: %d -- %d",
                         (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)),
