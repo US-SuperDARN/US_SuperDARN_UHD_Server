@@ -1231,7 +1231,7 @@ int main() {
                 // Default: Get lab testing restrict file
                 else {
                     log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
-                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, DEFAULT_SITE_STR, DEFAULT_SITE_STSTR);
+                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, DEFAULT_SITE_STSTR, DEFAULT_SITE_STSTR);
                     if (str_f_result < 1) {
                         log_error( " site path format failed");
                         return 1;
