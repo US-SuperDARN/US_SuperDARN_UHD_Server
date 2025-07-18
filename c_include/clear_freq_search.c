@@ -1116,10 +1116,11 @@ void process_avg_ant_pwr (
 
     overall_avg_pwr /= meta_data->num_antennas;
     double min_pwr_threshold = 1; 
-    if (overall_avg_pwr <= 0) {
-        log_error("ERROR: CFS shows antennas are all down! CFS will resort to last clear freq set.");
+    if (overall_avg_pwr > 0) {
         min_pwr_threshold = overall_avg_pwr * MIN_ANT_PWR_MULT;
-    } 
+    } else {
+        log_error("ERROR: CFS shows antennas are all down! CFS will resort to last clear freq set.");
+    }
     log_debug("overall_avg_pwr: %f min_pwr_threshold: %f", overall_avg_pwr, min_pwr_threshold);
 
     // Filter out active vs inactive antennas
