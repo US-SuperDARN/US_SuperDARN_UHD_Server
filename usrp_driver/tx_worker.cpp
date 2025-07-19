@@ -59,6 +59,11 @@ void usrp_tx_worker(
 
     size_t number_of_pulses = pulse_sample_idx_offsets.size();
     size_t spb = tx_stream->get_max_num_samps();
+
+    // to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
+    spb = (size_t)(spb/8)*8;
+    
+    
     int32_t samples_per_pulse = padded_num_samples_per_pulse - 2*spb; 
     fprintf(stderr,"TX_WORKER nSamples_per_pulse=%i + 2*%zu (zero padding)\n", samples_per_pulse, spb);
     DEBUG_PRINT("TX_WORKER nSamples_per_pulse=%i + 2*%zu (zero padding)\n", samples_per_pulse, spb);
@@ -78,6 +83,9 @@ void usrp_tx_worker(
     while(nacc_samples < tx_burst_length_samples) {
         // calculate the number of samples to send in the packet
         nsamples_to_send = std::min(tx_burst_length_samples - nacc_samples, spb);
+
+	// to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
+	nsamples_to_send = (int32_t)(nsamples_to_send/8)*8;
         
         // calculate the number of samples until the next transmit pulse
         samples_to_pulse = pulse_sample_idx_offsets[pulse_idx] - nacc_samples;
