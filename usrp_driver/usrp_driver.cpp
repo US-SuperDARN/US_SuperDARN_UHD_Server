@@ -253,7 +253,7 @@ ssize_t sock_send_cshort(int32_t sock, std::complex<short int> d)
 {
    ssize_t status = send(sock, &d, sizeof(std::complex<short int>), 0);
    if(status != sizeof(std::complex<short int>)) {
-        fprintf(stderr, "error sending compelx short\n");
+        fprintf(stderr, "error sending complex short\n");
    }
    return status;
 }
