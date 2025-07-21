@@ -294,7 +294,7 @@ class usrpSockManager():
                
        if not SomeActiveUSRPs:
          self.logger.error("No connection to USRPs. Exit usrp_server.")
-         RHM.exit() 
+         self.RHM.exit() 
 
        return client_return
 
