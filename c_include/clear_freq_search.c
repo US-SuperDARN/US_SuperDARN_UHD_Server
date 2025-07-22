@@ -1114,21 +1114,27 @@ void process_avg_ant_pwr (
         acculated_pwrs[meta_data->antenna_list[ant_idx]] += avg_pwrs[ant_idx];
     }
 
-    overall_avg_pwr = meta_data->num_antennas;
-    int min_pwr_threshold = overall_avg_pwr * MIN_ANT_PWR_MULT;
+    overall_avg_pwr /= meta_data->num_antennas;
+    double min_pwr_threshold = 1; 
+    if (overall_avg_pwr > 0) {
+        min_pwr_threshold = overall_avg_pwr * MIN_ANT_PWR_MULT;
+    } else {
+        log_error("ERROR: CFS shows antennas are all down! CFS will resort to last clear freq set.");
+    }
+    log_debug("overall_avg_pwr: %f min_pwr_threshold: %f", overall_avg_pwr, min_pwr_threshold);
 
     // Filter out active vs inactive antennas
     for (int ant_idx = 0; ant_idx < meta_data->num_antennas; ant_idx++) {
 
         // Check if antenna meets active pwr threshold, ...
-        if (avg_pwrs[ant_idx] > min_pwr_threshold && 
+        if (avg_pwrs[ant_idx] >= min_pwr_threshold && 
             ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
             active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
         } 
         // If Inferrometric antennas meets active pwr threshold, ...
-        else if (avg_pwrs[ant_idx] > min_pwr_threshold && 
+        else if (avg_pwrs[ant_idx] >= min_pwr_threshold && 
             (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
             log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
             ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
