@@ -74,7 +74,7 @@ int ini_parse(const char* filename, ini_handler handler, void* user);
 #define MIN_FREQ_SEP 6000           // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
                                     // then minimum frequency separation is used then ceiling-ed to be a factor of (# of avgs * freq per sample))
 
-#define MIN_ANT_PWR_MULT .8         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
+#define MIN_ANT_PWR_MULT .2         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
 #define MAX_ANT_PWR 25000           // Debug: used to flag high power samples during TCS's process_beamformed_samples
 
 #define IDX_LAST_IA 19              // Last Interferrometer Array
