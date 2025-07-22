@@ -20,9 +20,9 @@ rtserver -rp 41104 -ep 41000 -tp 1024 & # ch 1
 
 #Start USRP drivers and CUDA driver on second radar:
 RADAR_2=192.168.100.2
-ssh radar@$RADAR_2 'python3 /home/radar_user/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py &' &
+ssh radar@$RADAR_2 'python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py &' &
 
-python3 /home/radar_user/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py server &
+python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py server &
 
 sleep 25
 #ssh radar@$RADAR_2 '/home/radar/repos/SuperDARN_UHD_Server/launch_second_radar.sh &' &

@@ -554,10 +554,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-    // For King Salmon (uncomment the following 2 lines)
-    // usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
-    // usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:A B:A"));
-    boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
+    // boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
+    usleep(1000);
     uhd::stream_args_t stream_args("sc16", "sc16");
     
     if (usrp->get_rx_num_channels() < nSides || usrp->get_tx_num_channels() < nSides) {  
@@ -565,10 +563,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
        return -1;
     }
     stream_args.channels = channel_numbers;
-
-    // adding code to test using the dram replay_buffer to prevent timeout during tx - WB 7/25
-    stream_args.args["streamer"]="replay_buffered";
-    
+    stream_args.args["streamer"]="replay_buffered";    
     uhd::rx_streamer::sptr rx_stream = usrp->get_rx_stream(stream_args);
     uhd::tx_streamer::sptr tx_stream = usrp->get_tx_stream(stream_args);
 
@@ -789,19 +784,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     // create local copy of transmit pulse data from shared memory
                     std::complex<int16_t> *shm_pulseaddr;
                     size_t spb = tx_stream->get_max_num_samps();
-
-		    // to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
-		    spb = (size_t)(spb/8)*8;
-
-		    
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-
-		    num_samples_per_pulse_with_padding = (size_t)(num_samples_per_pulse_with_padding/8)*8; // WB - 7/25
-
-
-		    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
+                    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -874,15 +860,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                         // create local copy of transmit pulse data from shared memory
                         size_t spb = tx_stream->get_max_num_samps();
-			
-			// to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
-			spb = (size_t)(spb/8)*8;
-			
                         size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                         size_t number_of_pulses = pulse_time_offsets.size();
                         size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-			num_samples_per_pulse_with_padding = (size_t)(num_samples_per_pulse_with_padding/8)*8;
-			
                         DEBUG_PRINT("spb %ld, pulse length %ld samples, pulse with padding %ld\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
 
@@ -922,7 +902,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			useconds_t usecs=1000;
 			usleep(usecs);			
                         if (tx_worker_active) {
-			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets)); 
+			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets, txrate)); 
                         }
 
 			usleep(usecs);

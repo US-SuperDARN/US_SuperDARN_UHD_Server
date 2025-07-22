@@ -1771,6 +1771,11 @@ class scanManager():
         self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
         clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range)
 
+        #Failsafe for when the search fails WB 7/21/25
+        if clearFreq == 0:
+           default_freq = (self.clear_freq_range_list[iPeriod][0]+self.clear_freq_range_list[iPeriod][1])/2
+           clearFreq = default_freq
+           noise = 99999.99
 
         self.logger.debug('end calc_clear_freq_on_raw_samples')
         if 'baseband_samplerate' in RHM.commonChannelParameter: 

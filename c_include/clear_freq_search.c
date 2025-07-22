@@ -359,7 +359,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
                 // Special: Shift inter_band band right till overwritten 
                 if (insert_idx < intersect_idx) {
                     // Debug: verify bands shift properly @ sample
-                    // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
+                    // for (int j = 0; j < CLR_BANDS_MAX; j++) {
                     //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
                     // }
                     
@@ -1115,11 +1115,11 @@ void process_avg_ant_pwr (
     }
 
     overall_avg_pwr /= meta_data->num_antennas;
-    double min_pwr_threshold = 1; 
+    double min_pwr_threshold = 1;
     if (overall_avg_pwr > 0) {
         min_pwr_threshold = overall_avg_pwr * MIN_ANT_PWR_MULT;
     } else {
-        log_error("ERROR: CFS shows antennas are all down! CFS will resort to last clear freq set.");
+        log_error("ERROR: CFS shows antenna are all down!");
     }
     log_debug("overall_avg_pwr: %f min_pwr_threshold: %f", overall_avg_pwr, min_pwr_threshold);
 
