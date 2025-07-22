@@ -70,6 +70,7 @@
 #define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
 #define CHANNEL_ID_SHM_SIZE     (1 * sizeof(int))
 #define ACTIVE_CLIENTS_SHM_SIZE (1 * sizeof(int))
+#define MUTED_ANT_SHM_SIZE      (STATIC_ANTENNA_NUM * sizeof(int))          // List of Muted Antennas
 
 // Shared Memory and Semaphore Names 
 #define SAMPLES_SHM_NAME        "/samples"
@@ -85,10 +86,11 @@
 #define RADAR_ID_SHM_NAME       "/radar_id"
 #define CHANNEL_ID_SHM_NAME     "/channel_id"
 #define ACTIVE_CLIENTS_SHM_NAME "/active_clients"   // For debugging
+#define MUTED_ANT_SHM_NAME      "/muted_ant"
 
 #define SAMPLE_PARAM_NUM 4
 #define RESTRICT_PARAM_NUM 2
-#define PARAM_NUM 13
+#define PARAM_NUM 14
 
 #define SEM_F_CLIENT    "/sf_client"                // For Sync and reserving client and server roles during data transfer
 #define SEM_F_SERVER    "/sf_server"    
@@ -153,6 +155,7 @@ shm_obj site_id_obj     = {SITE_ID_SHM_NAME, NULL, -1, SITE_ID_SHM_SIZE};
 shm_obj radar_id_obj    = {RADAR_ID_SHM_NAME, NULL, -1, RADAR_ID_SHM_SIZE};
 shm_obj channel_id_obj  = {CHANNEL_ID_SHM_NAME, NULL, -1, CHANNEL_ID_SHM_SIZE};
 shm_obj client_num_obj  = {ACTIVE_CLIENTS_SHM_NAME, NULL, -1, ACTIVE_CLIENTS_SHM_SIZE};
+shm_obj muted_ant_obj   = {MUTED_ANT_SHM_NAME, NULL, -1, MUTED_ANT_SHM_SIZE};
 struct shm_obj *objects[PARAM_NUM] = {
     &samples_obj,
     &clr_range_obj,
@@ -167,6 +170,7 @@ struct shm_obj *objects[PARAM_NUM] = {
     &radar_id_obj,
     &channel_id_obj,
     &client_num_obj,
+    &muted_ant_obj,
 };
 
 
@@ -435,6 +439,22 @@ void read_single_int(int *result, void *shm_ptr) {
 void read_single_double(double *result, void *shm_ptr){
     *result = *(double *) shm_ptr;
     if (VERBOSE) log_trace("   read_s_int: %f", *result);
+}
+
+void write_int(int *result, int *shm_ptr, int n_elements, int shm_len) {
+    log_debug("n %d, len %d", n_elements, shm_len);
+
+    for (int i = 0; i < n_elements; i++) {
+        log_debug("arr: %d", result[i]);
+        shm_ptr[i] = result[i];
+        log_debug("writing: %d", shm_ptr[i]);
+    }
+
+    // Filling w/ dummy constant
+    for (int j = n_elements ; j < shm_len; j++) {
+        shm_ptr[j] = -1;
+        log_debug("writing: %d", shm_ptr[j]);
+    }
 }
 
 /**
@@ -1066,8 +1086,10 @@ int main() {
     int ccn_invalid_sample_cyles = 0;                                   // num of times in a row invalid samples were in send() cycle
     int accu_avg_ant_pwr[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};   // integrated avg antenna power from sample sets for an accurate avg ant power
     int active_antennas[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};    // active antennas for each radar
-    int active_ant_num = 0;
     int ant_active_ct[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // num of times antenna was active
+    int active_ant_num = 0;
+    int muted_ant_ids[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // Inactive Main Array Antennas to be muted at USRP Server side
+    int muted_ant_idx = 0;
     int clr_storage_i[STATIC_RADAR_NUM] = {0};
     int tcs_storage_i[STATIC_RADAR_NUM] = {0};
     bool is_tcs_ready[STATIC_RADAR_NUM] = {false};
@@ -1311,11 +1333,22 @@ int main() {
 
             // Check that main array antennas are active
             active_ant_num = 0;
-            for (int i = 0; i < meta_data.num_antennas; i++) {
-                int ant_idx = meta_data.antenna_list[i];
+            muted_ant_idx = 0;
+            for (int i = 0; i < STATIC_ANTENNA_NUM; i++) {
+                log_debug("checking ant#%d", i);
+
                 // Ignore inferrometer array
-                if (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA) ) {
+                if (active_antennas[cur_radar][i] > 0 && (i <= IDX_LAST_MA || i > IDX_LAST_IA) ) {
                     active_ant_num++;
+                    log_debug("checking ant#%d: active", i);
+                }
+                else if (i <= IDX_LAST_MA || i > IDX_LAST_IA) {
+                    muted_ant_ids[cur_radar][muted_ant_idx] = i;
+                    muted_ant_idx++;
+                    log_trace("checking ant#%d: inactive", i);
+                }
+                else {
+                    log_trace("checking ant#%d: inferro (ignored)", i);
                 }
             }
             log_info("Active Main Array Antennas: %d", active_ant_num);
@@ -1325,6 +1358,9 @@ int main() {
                 ccn_invalid_sample_cyles = 0;
             }
             else {ccn_invalid_sample_cyles++;}
+
+            // Send back Muted Antennas 
+            write_int(muted_ant_ids[cur_radar], muted_ant_obj.shm_ptr, muted_ant_idx, STATIC_ANTENNA_NUM);
 
 
             // Process and Store Spectra Data
@@ -1371,6 +1407,14 @@ int main() {
             }
 
             log_info( "Stored Samples successfully...");
+
+            // Flag that Processed Data is ready
+            log_info( "Signaling that Processed Data is ready!");
+            if (msync(muted_ant_obj.shm_ptr, MUTED_ANT_SHM_SIZE, MS_SYNC) == -1) { // Synchronize data writes with program counter
+                log_error( "msync failed");
+                perror("msync failed");
+            }
+            sem_post(sf_processed.sem);
         } 
 
         // If Clear Freq flagged, process clear frequency
