@@ -1498,7 +1498,7 @@ class clearFrequencyRawDataManager():
         self.logger.debug("Updated clear freq raw data with auto_clear_freq data")
 
         # Update Muted Antenna List
-        RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list(jrad)
+        RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list()
 
 
     def record_new_data(self, jrad):
@@ -1526,7 +1526,7 @@ class clearFrequencyRawDataManager():
             self.recordTime[jrad] = time.time()
 
             # Update Muted Antenna List
-            RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list(jrad)
+            RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list()
 
             self.logger.debug("clrfreq record time: {}".format(self.recordTime[jrad]))
         else:
