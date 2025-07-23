@@ -11,6 +11,7 @@
 #include <fftw3.h>      // FFT transform library
 #include <signal.h>
 #include <time.h>
+#include "clear_frequency_server.h"
 #include "clear_freq_search.h"
 #include "ini_parser.h"
 #include "read_config.c"
@@ -20,89 +21,6 @@
 // Build with the following flags:
 // -lrt -pthread -lfftw3 -lm 
 
-
-// Logging Vars
-#define LOG_TERMINAL_LEVEL  1                        // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
-#define LOG_FILE_LEVEL      0
-#define LOG_PREFIX          "[CFS] %s"               // *Unused* Prefix for log messages
-#define LOG_FILEPATH        "/data/log/cfs/cfs.%s.log"
-
-// Server Config Vars
-#define AVG_RATIO 4                                 // Number of samples to average during spectral averaging (4 = 4 samples avg-ed per beam)
-#define FFTW_THREADS 2                              // Number of threads to use for FFTW
-
-// Filepaths Vars
-#define ARRAY_CONFIG_FILEPATH           "array_config.ini"
-#define RADAR_CONST_CONFIG_FILEPATH     "python_include/radar_config_constants.py"
-#define DEFAULT_SITE_STSTR              "cve"       // Default site config to use if not passed from usrp_server 
-
-// Default Length of Variables (some dynamically change during runtime)
-#define SAMPLES_NUM             2500
-#define ANTENNA_NUM             16
-#define STATIC_ANTENNA_NUM      20 
-#define STATIC_RADAR_NUM        4                   // Max Number of possible radars in an array
-#define STATIC_CHANNEL_NUM      6                   // Max Number of possible channels in an array
-#define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table 
-#define BEAM_NUM                16                  // Number of beams to process
-#define SAMPLE_TIME             3                   // Time per Sample (in seconds)
-#define STORAGE_TIME            60                  // Total time per Sample Storage Batch (in seconds)
-#define STORAGE_NUM             (STORAGE_TIME / SAMPLE_TIME) // Total number of processed sample sets to store
-#define META_ELEM               3                   // 4 = 5 - 1 (fcenter has unique obj)
-#ifndef RESTRICT_NUM
-#define RESTRICT_NUM            50                  // Number of restricted freq bands in the restrict.dat.inst
-#endif
-#ifndef CLR_BANDS_MAX
-#define CLR_BANDS_MAX           6
-#endif
-#define CLR_STORAGE_NUM         10
-#define SITE_ID_ELEM            3                   // 3 = 3-letter identifier 
-
-#define SAMPLES_SHM_SIZE        (ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int)) 
-#define CLR_RANGE_SHM_SIZE      (2 * sizeof(int))
-#define FCENTER_SHM_SIZE        (1 * sizeof(int))
-#define BEAM_NUM_SHM_SIZE       (1 * sizeof(int))
-#define SAMPLE_SEP_SHM_SIZE     (1 * sizeof(int))
-#define RESTRICT_SHM_SIZE       (RESTRICT_NUM * 2 * sizeof(int))          // 2 = start and end freqs
-#define META_DATA_SHM_SIZE      ((META_ELEM + ANTENNA_NUM) * sizeof(double))
-#define ANTENNA_SHM_SIZE        (1 * sizeof(int))
-#define CLR_BANDS_SHM_SIZE      (1 * sizeof(int) * 3)    
-#define SITE_ID_SHM_SIZE        (SITE_ID_ELEM * sizeof(char))
-#define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
-#define CHANNEL_ID_SHM_SIZE     (1 * sizeof(int))
-#define ACTIVE_CLIENTS_SHM_SIZE (1 * sizeof(int))
-#define MUTED_ANT_SHM_SIZE      (STATIC_ANTENNA_NUM * sizeof(int))          // List of Muted Antennas
-
-// Shared Memory and Semaphore Names 
-#define SAMPLES_SHM_NAME        "/samples"
-#define CLR_RANGE_SHM_NAME      "/clear_freq_range"
-#define FCENTER_SHM_NAME        "/fcenter"
-#define BEAM_NUM_SHM_NAME       "/beam_num"
-#define SAMPLE_SEP_SHM_NAME     "/sample_sep"
-#define RESTRICT_SHM_NAME       "/restricted_freq"
-#define META_DATA_SHM_NAME      "/meta_data"
-#define ANTENNA_SHM_NAME        "/antenna_num"
-#define CLRFREQ_SHM_NAME        "/clear_freq"
-#define SITE_ID_SHM_NAME        "/site_id"
-#define RADAR_ID_SHM_NAME       "/radar_id"
-#define CHANNEL_ID_SHM_NAME     "/channel_id"
-#define ACTIVE_CLIENTS_SHM_NAME "/active_clients"   // For debugging
-#define MUTED_ANT_SHM_NAME      "/muted_ant"
-
-#define SAMPLE_PARAM_NUM 4
-#define RESTRICT_PARAM_NUM 2
-#define PARAM_NUM 14
-
-#define SEM_F_CLIENT    "/sf_client"                // For Sync and reserving client and server roles during data transfer
-#define SEM_F_SERVER    "/sf_server"    
-#define SEM_F_SAMPLES   "/sf_samples"
-#define SEM_F_INIT      "/sf_init"           
-#define SEM_F_CLRFREQ   "/sf_clrfreq"               // For multiple data transfers on single instance 
-#define SEM_F_PROCESSED "/sf_processed"             // For processed data transfer
-#define SEM_L_SAMPLES   "/sl_samples"               // For Data locking b/w write/reads
-#define SEM_L_INIT      "/sl_init"                  // init = initialization
-#define SEM_L_CLRFREQ   "/sl_clrfreq"
-#define SL_NUM 3
-#define SEM_NUM 9
 
 typedef struct shm_obj{
     const char* name;
@@ -959,6 +877,8 @@ int main() {
     }
     int beam_total = array_config.array_info.nbeams;
     int cur_radar = 0;
+    int *muted_config_ants = array_config.gain_control.mute_antenna_ids;
+    int num_muted_config_ants = array_config.gain_control.num_mute_antennas;
     log_info( "Done initializing Array Configuration...");
 
 
@@ -1326,6 +1246,8 @@ int main() {
                 temp_samples,
                 samples_num,
                 &meta_data,
+                muted_config_ants,
+                num_muted_config_ants,
                 ant_active_ct[cur_radar],
                 active_antennas[cur_radar],
                 accu_avg_ant_pwr[cur_radar]
@@ -1360,8 +1282,8 @@ int main() {
             else {ccn_invalid_sample_cyles++;}
 
             // Send back Muted Antennas 
-            write_int(muted_ant_ids[cur_radar], muted_ant_obj.shm_ptr, muted_ant_idx, STATIC_ANTENNA_NUM);
-
+            if (USE_ACTIVE_MUTE == 1) write_int(muted_ant_ids[cur_radar], muted_ant_obj.shm_ptr, muted_ant_idx, STATIC_ANTENNA_NUM);
+            else write_int(muted_config_ants, muted_ant_obj.shm_ptr, num_muted_config_ants, STATIC_ANTENNA_NUM);
 
             // Process and Store Spectra Data
             if (tcs_storage_i[cur_radar] < STORAGE_NUM && active_ant_num > 0) { // Ignore empty sample sets
@@ -1728,10 +1650,27 @@ int main() {
             log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
             for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
                 int avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles;
+                char *ant_status;
+
+                // Check if muted in Array Config
+                bool is_muted = false;
+                for (int config_i = 0; config_i < num_muted_config_ants; config_i++) {
+                    if (muted_config_ants[config_i] == ant_idx) {
+                        is_muted = true;
+                        break;
+                    }
+                }          
+                if (is_muted == true) ant_status = "   muted";
+                else if (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) {
+                    ant_status = "  active";
+                } else {
+                    ant_status = "inactive";
+                }
+
                 log_info( "-> ant#%d[radar#%d][%s]: %d (missed %d)", 
                     ant_idx,
                     cur_radar, 
-                    (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) ? "  active" : "inactive",
+                    ant_status,
                     avg_ant_pwr,
                     valid_sample_cycles - ant_active_ct[cur_radar][ant_idx]
                 );
