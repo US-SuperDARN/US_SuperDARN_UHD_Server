@@ -3016,7 +3016,9 @@ class RadarHardwareManager:
     def calc_normalize_and_mute_factors(RHM, jrad, main_samples, back_samples):
         antenna_scale_factors = np.ones(max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad])+1)
         for ant_to_mute in RHM.mute_antenna_list:
-            antenna_scale_factors[ant_to_mute] = 0
+            # If antenna present and on mute list, mute it
+            if (max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad]) + 1) > ant_to_mute:
+                antenna_scale_factors[ant_to_mute] = 0
         antenna_scale_factors = [antenna_scale_factors for i in range(len(np.concatenate(RHM.channels).tolist()))]
 
         if RHM.apply_normalization:
