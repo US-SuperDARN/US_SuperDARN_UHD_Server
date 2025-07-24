@@ -360,18 +360,18 @@ void read_single_double(double *result, void *shm_ptr){
 }
 
 void write_int(int *result, int *shm_ptr, int n_elements, int shm_len) {
-    log_debug("n %d, len %d", n_elements, shm_len);
+    // log_debug("n %d, len %d", n_elements, shm_len);
 
     for (int i = 0; i < n_elements; i++) {
-        log_debug("arr: %d", result[i]);
+        log_trace("writing int: %d", result[i]);
         shm_ptr[i] = result[i];
-        log_debug("writing: %d", shm_ptr[i]);
+        // log_debug("writing: %d", shm_ptr[i]);
     }
 
     // Filling w/ dummy constant
     for (int j = n_elements ; j < shm_len; j++) {
         shm_ptr[j] = -1;
-        log_debug("writing: %d", shm_ptr[j]);
+        // log_debug("writing: %d", shm_ptr[j]);
     }
 }
 
@@ -1257,7 +1257,7 @@ int main() {
             active_ant_num = 0;
             muted_ant_idx = 0;
             for (int i = 0; i < STATIC_ANTENNA_NUM; i++) {
-                log_debug("checking ant#%d", i);
+                // log_debug("checking ant#%d", i);
 
                 // Ignore inferrometer array
                 if (active_antennas[cur_radar][i] > 0 && (i <= IDX_LAST_MA || i > IDX_LAST_IA) ) {
