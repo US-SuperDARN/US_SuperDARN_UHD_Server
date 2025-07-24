@@ -1081,7 +1081,7 @@ void process_avg_ant_pwr (
     sample_meta_data *meta_data,
     int *ant_active_ct,
     int *active_antennas,
-    int *acculated_pwrs
+    long *acculated_pwrs
 ) {
     double avg_pwrs[meta_data->num_antennas];
     double overall_avg_pwr = 0;
