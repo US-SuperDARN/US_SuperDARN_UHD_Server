@@ -69,12 +69,12 @@ int ini_parse(const char* filename, ini_handler handler, void* user);
 
 
 // Define Constants
-#define CLR_NOISE_THRESHOLD 100000  // Noise Threshold for a clear band to be considered a valid usable band
+#define CLR_NOISE_THRESHOLD 250000  // Noise Threshold for a clear band to be considered a valid usable band
 #define GB_MULT 4                   // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw)
 #define MIN_FREQ_SEP 6000           // Minimum Frequency Separation (in Hz) between Clear Freq Bands (If guard band + transmission bandwidth is less than this, 
                                     // then minimum frequency separation is used then ceiling-ed to be a factor of (# of avgs * freq per sample))
 
-#define MIN_ANT_PWR_MULT .8         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
+#define MIN_ANT_PWR_MULT .2         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
 #define MAX_ANT_PWR 25000           // Debug: used to flag high power samples during TCS's process_beamformed_samples
 
 #define IDX_LAST_IA 19              // Last Interferrometer Array

@@ -571,6 +571,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
        return -1;
     }
     stream_args.channels = channel_numbers;
+
     uhd::rx_streamer::sptr rx_stream = usrp->get_rx_stream(stream_args);
     uhd::tx_streamer::sptr tx_stream = usrp->get_tx_stream(stream_args);
 
@@ -822,10 +823,19 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     // create local copy of transmit pulse data from shared memory
                     std::complex<int16_t> *shm_pulseaddr;
                     size_t spb = tx_stream->get_max_num_samps();
+
+		    // to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
+		    spb = (size_t)(spb/8)*8;
+
+		    
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-                    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
+
+		    num_samples_per_pulse_with_padding = (size_t)(num_samples_per_pulse_with_padding/8)*8; // WB - 7/25
+
+
+		    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -898,9 +908,15 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                         // create local copy of transmit pulse data from shared memory
                         size_t spb = tx_stream->get_max_num_samps();
+			
+			// to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
+			spb = (size_t)(spb/8)*8;
+			
                         size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                         size_t number_of_pulses = pulse_time_offsets.size();
                         size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
+                        num_samples_per_pulse_with_padding = (size_t)(num_samples_per_pulse_with_padding/8)*8;
+
                         DEBUG_PRINT("%s: spb %ld, pulse length %ld samples, pulse with padding %ld\n", get_log_time(), spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
 
@@ -940,7 +956,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			useconds_t usecs=1000;
 			usleep(usecs);			
                         if (tx_worker_active) {
-			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets)); 
+			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets,txrate)); 
                         }
 
 			usleep(usecs);
