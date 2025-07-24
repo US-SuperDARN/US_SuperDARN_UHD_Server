@@ -1064,7 +1064,7 @@ int main() {
     };
     int valid_sample_cycles = 0;                                        // num of times valid samples were in send() cycle 
     int ccn_invalid_sample_cyles = 0;                                   // num of times in a row invalid samples were in send() cycle
-    int accu_avg_ant_pwr[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};   // integrated avg antenna power from sample sets for an accurate avg ant power
+    long accu_avg_ant_pwr[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};  // integrated avg antenna power from sample sets for an accurate avg ant power
     int active_antennas[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};    // active antennas for each radar
     int active_ant_num = 0;
     int ant_active_ct[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // num of times antenna was active
@@ -1683,7 +1683,7 @@ int main() {
             // Display Average Antenna Power, reset active antennas, and warn of antenna abnormalities
             log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
             for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
-                int avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles;
+                long avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles;
                 log_info( "-> ant#%d[radar#%d][%s]: %d (missed %d)", 
                     ant_idx,
                     cur_radar, 
