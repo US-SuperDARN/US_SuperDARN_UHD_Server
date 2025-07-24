@@ -35,12 +35,14 @@ void usrp_tx_worker(
     size_t padded_num_samples_per_pulse,
 //    size_t pulses_per_sequence,
     uhd::time_spec_t burst_start_time,
-    std::vector<size_t> pulse_sample_idx_offsets 
+    std::vector<size_t> pulse_sample_idx_offsets,
+   double txrate 
 ){
     // pulse samples are zero padded with 
     // [ spb * 0 ] [ pulse samples ] [ spb * 0 ]
     std::vector<std::vector<std::complex<int16_t>>> pulse_samples = (*pulse_samples_pointer);
     struct timeval t0, t1;
+    struct timeval t2, t3;
     gettimeofday(&t0,NULL);
 
     fprintf(stderr,"TX_WORKER starting up\n");
@@ -74,6 +76,7 @@ void usrp_tx_worker(
     size_t sample_idx = 0;
     uint32_t pulse_idx = 0;
     int32_t nsamples_to_send, samples_to_pulse;
+    double send_time;
 
     while(nacc_samples < tx_burst_length_samples) {
         // calculate the number of samples to send in the packet
@@ -106,7 +109,17 @@ void usrp_tx_worker(
         }
 
 
-      ntx_samples = tx_stream->send(buffer, nsamples_to_send, md, timeout);
+	gettimeofday(&t2,NULL);
+
+	ntx_samples = tx_stream->send(buffer, nsamples_to_send, md, timeout);
+
+	gettimeofday(&t3,NULL);
+	send_time=(t3.tv_sec-t2.tv_sec)*1E6 +(t3.tv_usec-t2.tv_usec);
+	
+	int sleeptime = (int)(0.9*1e6*nsamples_to_send/txrate) - send_time;
+	// DEBUG_PRINT("TX_WORKER: samples_sent %d send_time %f sleeptime %d\n",ntx_samples,send_time,sleeptime); 
+	// sleeptime=200;
+	if( sleeptime>0 ) usleep(sleeptime);
 
         md.start_of_burst = false;
         md.has_time_spec = false;

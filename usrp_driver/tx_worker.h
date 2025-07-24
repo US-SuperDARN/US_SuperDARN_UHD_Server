@@ -5,4 +5,5 @@ void usrp_tx_worker(
     size_t num_samples_per_pulse,
 //    size_t pulses_per_sequence,
     uhd::time_spec_t burst_start_time,
-    std::vector<size_t> pulse_sample_idx_offsets);
+    std::vector<size_t> pulse_sample_idx_offsets,
+    double txrate);
