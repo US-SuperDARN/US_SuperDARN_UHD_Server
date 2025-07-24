@@ -566,9 +566,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     }
     stream_args.channels = channel_numbers;
 
-    // adding code to test using the dram replay_buffer to prevent timeout during tx - WB 7/25
-    stream_args.args["streamer"]="replay_buffered";
-    
     uhd::rx_streamer::sptr rx_stream = usrp->get_rx_stream(stream_args);
     uhd::tx_streamer::sptr tx_stream = usrp->get_tx_stream(stream_args);
 
@@ -922,7 +919,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			useconds_t usecs=1000;
 			usleep(usecs);			
                         if (tx_worker_active) {
-			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets)); 
+			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets,txrate)); 
                         }
 
 			usleep(usecs);
