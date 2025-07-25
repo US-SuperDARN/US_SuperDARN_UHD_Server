@@ -391,7 +391,7 @@ void write_clrfreq_shm(freq_band clr_band, int *ptr) {
     ptr[2]  = clr_band.f_end;
 
     log_debug( "Sending the following Clear Frequency: ");
-    log_debug("    Clear Freq Band[%s]: | %dHz -- Noise: %f -- %dHz |", 
+    log_debug("    Clear Freq Band[%s]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
         clr_band.is_selected ? "Selected" : "Free", clr_band.f_start, clr_band.noise, clr_band.f_end
     );
 }
@@ -754,7 +754,7 @@ void flag_reserved_freqs(int radar_id, int channel_id, int radar_num, freq_band 
             // Skip current channel's reservation
             if (c_idx == channel_id && r_idx == radar_id) {
                 log_info("[TCS] Skipping current channel reservation...");
-                log_info("      Clr Freq Band[radar#%d][channel#%d] | %dHz -- Noise: %f -- %dHz |", 
+                log_info("      Clr Freq Band[radar#%d][channel#%d] | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
                     r_idx, c_idx, channel_data.clr_band.f_start, channel_data.clr_band.noise, channel_data.clr_band.f_end);
                 continue;
             }
@@ -1305,7 +1305,9 @@ int main() {
                     log_info( "Default clr_range set to %d -- %d", clr_range[0][0][0], clr_range[0][0][1]);
                 }
 
-                if (USE_MULTI_RANGE) {
+                if (USE_MULTI_RANGE == 1) {
+                    log_info("Processing samples over #%d clear ranges...", STATIC_RANGE_NUM);
+
                     // Process Spectra for all Clear Range
                     for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
                         // Process Spectra 
@@ -1335,11 +1337,12 @@ int main() {
                         );
                         tcs_storage_i[cur_radar][range_idx] += 1;
     
+                        // Reset TCS Storing point at (Storage_Num - 1)
                         if (tcs_storage_i[cur_radar][range_idx] >= STORAGE_NUM) {
-                            log_info( "[TCS] Radar[%d][%d -- %d] Storage is now Ready...", 
+                            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
                                 cur_radar, 
-                                clr_range[cur_radar][range_idx][0], 
-                                clr_range[cur_radar][range_idx][1]
+                                clr_range[cur_radar][range_idx][0] / 1000, 
+                                clr_range[cur_radar][range_idx][1] / 1000
                             );
                             is_tcs_ready [cur_radar][range_idx] = true;
                             tcs_storage_i[cur_radar][range_idx] = 0;
@@ -1376,10 +1379,10 @@ int main() {
                     tcs_storage_i[cur_radar][cur_range] += 1;
 
                     if (tcs_storage_i[cur_radar][cur_range] >= STORAGE_NUM) {
-                        log_info( "[TCS] Radar[%d][%d -- %d] Storage is now Ready...", 
+                        log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
                             cur_radar, 
-                            clr_range[cur_radar][cur_range][0], 
-                            clr_range[cur_radar][cur_range][1]
+                            clr_range[cur_radar][cur_range][0] / 1000, 
+                            clr_range[cur_radar][cur_range][1] / 1000
                         );
                         is_tcs_ready [cur_radar][cur_range] = true;
                         tcs_storage_i[cur_radar][cur_range] = 0;
@@ -1480,7 +1483,7 @@ int main() {
 
                 // If Clear Range exists, don't overwrite and set as cur_range
                 bool range_exists = false;
-                if (USE_MULTI_RANGE) {
+                if (USE_MULTI_RANGE == 1) {
                     // If Multi Range Optimization, Check existing clear ranges
                     for (int i = 0; i < STATIC_RANGE_NUM; i++) {
                         if (tmp_clr_range[0] == clr_range[cur_radar][i][0] && tmp_clr_range[1] == clr_range[cur_radar][i][1]) {
@@ -1575,7 +1578,7 @@ int main() {
             // If no fail flags, proceed with Clear Frequency Search
             if (fl_clr_range_out_bounds == false) {
                 // If TCS is not ready, process new clrfreq per unique beam request
-                if (is_tcs_ready[cur_radar] == false) {
+                if (is_tcs_ready[cur_radar][cur_range] == false) {
                     
                     // Fail: No active antennas and no sample data from prior clr freqs
                     if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
@@ -1645,7 +1648,7 @@ int main() {
             bool is_clr_band_found = false;
             if (clr_bands[0].noise != 0 && clr_bands[0].noise != RAND_MAX) {  // if clr_bands filled correctly, proceed to Freq Selection
                 for (int i = 0; i < CLR_BANDS_MAX; i++) {
-                    log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", 
+                    log_debug("Clear Freq Band[%d][%s]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
                         i, 
                         clr_bands[i].is_selected ? "Selected" : "Free", 
                         clr_bands[i].f_start, 
@@ -1700,7 +1703,7 @@ int main() {
                     if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                         clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
                         log_error("ERROR: Clear Freq Band[%d] is abnornal", i);
-                        log_error("Clear Freq Band[%d]: | %dHz -- Noise: %f -- %dHz |", i, 
+                        log_error("Clear Freq Band[%d]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", i, 
                             clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end
                         );
                         log_error("ERROR: There COULD be an error in CFS order of operations, or too wide of a guardband/narrow clear search range!");
@@ -1720,7 +1723,7 @@ int main() {
                     selected_clr_band = radar_table[cur_radar][cur_channel].clr_band;
                     restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel] = radar_table[cur_radar][cur_channel].clr_band;
 
-                    log_warn("CFS resorted to old reservation: | %dHz -- Noise: %f -- %dHz |", 
+                    log_warn("CFS resorted to old reservation: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
                             selected_clr_band.f_start, selected_clr_band.noise, selected_clr_band.f_end
                         );
                 }
@@ -1738,14 +1741,22 @@ int main() {
             
 
             // Display TCS Storage Information
-            log_info( "[TCS] Radar[%d][%d -- %d] Storage [%d/%d]", 
+            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage [%d/%d]", 
                 cur_radar, 
-                clr_range[cur_radar][cur_range][0], 
-                clr_range[cur_radar][cur_range][1], 
+                clr_range[cur_radar][cur_range][0] / 1000, 
+                clr_range[cur_radar][cur_range][1] / 1000, 
                 tcs_storage_i[cur_radar][cur_range] + 1, STORAGE_NUM
             );
-            if (is_tcs_ready[cur_radar] == true) log_info( "[TCS] Radar[%d] is Ready...", cur_radar);
-            else log_info( "[TCS] Radar[%d] is NOT Ready...", cur_radar);
+            if (is_tcs_ready[cur_radar][cur_range] == true) log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
+                            cur_radar, 
+                            clr_range[cur_radar][cur_range][0] / 1000, 
+                            clr_range[cur_radar][cur_range][1] / 1000
+                        );
+            else log_info( "[TCS] Radar[%d][%5d -- %5d] is NOT Ready...", 
+                cur_radar,
+                clr_range[cur_radar][cur_range][0] / 1000, 
+                clr_range[cur_radar][cur_range][1] / 1000
+            );
 
             // Display Average Antenna Power, reset active antennas, and warn of antenna abnormalities
             log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
