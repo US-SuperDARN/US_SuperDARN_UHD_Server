@@ -787,16 +787,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     std::complex<int16_t> *shm_pulseaddr;
                     size_t spb = tx_stream->get_max_num_samps();
 
-		    // to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
-		    spb = (size_t)(spb/8)*8;
-
 		    
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-
-		    num_samples_per_pulse_with_padding = (size_t)(num_samples_per_pulse_with_padding/8)*8; // WB - 7/25
-
 
 		    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
@@ -872,13 +866,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         // create local copy of transmit pulse data from shared memory
                         size_t spb = tx_stream->get_max_num_samps();
 			
-			// to use replay_buffered the number of samples has to be a multiple of 8 WB 7/25
-			spb = (size_t)(spb/8)*8;
-			
                         size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                         size_t number_of_pulses = pulse_time_offsets.size();
                         size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-			num_samples_per_pulse_with_padding = (size_t)(num_samples_per_pulse_with_padding/8)*8;
 			
                         DEBUG_PRINT("spb %ld, pulse length %ld samples, pulse with padding %ld\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
