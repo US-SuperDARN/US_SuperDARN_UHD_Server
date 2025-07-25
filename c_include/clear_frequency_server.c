@@ -1016,6 +1016,7 @@ int main() {
     bool is_tcs_ready[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false};
     int clr_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM][2] = {0};
     int clr_range_overwrite_idx[STATIC_RADAR_NUM] = {0};                  // Index used to track which clr_range to overwrite (increments to next clr_range idx each overwrite)
+    bool using_full_usrp_range[STATIC_RANGE_NUM] = {false}; 
     freq_band selected_clr_band = {0};
     
     // Failure flags
@@ -1310,6 +1311,16 @@ int main() {
 
                     // Process Spectra for all Clear Range
                     for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
+                        // Skip processing of default clear ranges, unless Client is scanning entire usrp range
+                        int def_low_range = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) / 1000;
+                        int def_high_range= (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2)) / 1000;
+                        if (clr_range[cur_radar][range_idx][0] == def_low_range  && 
+                            clr_range[cur_radar][range_idx][1] == def_high_range &&
+                            using_full_usrp_range == false
+                        ) {
+                            continue;
+                        }
+
                         // Process Spectra 
                         process_all_beamformed_spectras(
                                 temp_samples,
@@ -1483,6 +1494,8 @@ int main() {
 
                 // If Clear Range exists, don't overwrite and set as cur_range
                 bool range_exists = false;
+                int def_low_range = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) / 1000;
+                int def_high_range= (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2)) / 1000;
                 if (USE_MULTI_RANGE == 1) {
                     // If Multi Range Optimization, Check existing clear ranges
                     for (int i = 0; i < STATIC_RANGE_NUM; i++) {
@@ -1493,6 +1506,10 @@ int main() {
                             cur_range = i;
                             log_debug("    matching_range: %d -- %d Hz", tmp_clr_range[0], tmp_clr_range[1]);
                         }
+
+                        // Special: Client wants full usrp range
+                        if (def_low_range == tmp_clr_range[0] && def_high_range == tmp_clr_range[1]) using_full_usrp_range[i] = true;
+                        else using_full_usrp_range[i] = false;
                     }
                 } else {
                     // If Single Range Optimization, only check 1st range
@@ -1503,6 +1520,10 @@ int main() {
                         cur_range = 0;
                         log_debug("    matching_range: %d -- %d Hz", clr_range[cur_radar][0][0], clr_range[cur_radar][0][1]);
                     }
+
+                    // Special: Client wants full usrp range
+                    if (def_low_range == tmp_clr_range[0] && def_high_range == tmp_clr_range[1]) using_full_usrp_range[0] = true;
+                    else using_full_usrp_range[0] = false;
                 }
                 
 
