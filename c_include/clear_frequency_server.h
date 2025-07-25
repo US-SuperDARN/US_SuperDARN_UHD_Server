@@ -17,7 +17,8 @@
 // Server Config Vars
 #define AVG_RATIO               4                       // Number of samples to average during spectral averaging (4 = 4 samples avg-ed per beam)
 #define FFTW_THREADS            2                       // Number of threads to use for FFTW
-#define USE_ACTIVE_MUTE         0                       // 0 to only use muted antennas in Array Config, 1 to use Array Config + active muting
+#define USE_ACTIVE_MUTE         0                       // 0 to only use muted antennas in Array Config, 1 to use Array Config + let CFS detect low-power antennas to mute
+#define USE_MULTI_RANGE         1                       // 1 to use CFS' multiple clear ranges optimization, 0 to optimize for single clear range
 
 // Filepaths Vars
 #define ARRAY_CONFIG_FILEPATH           "array_config.ini"
@@ -30,6 +31,7 @@
 #define STATIC_ANTENNA_NUM      20 
 #define STATIC_RADAR_NUM        4                       // Max Number of possible radars in an array
 #define STATIC_CHANNEL_NUM      6                       // Max Number of possible channels in an array
+#define STATIC_RANGE_NUM        4                       // Max number of possible clear ranges per radar
 #define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table 
 #define BEAM_NUM                16                      // Number of beams to process
 #define SAMPLE_TIME             3                       // Time per Sample (in seconds)
