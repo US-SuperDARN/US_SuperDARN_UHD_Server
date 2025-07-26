@@ -20,7 +20,6 @@ from phasing_utils import calc_beam_azm_rad, calc_phase_increment, rad_to_rect, 
 from radar_config_constants import *
 
 RESTRICTED_POWER = 1e12 # arbitrary high power for restricted frequency
-RESTRICT_FILE = '/home/radar_user/repos/rst-ros/tables/superdarn/site/site.cve/restrict.dat.cve'
 
 SAVE_CLEAR_FREQUENCY_SEARCH = False 
 CLEAR_FREQUENCY_DUMP_DIR = '/data/logs/clearfreq_logs/'

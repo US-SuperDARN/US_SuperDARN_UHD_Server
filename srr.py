@@ -4,12 +4,8 @@
 #
 #  Usage:
 #     srr.py [status]              : shows all software radio processes 
-#     srr.py init                  : create symlink to usrp_config and drivern_config.ini
-#                                    all arguments are optional, order doesn't matter:
-#                 [main|aux]            : computer name, default is auto detect of hostname
-#                 [single|master|slave] : network mode, default is master for main and slave for aux
-#                 [singlePol|dualPol]   : polarization, default is singlePol
-#            
+#     srr.py init [stid]           : create symlink to array_, usrp_, and driver_config.ini files
+#
 #     srr.py networkTool|net       : calls networkTool.py 
 #     srr.py rawView               : plot raw rx bb samples of all antennas
 #     srr.py watchdog|w            : calls tools/watchdog.py
@@ -64,11 +60,14 @@ import time
 import errno
 import signal
 from pathlib import Path
+import getpass
 
 homePath = str(Path.home())
 
 basePath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, basePath + '/tools')
+
+userName = getpass.getuser()
 
 import networkTool
 
@@ -111,12 +110,13 @@ def waitFor(nSeconds):
 def initialize(inputArg):
    configPath = basePath + "/config" 
 
-   usrp_config_target_file   = basePath + "/usrp_config.ini"
+   array_config_target_file  = basePath + "/array_config.ini"
    driver_config_target_file = basePath + "/driver_config.ini"
+   usrp_config_target_file   = basePath + "/usrp_config.ini"
 
    # remove old files
    myPrint(" Removing old config files")
-   for targetFile in [usrp_config_target_file, driver_config_target_file]:
+   for targetFile in [array_config_target_file, driver_config_target_file, usrp_config_target_file]:
       if os.path.isfile(targetFile) or os.path.islink(targetFile):
          if os.path.islink(targetFile): # is a link
              myPrint("  removing link for {}".format(targetFile))
@@ -126,59 +126,32 @@ def initialize(inputArg):
              os.remove(targetFile)
 
    # default paramter values 
-   hostName     = os.uname()[1].lower().split("-")[-1]
-   polarization = 'singlePol'
-   netConfig    = 'auto' # master, slave, or single
-   myPrint(" Starting with default: host:{}, netConfig={}, polarization={}".format(hostName, netConfig, polarization))
+   radarName    = 'lab'
+   myPrint(" Starting with default: {}".format(radarName))
 
    # parse input arguments
-   del inputArg[0] 
-   for arg in inputArg:
-      if arg.lower() in ['main', 'aux']:
-         hostName =  arg.lower()
-      elif arg in ['singlePol', 'dualPol']:
-         polarization = arg
-      elif arg.lower() in ['single', 'master', 'slave']:
-         netConfig = arg.lower()
-      else:
-         myPrint("Unknown argument for init: {} ".format(arg))
-         return
+   del inputArg[0]
+   if len(inputArg) > 0:
+      radarName = inputArg[0].lower()
 
-   if netConfig == 'auto':
-      if hostName == "aux":
-         netConfig = "slave"
-      elif hostName == "main":
-         netconfig = "master"
-      else:
-         myPrint("Unknown host ({}), unable to set auto netconfig.".format(hostName))
-         return 
-   myPrint(" Initializing with: host={}, netConfig={}, polarization={}".format(hostName, netConfig, polarization))
+   myPrint(" Initializing with: {}".format(radarName))
 
-   # DETERMINE CONFIG FILE NAMES      
-   # for usrp_config single and slave is the same
-   if netConfig == 'slave':
-      usrp_net_config_name = 'single'
-   else:
-      usrp_net_config_name = netConfig
-
-   usrp_config_source_file    = configPath + "/usrp_config__" + hostName + "_" + usrp_net_config_name + "_" + polarization + ".ini"
-
-   # for netmode single the host name doesn't matter
-   if netConfig == 'single':
-      driver_host_name = ""
-   else:
-      driver_host_name = hostName + "_" 
- 
-   driver_config_source_file = configPath + "/driver_config__" + driver_host_name + netConfig  + ".ini"
+   array_config_source_file   = configPath + "/" + radarName + "/" + "array_config__" + radarName + ".ini"
+   driver_config_source_file  = configPath + "/" + radarName + "/" + "driver_config__" + radarName + ".ini"
+   usrp_config_source_file    = configPath + "/" + radarName + "/" + "usrp_config__" + radarName + ".ini"
 
    # linking new files   
-   myPrint("Creating symlink {}".format(usrp_config_target_file))  
-   myPrint("   -> {}".format( usrp_config_source_file))  
-   os.symlink(usrp_config_source_file, usrp_config_target_file)
+   myPrint("Creating symlink {} ".format(array_config_target_file))
+   myPrint("   -> {}".format(array_config_source_file))
+   os.symlink(array_config_source_file, array_config_target_file)
 
-   myPrint("Creating symlink {} ".format(driver_config_target_file))  
-   myPrint("   -> {}".format( driver_config_source_file))  
+   myPrint("Creating symlink {} ".format(driver_config_target_file))
+   myPrint("   -> {}".format(driver_config_source_file))
    os.symlink(driver_config_source_file, driver_config_target_file)
+
+   myPrint("Creating symlink {}".format(usrp_config_target_file))
+   myPrint("   -> {}".format(usrp_config_source_file))
+   os.symlink(usrp_config_source_file, usrp_config_target_file)
 
 def show_help():
    thisFile = open( os.path.realpath(__file__), 'r')
@@ -223,7 +196,7 @@ def print_status():
     remote_pc_list = get_remote_driver_host()
     for remote_pc in remote_pc_list:
        myPrint(" ")
-       respond = remote_command_echo("radar_user", remote_pc, "ps -aux", verbose=False)
+       respond = remote_command_echo(userName, remote_pc, "ps -aux", verbose=False)
        processList = respond.decode("UTF-8").split("\n")
        srrProcesses = get_known_processes(processList)
        myPrint("Remote {}: Found {} processes:".format(remote_pc, len(srrProcesses)))
@@ -234,7 +207,7 @@ def remote_stop_all():
     remote_pc_list = get_remote_driver_host()
     for remote_pc in remote_pc_list:
         myPrint(" calling srr stop for {}".format(remote_pc))
-        respond = remote_command_echo("radar_user", remote_pc, "srr stop", verbose=False)
+        respond = remote_command_echo(userName, remote_pc, "srr stop", verbose=False)
         print(respond)
 
 def get_known_processes(processList):
