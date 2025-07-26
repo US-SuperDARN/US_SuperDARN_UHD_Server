@@ -8,6 +8,7 @@
 #include <time.h>
 #include <signal.h>
 #include "clear_freq_search.h"
+#include "clear_frequency_server.h"
 #include "log.h"
 
 
@@ -359,7 +360,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
                 // Special: Shift inter_band band right till overwritten 
                 if (insert_idx < intersect_idx) {
                     // Debug: verify bands shift properly @ sample
-                    // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
+                    // for (int j = 0; j < CLR_BANDS_MAX; j++) {
                     //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
                     // }
                     
@@ -1079,6 +1080,8 @@ void process_avg_ant_pwr (
     fftw_complex *raw_samples, 
     int num_samples, 
     sample_meta_data *meta_data,
+    int *muted_config_ants,
+    int num_muted_config_ants,
     int *ant_active_ct,
     int *active_antennas,
     long *acculated_pwrs
@@ -1115,7 +1118,7 @@ void process_avg_ant_pwr (
     }
 
     overall_avg_pwr /= meta_data->num_antennas;
-    double min_pwr_threshold = 1; 
+    double min_pwr_threshold = 1;
     if (overall_avg_pwr > 0) {
         min_pwr_threshold = overall_avg_pwr * MIN_ANT_PWR_MULT;
     } else {
@@ -1125,23 +1128,57 @@ void process_avg_ant_pwr (
 
     // Filter out active vs inactive antennas
     for (int ant_idx = 0; ant_idx < meta_data->num_antennas; ant_idx++) {
+    
+        // Check if muted in Array Config
+        bool is_muted = false;
+        for (int config_i = 0; config_i < num_muted_config_ants; config_i++) {
+            if (muted_config_ants[config_i] == ant_idx) {
+                log_debug("         Antenna[%d]   muted: pwr");
+                is_muted = true;
+                break;
+            }
+        }          
+        if (is_muted == true) continue;
 
-        // Check if antenna meets active pwr threshold, ...
-        if (avg_pwrs[ant_idx] >= min_pwr_threshold && 
-            ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
-            log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
-            ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
-            active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
-        } 
-        // If Inferrometric antennas meets active pwr threshold, ...
-        else if (avg_pwrs[ant_idx] >= min_pwr_threshold && 
-            (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
-            log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
-            ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
-            active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
+        if (USE_ACTIVE_MUTE == 1) {
+            // Check if antenna meets active pwr threshold, ...
+            if (avg_pwrs[ant_idx] >= min_pwr_threshold && 
+                ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
+                log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+                ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
+                active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
+            } 
+            // If Inferrometric antennas meets active pwr threshold, ...
+            else if (avg_pwrs[ant_idx] >= min_pwr_threshold && 
+                (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
+                log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+                ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
+                active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
+            }
+            else {
+                log_trace("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+            }
         }
+
+        // Only mute if not present/empty antenna data to protect clear freqs
         else {
-            log_trace("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+            // Check if antenna is present, ...
+            if (avg_pwrs[ant_idx] > 0 && 
+                ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
+                log_debug("         Antenna[%d]   active: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+                ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
+                active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
+            } 
+            // If Inferrometric antennas is present, ...
+            else if (avg_pwrs[ant_idx] > 0 && 
+                (meta_data->antenna_list[ant_idx] > IDX_LAST_MA && meta_data->antenna_list[ant_idx] <= IDX_LAST_IA)) {
+                log_debug("         Antenna[%d]   inferr: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+                ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
+                active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
+            }
+            else {
+                log_trace("         Antenna[%d] inactive: pwr = %f ", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
+            }
         }
     }
 };

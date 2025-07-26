@@ -294,7 +294,7 @@ class usrpSockManager():
                
        if not SomeActiveUSRPs:
          self.logger.error("No connection to USRPs. Exit usrp_server.")
-         RHM.exit() 
+         self.RHM.exit() 
 
        return client_return
 
@@ -569,11 +569,12 @@ class ClearFrequencyService():
     DOUBLE_SIZE = 8
 
     # Shared Memory Object and Semaphores Constants
-    SAMPLES_NUM  = 5000
-    ANTENNA_NUM = 16
-    RESTRICT_NUM = 20
-    META_ELEM    = 3                                    # 3 = 4 - 1 (fcenter has unique obj)
-    CLR_BAND_MAX = 6
+    SAMPLES_NUM         = 5000
+    ANTENNA_NUM         = 16
+    STATIC_ANTENNA_NUM  = 20 
+    RESTRICT_NUM        = 20
+    META_ELEM           = 3                                    # 3 = 4 - 1 (fcenter has unique obj)
+    CLR_BAND_MAX        = 6
 
     SAMPLES_ELEM_NUM    = ANTENNA_NUM * SAMPLES_NUM * 2
     CLR_RANGE_ELEM_NUM  = 2
@@ -587,14 +588,15 @@ class ClearFrequencyService():
     FCENTER_SHM_SIZE        = (1 * INT_SIZE)
     BEAM_NUM_SHM_SIZE       = (1 * INT_SIZE)
     SAMPLE_SEP_SHM_SIZE     = (1 * INT_SIZE)
-    RESTRICT_SHM_SIZE       = (RESTRICT_NUM * 2 * INT_SIZE)          # 2 = start and end freqs
+    RESTRICT_SHM_SIZE       = (RESTRICT_NUM * 2 * INT_SIZE)             # 2 = start and end freqs
     META_DATA_SHM_SIZE      = ((META_ELEM + ANTENNA_NUM) * DOUBLE_SIZE)
     ANTENNA_SHM_SIZE        = (1 * INT_SIZE)
-    CLR_BANDS_SHM_SIZE      = (1 * INT_SIZE * 3)     # TODO: Round to convert freqs to int again
+    CLR_BANDS_SHM_SIZE      = (1 * INT_SIZE * 3)
     SITE_ID_SHM_SIZE        = (3 * CHAR_SIZE)
     RADAR_ID_SHM_SIZE       = (1 * INT_SIZE)
     CHANNEL_ID_SHM_SIZE     = (1 * INT_SIZE)
     ACTIVE_CLIENTS_SHM_SIZE = (1 * INT_SIZE)
+    MUTED_ANT_SHM_SIZE      = (STATIC_ANTENNA_NUM * INT_SIZE)           # List of Muted Antennas
 
     RETRY_ATTEMPTS = 3
     RETRY_DELAY = 2  # seconds
@@ -613,6 +615,7 @@ class ClearFrequencyService():
     RADAR_ID_SHM_NAME =         "/radar_id"
     CHANNEL_ID_SHM_NAME =       "/channel_id"
     ACTIVE_CLIENTS_SHM_NAME =   "/active_clients"   # For Debugging
+    MUTED_ANT_SHM_NAME =        "/muted_ant"
 
     # Semaphore Constants
     SAMPLE_PARAM_NUM =      2
@@ -635,6 +638,7 @@ class ClearFrequencyService():
     # Service Variables
     semaphores = []
     shm_objects = []
+    muted_antennas = []
     cur_antenna_num = ANTENNA_NUM
     old_meta_data = [[], 0, 0.0, 0.0]
     old_smsep = 0
@@ -685,7 +689,8 @@ class ClearFrequencyService():
                 self.create_shm_obj(self.SITE_ID_SHM_NAME,          self.SITE_ID_SHM_SIZE       , self.SITE_ID_ELEM_NUM),
                 self.create_shm_obj(self.RADAR_ID_SHM_NAME,         self.RADAR_ID_SHM_SIZE      , ),
                 self.create_shm_obj(self.CHANNEL_ID_SHM_NAME,       self.CHANNEL_ID_SHM_SIZE    , ),
-                self.create_shm_obj(self.ACTIVE_CLIENTS_SHM_NAME,   self.ACTIVE_CLIENTS_SHM_SIZE, )
+                self.create_shm_obj(self.ACTIVE_CLIENTS_SHM_NAME,   self.ACTIVE_CLIENTS_SHM_SIZE, ),
+                self.create_shm_obj(self.MUTED_ANT_SHM_NAME,        self.MUTED_ANT_SHM_SIZE     , self.STATIC_ANTENNA_NUM)
             ]
 
             for obj in ClearFrequencyService.shm_objects:
@@ -1026,13 +1031,19 @@ class ClearFrequencyService():
         """
         obj['shm_ptr'].seek(0)
         read_data = struct.unpack('i' * obj['elem_num'], obj['shm_ptr'].read(obj['size']))
-
+        
+        # Filter out filler/dummy constants
+        result = []
+        for elem in read_data:
+            if elem >= 0:
+                result.append(elem)
+        
         # Debug: Verify format of data object's raw data
-        # print("[clearFrequencyService] Data read from Shm: ", read_data[:5], "...")  # Print first 10 integers for brevity
-
-        return read_data
-
-
+        print("[clearFrequencyService] Data read from Shm: ", result[:5], "...")  # Print first 10 integers for brevity
+        
+        return result
+    
+    
     def repack_data(self, read_data, clr_freq = False, data_size = 1, data_sub_size = 1):
         """Repacks read data from SHM into its specified format. Currently repacks
         the following:
@@ -1053,6 +1064,9 @@ class ClearFrequencyService():
                 packed_data.append(int(((start_freq + end_freq) / 2) / 1000))
                 noise_data.append(noise)
             return packed_data, noise_data
+    
+    def get_muted_antenna_list(self):
+        return self.muted_antennas
 
     def premap_shm(self, meta_data=None):
         """Premaps all shared memory objects' pointers to their memory addresses.
@@ -1100,7 +1114,7 @@ class ClearFrequencyService():
                 obj['shm_ptr'] = mmap.mmap(obj['shm_fd'], obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
 
 
-    def send_samples(self, raw_samples, radar_id, fcenter=None, meta_data=None):
+    def send_samples(self, raw_samples, radar_id = 0, fcenter=None, meta_data=None):
         """ Waits for client requests, then processes server data, writes client
             data, and requests server to process new data. When process is
             terminated, the try/finally block cleans up.
@@ -1234,8 +1248,18 @@ class ClearFrequencyService():
                 print("[clearFrequencyService] Requesting Server Response...")
                 self.log.debug("[clearFrequencyService] Requesting Server response")
                 self.sf_server['sem'].release()
-
-
+                
+                
+                # Wait for Processed Data
+                self.sf_processed['sem'].acquire()
+                self.sl_samples['sem'].acquire()
+                
+                self.muted_antennas = []
+                self.muted_antennas = self.read_m_data(self.shm_objects[13])
+                # print(f"[ClearFrequencyService] Muted Antennas: {self.muted_antennas}")                
+                
+                self.sl_samples['sem'].release()
+                        
         except KeyboardInterrupt:
             print("[clearFrequencyService] Keyboard interrupt received. Exiting...")
         except posix_ipc.ExistentialError or ValueError or AttributeError:
@@ -1473,6 +1497,9 @@ class clearFrequencyRawDataManager():
         self.CFS.send_samples(self.rawData[jrad], int(jrad), int(self.center_freq[jrad]), meta_data=self.metaData[jrad])
         self.logger.debug("Updated clear freq raw data with auto_clear_freq data")
 
+        # Update Muted Antenna List
+        RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list()
+
 
     def record_new_data(self, jrad):
         assert self.usrp_socks[jrad] != None, "no usrp drivers assigned to clear frequency search data manager"
@@ -1497,6 +1524,9 @@ class clearFrequencyRawDataManager():
 
             # so, self.rawData is np.array(complex(nantennas, nsamples)
             self.recordTime[jrad] = time.time()
+
+            # Update Muted Antenna List
+            RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list()
 
             self.logger.debug("clrfreq record time: {}".format(self.recordTime[jrad]))
         else:
@@ -1741,6 +1771,11 @@ class scanManager():
         self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
         clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range)
 
+        #Failsafe for when the search fails WB 7/21/25
+        if clearFreq == 0:
+           default_freq = (self.clear_freq_range_list[iPeriod][0]+self.clear_freq_range_list[iPeriod][1])/2
+           clearFreq = default_freq
+           noise = 99999.99
 
         self.logger.debug('end calc_clear_freq_on_raw_samples')
         if 'baseband_samplerate' in RHM.commonChannelParameter: 
@@ -1774,6 +1809,8 @@ class scanManager():
 # merge information from multiple control programs, handle disparate settings
 # e.g, ready flags and whatnot
 class RadarHardwareManager:
+    mute_antenna_list = []
+
     def __init__(self, port):
         self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -2979,7 +3016,9 @@ class RadarHardwareManager:
     def calc_normalize_and_mute_factors(RHM, jrad, main_samples, back_samples):
         antenna_scale_factors = np.ones(max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad])+1)
         for ant_to_mute in RHM.mute_antenna_list:
-            antenna_scale_factors[ant_to_mute] = 0
+            # If antenna present and on mute list, mute it
+            if (max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad]) + 1) > ant_to_mute:
+                antenna_scale_factors[ant_to_mute] = 0
         antenna_scale_factors = [antenna_scale_factors for i in range(len(np.concatenate(RHM.channels).tolist()))]
 
         if RHM.apply_normalization:

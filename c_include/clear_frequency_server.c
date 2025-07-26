@@ -11,6 +11,7 @@
 #include <fftw3.h>      // FFT transform library
 #include <signal.h>
 #include <time.h>
+#include "clear_frequency_server.h"
 #include "clear_freq_search.h"
 #include "ini_parser.h"
 #include "read_config.c"
@@ -20,87 +21,6 @@
 // Build with the following flags:
 // -lrt -pthread -lfftw3 -lm 
 
-
-// Logging Vars
-#define LOG_TERMINAL_LEVEL  1                        // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
-#define LOG_FILE_LEVEL      0
-#define LOG_PREFIX          "[CFS] %s"               // *Unused* Prefix for log messages
-#define LOG_FILEPATH        "/data/log/cfs/cfs.%s.log"
-
-// Server Config Vars
-#define AVG_RATIO 4                                 // Number of samples to average during spectral averaging (4 = 4 samples avg-ed per beam)
-#define FFTW_THREADS 2                              // Number of threads to use for FFTW
-
-// Filepaths Vars
-#define ARRAY_CONFIG_FILEPATH           "array_config.ini"
-#define RADAR_CONST_CONFIG_FILEPATH     "python_include/radar_config_constants.py"
-#define DEFAULT_SITE_STSTR              "cve"       // Default site config to use if not passed from usrp_server 
-
-// Default Length of Variables (some dynamically change during runtime)
-#define SAMPLES_NUM             2500
-#define ANTENNA_NUM             16
-#define STATIC_ANTENNA_NUM      20 
-#define STATIC_RADAR_NUM        4                   // Max Number of possible radars in an array
-#define STATIC_CHANNEL_NUM      6                   // Max Number of possible channels in an array
-#define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table 
-#define BEAM_NUM                16                  // Number of beams to process
-#define SAMPLE_TIME             3                   // Time per Sample (in seconds)
-#define STORAGE_TIME            60                  // Total time per Sample Storage Batch (in seconds)
-#define STORAGE_NUM             (STORAGE_TIME / SAMPLE_TIME) // Total number of processed sample sets to store
-#define META_ELEM               3                   // 4 = 5 - 1 (fcenter has unique obj)
-#ifndef RESTRICT_NUM
-#define RESTRICT_NUM            50                  // Number of restricted freq bands in the restrict.dat.inst
-#endif
-#ifndef CLR_BANDS_MAX
-#define CLR_BANDS_MAX           6
-#endif
-#define CLR_STORAGE_NUM         10
-#define SITE_ID_ELEM            3                   // 3 = 3-letter identifier 
-
-#define SAMPLES_SHM_SIZE        (ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int)) 
-#define CLR_RANGE_SHM_SIZE      (2 * sizeof(int))
-#define FCENTER_SHM_SIZE        (1 * sizeof(int))
-#define BEAM_NUM_SHM_SIZE       (1 * sizeof(int))
-#define SAMPLE_SEP_SHM_SIZE     (1 * sizeof(int))
-#define RESTRICT_SHM_SIZE       (RESTRICT_NUM * 2 * sizeof(int))          // 2 = start and end freqs
-#define META_DATA_SHM_SIZE      ((META_ELEM + ANTENNA_NUM) * sizeof(double))
-#define ANTENNA_SHM_SIZE        (1 * sizeof(int))
-#define CLR_BANDS_SHM_SIZE      (1 * sizeof(int) * 3)    
-#define SITE_ID_SHM_SIZE        (SITE_ID_ELEM * sizeof(char))
-#define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
-#define CHANNEL_ID_SHM_SIZE     (1 * sizeof(int))
-#define ACTIVE_CLIENTS_SHM_SIZE (1 * sizeof(int))
-
-// Shared Memory and Semaphore Names 
-#define SAMPLES_SHM_NAME        "/samples"
-#define CLR_RANGE_SHM_NAME      "/clear_freq_range"
-#define FCENTER_SHM_NAME        "/fcenter"
-#define BEAM_NUM_SHM_NAME       "/beam_num"
-#define SAMPLE_SEP_SHM_NAME     "/sample_sep"
-#define RESTRICT_SHM_NAME       "/restricted_freq"
-#define META_DATA_SHM_NAME      "/meta_data"
-#define ANTENNA_SHM_NAME        "/antenna_num"
-#define CLRFREQ_SHM_NAME        "/clear_freq"
-#define SITE_ID_SHM_NAME        "/site_id"
-#define RADAR_ID_SHM_NAME       "/radar_id"
-#define CHANNEL_ID_SHM_NAME     "/channel_id"
-#define ACTIVE_CLIENTS_SHM_NAME "/active_clients"   // For debugging
-
-#define SAMPLE_PARAM_NUM 4
-#define RESTRICT_PARAM_NUM 2
-#define PARAM_NUM 13
-
-#define SEM_F_CLIENT    "/sf_client"                // For Sync and reserving client and server roles during data transfer
-#define SEM_F_SERVER    "/sf_server"    
-#define SEM_F_SAMPLES   "/sf_samples"
-#define SEM_F_INIT      "/sf_init"           
-#define SEM_F_CLRFREQ   "/sf_clrfreq"               // For multiple data transfers on single instance 
-#define SEM_F_PROCESSED "/sf_processed"             // For processed data transfer
-#define SEM_L_SAMPLES   "/sl_samples"               // For Data locking b/w write/reads
-#define SEM_L_INIT      "/sl_init"                  // init = initialization
-#define SEM_L_CLRFREQ   "/sl_clrfreq"
-#define SL_NUM 3
-#define SEM_NUM 9
 
 typedef struct shm_obj{
     const char* name;
@@ -153,6 +73,7 @@ shm_obj site_id_obj     = {SITE_ID_SHM_NAME, NULL, -1, SITE_ID_SHM_SIZE};
 shm_obj radar_id_obj    = {RADAR_ID_SHM_NAME, NULL, -1, RADAR_ID_SHM_SIZE};
 shm_obj channel_id_obj  = {CHANNEL_ID_SHM_NAME, NULL, -1, CHANNEL_ID_SHM_SIZE};
 shm_obj client_num_obj  = {ACTIVE_CLIENTS_SHM_NAME, NULL, -1, ACTIVE_CLIENTS_SHM_SIZE};
+shm_obj muted_ant_obj   = {MUTED_ANT_SHM_NAME, NULL, -1, MUTED_ANT_SHM_SIZE};
 struct shm_obj *objects[PARAM_NUM] = {
     &samples_obj,
     &clr_range_obj,
@@ -167,6 +88,7 @@ struct shm_obj *objects[PARAM_NUM] = {
     &radar_id_obj,
     &channel_id_obj,
     &client_num_obj,
+    &muted_ant_obj,
 };
 
 
@@ -437,6 +359,22 @@ void read_single_double(double *result, void *shm_ptr){
     if (VERBOSE) log_trace("   read_s_int: %f", *result);
 }
 
+void write_int(int *result, int *shm_ptr, int n_elements, int shm_len) {
+    // log_debug("n %d, len %d", n_elements, shm_len);
+
+    for (int i = 0; i < n_elements; i++) {
+        // log_debug("arr: %d", result[i]);
+        shm_ptr[i] = result[i];
+        // log_debug("writing: %d", shm_ptr[i]);
+    }
+
+    // Filling w/ dummy constant
+    for (int j = n_elements ; j < shm_len; j++) {
+        shm_ptr[j] = -1;
+        // log_debug("writing: %d", shm_ptr[j]);
+    }
+}
+
 /**
  * @brief  Writes Clear Freq Bands to its shared memory pointer.
  * @note   
@@ -453,7 +391,7 @@ void write_clrfreq_shm(freq_band clr_band, int *ptr) {
     ptr[2]  = clr_band.f_end;
 
     log_debug( "Sending the following Clear Frequency: ");
-    log_debug("    Clear Freq Band[%s]: | %dHz -- Noise: %f -- %dHz |", 
+    log_debug("    Clear Freq Band[%s]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
         clr_band.is_selected ? "Selected" : "Free", clr_band.f_start, clr_band.noise, clr_band.f_end
     );
 }
@@ -674,7 +612,7 @@ void realloc_storage(int samples_num, int total_beams, int radar_num, int avg_ra
 
     // Realloc spectra_storage
     fftw_free(spectra_storage);
-    spectra_storage = fftw_alloc_complex(radar_num * STORAGE_NUM * total_beams * samples_num);
+    spectra_storage = fftw_alloc_complex(radar_num * STATIC_RANGE_NUM * STORAGE_NUM * total_beams * samples_num);
     if (spectra_storage == NULL) {
         log_fatal("Error allocating memory for spectra_storage");
         perror("Error allocating memory for spectra_storage");
@@ -816,7 +754,7 @@ void flag_reserved_freqs(int radar_id, int channel_id, int radar_num, freq_band 
             // Skip current channel's reservation
             if (c_idx == channel_id && r_idx == radar_id) {
                 log_info("[TCS] Skipping current channel reservation...");
-                log_info("      Clr Freq Band[radar#%d][channel#%d] | %dHz -- Noise: %f -- %dHz |", 
+                log_info("      Clr Freq Band[radar#%d][channel#%d] | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
                     r_idx, c_idx, channel_data.clr_band.f_start, channel_data.clr_band.noise, channel_data.clr_band.f_end);
                 continue;
             }
@@ -939,6 +877,8 @@ int main() {
     }
     int beam_total = array_config.array_info.nbeams;
     int cur_radar = 0;
+    int *muted_config_ants = array_config.gain_control.mute_antenna_ids;
+    int num_muted_config_ants = array_config.gain_control.num_mute_antennas;
     log_info( "Done initializing Array Configuration...");
 
 
@@ -950,7 +890,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    spectra_storage = fftw_alloc_complex(radar_num * STORAGE_NUM * beam_total * SAMPLES_NUM);
+    spectra_storage = fftw_alloc_complex(radar_num * STATIC_RANGE_NUM * STORAGE_NUM * beam_total * SAMPLES_NUM);
     if (spectra_storage == NULL) {
         log_fatal("Error allocating memory for spectra_storage");
         perror("Error allocating memory for spectra_storage");
@@ -1044,6 +984,7 @@ int main() {
         memset(radar_table[i], 0, STATIC_CHANNEL_NUM * sizeof(radar_freq_data));
     }
 
+    int cur_range = 0;
     int cur_channel = 0;
     int cur_beam = 0;
     int sample_sep = 0;
@@ -1066,12 +1007,16 @@ int main() {
     int ccn_invalid_sample_cyles = 0;                                   // num of times in a row invalid samples were in send() cycle
     long accu_avg_ant_pwr[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};  // integrated avg antenna power from sample sets for an accurate avg ant power
     int active_antennas[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};    // active antennas for each radar
-    int active_ant_num = 0;
     int ant_active_ct[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // num of times antenna was active
+    int active_ant_num = 0;
+    int muted_ant_ids[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // Inactive Main Array Antennas to be muted at USRP Server side
+    int muted_ant_idx = 0;
     int clr_storage_i[STATIC_RADAR_NUM] = {0};
-    int tcs_storage_i[STATIC_RADAR_NUM] = {0};
-    bool is_tcs_ready[STATIC_RADAR_NUM] = {false};
-    int clr_range[STATIC_RADAR_NUM][2] = {0};
+    int tcs_storage_i[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {0};
+    bool is_tcs_ready[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false};
+    int clr_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM][2] = {0};
+    int clr_range_overwrite_idx[STATIC_RADAR_NUM] = {0};                  // Index used to track which clr_range to overwrite (increments to next clr_range idx each overwrite)
+    bool using_full_usrp_range[STATIC_RANGE_NUM] = {false}; 
     freq_band selected_clr_band = {0};
     
     // Failure flags
@@ -1174,8 +1119,10 @@ int main() {
                 if (has_tcs_param_changed(old_tcs_param, new_tcs_param) == true) {
                     log_info( "TCS Parameters changed...");
                     for (int r_idx = 0; r_idx < radar_num; r_idx++) {
-                        is_tcs_ready[r_idx] = false;
-                        tcs_storage_i[r_idx] = 0;
+                        for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
+                            is_tcs_ready [r_idx][range_idx] = false;
+                            tcs_storage_i[r_idx][range_idx] = 0;
+                        }
                     }
                     
                     realloc_storage(samples_num, beam_total, radar_num, avg_ratio);
@@ -1304,6 +1251,8 @@ int main() {
                 temp_samples,
                 samples_num,
                 &meta_data,
+                muted_config_ants,
+                num_muted_config_ants,
                 ant_active_ct[cur_radar],
                 active_antennas[cur_radar],
                 accu_avg_ant_pwr[cur_radar]
@@ -1311,11 +1260,22 @@ int main() {
 
             // Check that main array antennas are active
             active_ant_num = 0;
-            for (int i = 0; i < meta_data.num_antennas; i++) {
-                int ant_idx = meta_data.antenna_list[i];
+            muted_ant_idx = 0;
+            for (int i = 0; i < STATIC_ANTENNA_NUM; i++) {
+                // log_debug("checking ant#%d", i);
+
                 // Ignore inferrometer array
-                if (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA) ) {
+                if (active_antennas[cur_radar][i] > 0 && (i <= IDX_LAST_MA || i > IDX_LAST_IA) ) {
                     active_ant_num++;
+                    log_debug("checking ant#%d: active", i);
+                }
+                else if (i <= IDX_LAST_MA || i > IDX_LAST_IA) {
+                    muted_ant_ids[cur_radar][muted_ant_idx] = i;
+                    muted_ant_idx++;
+                    log_trace("checking ant#%d: inactive", i);
+                }
+                else {
+                    log_trace("checking ant#%d: inferro (ignored)", i);
                 }
             }
             log_info("Active Main Array Antennas: %d", active_ant_num);
@@ -1326,51 +1286,133 @@ int main() {
             }
             else {ccn_invalid_sample_cyles++;}
 
+            // Send back Muted Antennas 
+            if (USE_ACTIVE_MUTE == 1) write_int(muted_ant_ids[cur_radar], muted_ant_obj.shm_ptr, muted_ant_idx, STATIC_ANTENNA_NUM);
+            else write_int(muted_config_ants, muted_ant_obj.shm_ptr, num_muted_config_ants, STATIC_ANTENNA_NUM);
 
             // Process and Store Spectra Data
-            if (tcs_storage_i[cur_radar] < STORAGE_NUM && active_ant_num > 0) { // Ignore empty sample sets
+            if (tcs_storage_i[cur_radar][cur_range] < STORAGE_NUM && active_ant_num > 0) { // Ignore empty sample sets
                 log_info( "Processing Spectra Data...");
 
                 // If clr_range is not set, default clr_range to usrp_fcenter -/+ 0.5 * usrp_rf_rate
-                if (clr_range[0][0] == 0 && clr_range[0][1] == 0) {
+                if (clr_range[0][0][0] == 0 && clr_range[0][0][1] == 0) {
                     log_info( "Setting default clr_range...");
                     for (int i = 0; i < STATIC_RADAR_NUM; i++) {
-                        clr_range[i][0] = (meta_data.usrp_fcenter * 1000 - (0.5 * meta_data.usrp_rf_rate)) / 1000;
-                        clr_range[i][1] = (meta_data.usrp_fcenter * 1000 + (0.5 * meta_data.usrp_rf_rate)) / 1000;
+                        for (int j = 0; j < STATIC_RANGE_NUM; j++) {
+                            clr_range[i][j][0] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) / 1000;
+                            clr_range[i][j][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2)) / 1000;
+                        }
                     }
-                    log_info( "Default clr_range set to %d -- %d", clr_range[0][0], clr_range[0][1]);
+                    log_info( "Default clr_range set to %d -- %d", clr_range[0][0][0], clr_range[0][0][1]);
                 }
-                
-                // Fill Spectra Storage
-                process_all_beamformed_spectras(
-                        temp_samples,
-                        active_antennas[cur_radar],
-                        clr_range[cur_radar], 
-                        sample_sep, 
-                        restricted_freq, 
-                        restricted_num,
-                        &meta_data,
-                        array_config,
-                        &(spectra_storage[
-                            cur_radar * STORAGE_NUM * beam_total * samples_num + 
-                            tcs_storage_i[cur_radar] * beam_total * samples_num
-                        ])
+
+                if (USE_MULTI_RANGE == 1) {
+                    log_info("Processing samples over #%d clear ranges...", STATIC_RANGE_NUM);
+
+                    // Process Spectra for all Clear Range
+                    for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
+                        // Skip processing of default clear ranges, unless Client is scanning entire usrp range
+                        int def_low_range = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) / 1000;
+                        int def_high_range= (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2)) / 1000;
+                        if (clr_range[cur_radar][range_idx][0] == def_low_range  && 
+                            clr_range[cur_radar][range_idx][1] == def_high_range &&
+                            using_full_usrp_range == false
+                        ) {
+                            continue;
+                        }
+
+                        // Process Spectra 
+                        process_all_beamformed_spectras(
+                                temp_samples,
+                                active_antennas[cur_radar],
+                                clr_range[cur_radar][range_idx], 
+                                sample_sep, 
+                                restricted_freq, 
+                                restricted_num,
+                                &meta_data,
+                                array_config,
+                                &(spectra_storage[
+                                    cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num + 
+                                    range_idx * STORAGE_NUM * beam_total * samples_num +
+                                    tcs_storage_i[cur_radar][range_idx] * beam_total * samples_num
+                                ])
+                            );
+    
+                        // Display TCS state
+                        log_info( "[TCS] Processed Radar[%d][%d --  %d]'s spectra_storage[%d/%d] successfully...", 
+                            cur_radar, 
+                            clr_range[cur_radar][range_idx][0],
+                            clr_range[cur_radar][range_idx][1],
+                            tcs_storage_i[cur_radar][range_idx] + 1, 
+                            STORAGE_NUM
+                        );
+                        tcs_storage_i[cur_radar][range_idx] += 1;
+    
+                        // Reset TCS Storing point at (Storage_Num - 1)
+                        if (tcs_storage_i[cur_radar][range_idx] >= STORAGE_NUM) {
+                            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
+                                cur_radar, 
+                                clr_range[cur_radar][range_idx][0] / 1000, 
+                                clr_range[cur_radar][range_idx][1] / 1000
+                            );
+                            is_tcs_ready [cur_radar][range_idx] = true;
+                            tcs_storage_i[cur_radar][range_idx] = 0;
+                        } 
+                    }
+                }
+
+                else {
+                    // Process Spectra 
+                    process_all_beamformed_spectras(
+                            temp_samples,
+                            active_antennas[cur_radar],
+                            clr_range[cur_radar][cur_range], 
+                            sample_sep, 
+                            restricted_freq, 
+                            restricted_num,
+                            &meta_data,
+                            array_config,
+                            &(spectra_storage[
+                                cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num + 
+                                cur_range * STORAGE_NUM * beam_total * samples_num +
+                                tcs_storage_i[cur_radar][cur_range] * beam_total * samples_num
+                            ])
+                        );
+
+                    // Display TCS state
+                    log_info( "[TCS] Processed Radar[%d][%d --  %d]'s spectra_storage[%d/%d] successfully...", 
+                        cur_radar, 
+                        clr_range[cur_radar][cur_range][0],
+                        clr_range[cur_radar][cur_range][1],
+                        tcs_storage_i[cur_radar][cur_range] + 1, 
+                        STORAGE_NUM
                     );
+                    tcs_storage_i[cur_radar][cur_range] += 1;
 
-                log_info( "[TCS] Processed Radar[%d]'s spectra_storage[%d/%d] successfully...", cur_radar, tcs_storage_i[cur_radar] + 1, STORAGE_NUM);
-                tcs_storage_i[cur_radar] += 1;
-
-                if (tcs_storage_i[cur_radar] >= STORAGE_NUM) {
-                    log_info( "[TCS] Radar[%d] Storage is now Ready...", cur_radar);
-                    is_tcs_ready[cur_radar] = true;
-                    tcs_storage_i[cur_radar] = 0;
-                } 
+                    if (tcs_storage_i[cur_radar][cur_range] >= STORAGE_NUM) {
+                        log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
+                            cur_radar, 
+                            clr_range[cur_radar][cur_range][0] / 1000, 
+                            clr_range[cur_radar][cur_range][1] / 1000
+                        );
+                        is_tcs_ready [cur_radar][cur_range] = true;
+                        tcs_storage_i[cur_radar][cur_range] = 0;
+                    } 
+                }
             }
             else if (active_ant_num == 0) {
                 log_info( "[TCS] No active main antennas found for Radar[%d], skipping spectra storage...", cur_radar);
             }
 
             log_info( "Stored Samples successfully...");
+
+            // Flag that Processed Data is ready
+            log_info( "Signaling that Processed Data is ready!");
+            if (msync(muted_ant_obj.shm_ptr, MUTED_ANT_SHM_SIZE, MS_SYNC) == -1) { // Synchronize data writes with program counter
+                log_error( "msync failed");
+                perror("msync failed");
+            }
+            sem_post(sf_processed.sem);
         } 
 
         // If Clear Freq flagged, process clear frequency
@@ -1437,43 +1479,87 @@ int main() {
 
             // Read Clear Range
             if (*(int*) (clr_range_obj.shm_ptr) != 0) {
-                int old_clr_range[2] = {clr_range[cur_radar][0], clr_range[cur_radar][1]};
+                int tmp_clr_range[2] = {0};
+                int old_clr_range[2] = {0};
 
                 log_debug( "Clear Range reading...");
-                read_int(clr_range[cur_radar], clr_range_obj.shm_ptr, 2);
+                read_int(tmp_clr_range, clr_range_obj.shm_ptr, 2);
 
                 // If clr_range is in kHz, convert to Hz
-                if (clr_range[cur_radar][0] < 100000 || clr_range[cur_radar][1] < 100000) {
-                    clr_range[cur_radar][0] = clr_range[cur_radar][0] * 1000;
-                    clr_range[cur_radar][1] = clr_range[cur_radar][1] * 1000;
-                    log_debug("    clr_range: %d -- %d Hz", clr_range[cur_radar][0], clr_range[cur_radar][1]);
+                if (tmp_clr_range[0] < 100000 ||    tmp_clr_range[1] < 100000) {
+                    tmp_clr_range[0] =              tmp_clr_range[0] * 1000;
+                    tmp_clr_range[1] =              tmp_clr_range[1] * 1000;
+                    log_debug("    new_clr_range: %d -- %d Hz", tmp_clr_range[0], tmp_clr_range[1]);
                 }
 
-                // If a radar's clr_range changed, reset TCS for that radar
-                log_debug("    old_clr_range: %d -- %d", old_clr_range[0], old_clr_range[1]);
-                if (clr_range[cur_radar][0] != old_clr_range[0] || clr_range[cur_radar][1] != old_clr_range[1]) {
+                // If Clear Range exists, don't overwrite and set as cur_range
+                bool range_exists = false;
+                int def_low_range = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) / 1000;
+                int def_high_range= (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2)) / 1000;
+                if (USE_MULTI_RANGE == 1) {
+                    // If Multi Range Optimization, Check existing clear ranges
+                    for (int i = 0; i < STATIC_RANGE_NUM; i++) {
+                        if (tmp_clr_range[0] == clr_range[cur_radar][i][0] && tmp_clr_range[1] == clr_range[cur_radar][i][1]) {
+                            range_exists = true;
+                            old_clr_range[0] = clr_range[cur_radar][i][0];
+                            old_clr_range[1] = clr_range[cur_radar][i][1]; 
+                            cur_range = i;
+                            log_debug("    matching_range: %d -- %d Hz", tmp_clr_range[0], tmp_clr_range[1]);
+                        }
+
+                        // Special: Client wants full usrp range
+                        if (def_low_range == tmp_clr_range[0] && def_high_range == tmp_clr_range[1]) using_full_usrp_range[i] = true;
+                        else using_full_usrp_range[i] = false;
+                    }
+                } else {
+                    // If Single Range Optimization, only check 1st range
+                    if (tmp_clr_range[0] == clr_range[cur_radar][0][0] && tmp_clr_range[1] == clr_range[cur_radar][0][1]) {
+                        range_exists = true;
+                        old_clr_range[0] = clr_range[cur_radar][0][0];
+                        old_clr_range[1] = clr_range[cur_radar][0][1]; 
+                        cur_range = 0;
+                        log_debug("    matching_range: %d -- %d Hz", clr_range[cur_radar][0][0], clr_range[cur_radar][0][1]);
+                    }
+
+                    // Special: Client wants full usrp range
+                    if (def_low_range == tmp_clr_range[0] && def_high_range == tmp_clr_range[1]) using_full_usrp_range[0] = true;
+                    else using_full_usrp_range[0] = false;
+                }
+                
+
+                // If a radar's clr_range doesn't exist, set it
+                if (range_exists != true) {
+                    // Set clr_range
+                    cur_range = clr_range_overwrite_idx[cur_radar];
+                    clr_range[cur_radar][cur_range][0] = tmp_clr_range[0];
+                    clr_range[cur_radar][cur_range][1] = tmp_clr_range[1];
+
+                    // Display that change occured
                     log_info( "Radar#%d's Clear Range changed...", cur_radar);
                     log_info("    old_clr_range: %d -- %d", old_clr_range[0], old_clr_range[1]);
-                    log_info("    clr_range: %d -- %d", clr_range[cur_radar][0], clr_range[cur_radar][1]);
+                    log_info("    clr_range: %d -- %d", clr_range[cur_radar][cur_range][0], clr_range[cur_radar][cur_range][1]);
+                    
+                    // Reset TCS per clr range
+                    is_tcs_ready[cur_radar] [cur_range] = false;
+                    tcs_storage_i[cur_radar][cur_range] = 0;
 
-
-                    is_tcs_ready[cur_radar] = false;
-                    tcs_storage_i[cur_radar] = 0;
+                    // Prep for next clear range overwrite
+                    clr_range_overwrite_idx[cur_radar]++;
                 }
 
                 // Special: Restrict Clr Range to Usrp Range
                 // Restrict lower bound to lower bound of Usrp Range
-                if (clr_range[cur_radar][0] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2))) {
-                    clr_range[cur_radar][0] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2));
+                if (clr_range[cur_radar][cur_range][0] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2))) {
+                    clr_range[cur_radar][cur_range][0] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2));
                 }
                 // Restrict upper bound to upper bound of Usrp Range
-                if (clr_range[cur_radar][1] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) {
-                    clr_range[cur_radar][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
+                if (clr_range[cur_radar][cur_range][1] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) {
+                    clr_range[cur_radar][cur_range][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
                 }
                 
                 // Fail: Clr Range has no intersection with Usrp Range 
-                if (clr_range[cur_radar][1] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) ||
-                    clr_range[cur_radar][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) 
+                if (clr_range[cur_radar][cur_range][1] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) ||
+                    clr_range[cur_radar][cur_range][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) 
                 {
                     log_error("ERROR: Clear Range is out of Usrp Range!");
                     log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
@@ -1482,7 +1568,7 @@ int main() {
                         (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)),
                         (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))
                     );
-                    log_error("Clr Range: %d -- %d", clr_range[cur_radar][0], clr_range[cur_radar][1]);
+                    log_error("Clr Range: %d -- %d", clr_range[cur_radar][cur_range][0], clr_range[cur_radar][cur_range][1]);
                     log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
 
                     // Prevent further CFS from processing search
@@ -1513,7 +1599,7 @@ int main() {
             // If no fail flags, proceed with Clear Frequency Search
             if (fl_clr_range_out_bounds == false) {
                 // If TCS is not ready, process new clrfreq per unique beam request
-                if (is_tcs_ready[cur_radar] == false) {
+                if (is_tcs_ready[cur_radar][cur_range] == false) {
                     
                     // Fail: No active antennas and no sample data from prior clr freqs
                     if (active_ant_num == 0 && (clr_bands[1].noise == 0 || clr_bands[1].noise == RAND_MAX)) {
@@ -1534,7 +1620,7 @@ int main() {
                         clear_freq_search(
                             temp_samples, 
                             active_antennas[cur_radar],
-                            clr_range[cur_radar],
+                            clr_range[cur_radar][cur_range],
                             cur_beam,
                             sample_sep,
                             avg_ratio,
@@ -1550,7 +1636,7 @@ int main() {
                 else {
                     log_info( "[TCS] Clr Freq @ Beam #%d ...", cur_beam);
                     process_avg_beam_spectra(
-                        &(spectra_storage[cur_radar * STORAGE_NUM * beam_total * samples_num]),
+                        &(spectra_storage[cur_radar * STATIC_RANGE_NUM * STORAGE_NUM * beam_total * samples_num]),
                         avg_ratio, 
                         meta_data.number_of_samples,
                         cur_beam,
@@ -1565,7 +1651,7 @@ int main() {
                     process_beam_clr_freq(
                         avg_beam_spectrum,
                         cur_beam,
-                        clr_range[cur_radar],
+                        clr_range[cur_radar][cur_range],
                         sample_sep,
                         restricted_freq, 
                         restricted_num + RESERV_NUM,
@@ -1583,7 +1669,7 @@ int main() {
             bool is_clr_band_found = false;
             if (clr_bands[0].noise != 0 && clr_bands[0].noise != RAND_MAX) {  // if clr_bands filled correctly, proceed to Freq Selection
                 for (int i = 0; i < CLR_BANDS_MAX; i++) {
-                    log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", 
+                    log_debug("Clear Freq Band[%d][%s]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
                         i, 
                         clr_bands[i].is_selected ? "Selected" : "Free", 
                         clr_bands[i].f_start, 
@@ -1621,8 +1707,8 @@ int main() {
                         
                         // Reserve the frequency band 
                         radar_table[cur_radar][cur_channel].clr_band = clr_bands[i];
-                        radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[cur_radar][0];
-                        radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[cur_radar][1];
+                        radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[cur_radar][cur_range][0];
+                        radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[cur_radar][cur_range][1];
                         if (restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel >= RESTRICT_NUM) {
                             log_error("    ERROR: Reservation into restricted_freq failed due to overflow index!");
                             perror("ERROR: Reservation into restricted_freq failed due to overflow index!");
@@ -1638,7 +1724,7 @@ int main() {
                     if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                         clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
                         log_error("ERROR: Clear Freq Band[%d] is abnornal", i);
-                        log_error("Clear Freq Band[%d]: | %dHz -- Noise: %f -- %dHz |", i, 
+                        log_error("Clear Freq Band[%d]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", i, 
                             clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end
                         );
                         log_error("ERROR: There COULD be an error in CFS order of operations, or too wide of a guardband/narrow clear search range!");
@@ -1658,7 +1744,7 @@ int main() {
                     selected_clr_band = radar_table[cur_radar][cur_channel].clr_band;
                     restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel] = radar_table[cur_radar][cur_channel].clr_band;
 
-                    log_warn("CFS resorted to old reservation: | %dHz -- Noise: %f -- %dHz |", 
+                    log_warn("CFS resorted to old reservation: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
                             selected_clr_band.f_start, selected_clr_band.noise, selected_clr_band.f_end
                         );
                 }
@@ -1676,18 +1762,48 @@ int main() {
             
 
             // Display TCS Storage Information
-            log_info( "[TCS] Radar[%d] Storage [%d/%d]", cur_radar, tcs_storage_i[cur_radar] + 1, STORAGE_NUM);
-            if (is_tcs_ready[cur_radar] == true) log_info( "[TCS] Radar[%d] is Ready...", cur_radar);
-            else log_info( "[TCS] Radar[%d] is NOT Ready...", cur_radar);
+            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage [%d/%d]", 
+                cur_radar, 
+                clr_range[cur_radar][cur_range][0] / 1000, 
+                clr_range[cur_radar][cur_range][1] / 1000, 
+                tcs_storage_i[cur_radar][cur_range] + 1, STORAGE_NUM
+            );
+            if (is_tcs_ready[cur_radar][cur_range] == true) log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
+                            cur_radar, 
+                            clr_range[cur_radar][cur_range][0] / 1000, 
+                            clr_range[cur_radar][cur_range][1] / 1000
+                        );
+            else log_info( "[TCS] Radar[%d][%5d -- %5d] is NOT Ready...", 
+                cur_radar,
+                clr_range[cur_radar][cur_range][0] / 1000, 
+                clr_range[cur_radar][cur_range][1] / 1000
+            );
 
             // Display Average Antenna Power, reset active antennas, and warn of antenna abnormalities
             log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
             for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
                 long avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles;
+                char *ant_status;
+
+                // Check if muted in Array Config
+                bool is_muted = false;
+                for (int config_i = 0; config_i < num_muted_config_ants; config_i++) {
+                    if (muted_config_ants[config_i] == ant_idx) {
+                        is_muted = true;
+                        break;
+                    }
+                }          
+                if (is_muted == true) ant_status = "   muted";
+                else if (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) {
+                    ant_status = "  active";
+                } else {
+                    ant_status = "inactive";
+                }
+
                 log_info( "-> ant#%d[radar#%d][%s]: %d (missed %d)", 
                     ant_idx,
                     cur_radar, 
-                    (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) ? "  active" : "inactive",
+                    ant_status,
                     avg_ant_pwr,
                     valid_sample_cycles - ant_active_ct[cur_radar][ant_idx]
                 );
@@ -1708,16 +1824,19 @@ int main() {
             //     );
             // }
 
-            // Display Radar Table Information
-            log_debug( "Radar Table Information:");
+            // Display Radar Reservation Info Table
+            log_debug( "Radar Reservation Info:");
             for (int r_idx = 0; r_idx < radar_num; r_idx++) {
                 for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
                     if (radar_table[r_idx][c_idx].clr_band.f_start != 0 && radar_table[r_idx][c_idx].clr_band.f_end != 0) {
-                        log_debug( "    Radar[%d] Channel[%d]: | %dHz -- Noise: %f -- %dHz |",
+                        log_debug( "    Radar[%d] Channel[%d]: | %5dkHz -- Noise: %-9.2f -- %5dkHz | in range: | %5dkHz -- %5dkHz |",
                             r_idx, c_idx, 
-                            radar_table[r_idx][c_idx].clr_band.f_start, 
+                            radar_table[r_idx][c_idx].clr_band.f_start      / 1000, 
                             radar_table[r_idx][c_idx].clr_band.noise, 
-                            radar_table[r_idx][c_idx].clr_band.f_end);
+                            radar_table[r_idx][c_idx].clr_band.f_end        / 1000,
+                            radar_table[r_idx][c_idx].clear_freq_range[0]   / 1000,
+                            radar_table[r_idx][c_idx].clear_freq_range[1]   / 1000
+                        );
                     }
                 }
             }

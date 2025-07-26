@@ -39,29 +39,6 @@ typedef struct clear_freq {
 
 
 
-typedef struct {
-    int radar_stid;
-    double x_spacing;
-    int nradars;
-    int nbeams;
-    double beam_sep;
-} ArrayInfo;
-
-typedef struct {
-    double max_tpulse;
-    double min_chip;
-    double max_dutycycle;
-    double max_integration;
-    double minimum_tfreq;
-    double maximum_tfreq;
-    double min_tr_to_pulse;
-} HardwareLimits;
-
-typedef struct {
-    ArrayInfo array_info;
-    HardwareLimits hardware_limits;
-} Config;
-
 
 #pragma once
 

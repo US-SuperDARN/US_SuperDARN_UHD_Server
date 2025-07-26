@@ -3,6 +3,7 @@
 #include <string.h>
 #include "ini_parser.h"
 #include "clear_freq_search.h"
+// #include "clear_frequency_server.h"
 #include "log.h"
 
 
@@ -40,6 +41,23 @@ static int config_ini_handler(void* user, const char* section, const char* name,
             pconfig->hardware_limits.maximum_tfreq = atof(value);
         } else if (strcmp(name, "min_tr_to_pulse") == 0) {
             pconfig->hardware_limits.min_tr_to_pulse = atof(value);
+        }
+    } else if (strcmp(section, "gain_control") == 0) {
+        if (strcmp(name, "mute_antenna_idx") == 0) {
+            char *value_copy = strdup(value);
+            int idx = 0;
+            char *token = strtok(value_copy, ",");
+            while (token != NULL && idx < STATIC_ANTENNA_NUM) {
+                int i_token = atoi(token);
+                if (i_token == 0 && idx != 0) break;
+
+                pconfig->gain_control.mute_antenna_ids[idx] = i_token;
+                value_copy = strdup(value); 
+                token = strtok(NULL, ",");
+                idx++;
+            }
+            pconfig->gain_control.num_mute_antennas = idx;
+            free(value_copy);
         }
     }
 
