@@ -19,6 +19,24 @@
  
 #include <cstdlib>
 
+char tstr[128];
+
+char *get_log_time() {
+    struct tm *gmt;
+    struct timespec err_tm;
+    int stat;
+
+    stat = clock_gettime(CLOCK_REALTIME, &err_tm);
+
+    gmt = gmtime(&err_tm.tv_sec);
+    sprintf(tstr, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
+            1900+gmt->tm_year, gmt->tm_mon+1, gmt->tm_mday,
+            gmt->tm_hour, gmt->tm_min, gmt->tm_sec,
+            (int)(err_tm.tv_nsec/1e6));
+
+    return tstr;
+}
+
 //
 void touch_file(const std::string& fileName)
 {

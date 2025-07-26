@@ -173,7 +173,7 @@ void init_timing_signals(
     uhd::set_thread_priority_safe(priority,realtime);
 
     double debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("DIO queing GPIO commands at usrp_time %2.4f\n", debugt);
+    DEBUG_PRINT("%s: DIO queing GPIO commands at usrp_time %2.4f\n", get_log_time(), debugt);
     
     if (MCM_STYLE) {
         usrp->set_gpio_attr("FP0","CTRL",MANUAL_CONTROL, MCM_SYNC);
@@ -204,13 +204,13 @@ void init_timing_signals(
        if (mimic_active) {
            usrp->set_gpio_attr("TXA","CTRL",MANUAL_CONTROL,MIMIC_PINS);
            usrp->set_gpio_attr("TXA","DDR" ,MIMIC_PINS, MIMIC_PINS);
-           DEBUG_PRINT("DIO.cpp: init MIMIC target\n");
+           DEBUG_PRINT("%s: DIO.cpp: init MIMIC target\n", get_log_time());
        }
     }
 
 
     debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("DIO: set gpio attrs at usrp_time %2.4f\n", debugt);
+    DEBUG_PRINT("%s: DIO: set gpio attrs at usrp_time %2.4f\n", get_log_time(), debugt);
 
 }
 
@@ -226,9 +226,9 @@ bool read_FAULT_status_from_control_board(
     char bank_name[4];
     sprintf(bank_name, "TX%c",65 + iSide);
     uint32_t input = usrp->get_gpio_attr(bank_name, "READBACK");
-    DEBUG_PRINT("Readback from control board: %d\n", input);
+    DEBUG_PRINT("%s: Readback from control board: %d\n", get_log_time(), input);
     bool notFAULT = (input & NOT_FAULT_PIN) != 0;
-    DEBUG_PRINT("Returning FAULT = %d\n", !notFAULT);
+    DEBUG_PRINT("%s: Returning FAULT = %d\n", get_log_time(), !notFAULT);
     return !notFAULT;
 }
 
@@ -337,7 +337,7 @@ void send_timing_for_sequence(
     gmt = gmtime(&current_time);
     fprintf(stderr,"GPIO command issue start time is: %s", asctime(gmt));
 
-    DEBUG_PRINT("DIO: pushed gpio commands at usrp_time %2.4f\n", debugt);
+    DEBUG_PRINT("%s: DIO: pushed gpio commands at usrp_time %2.4f\n", get_log_time(), debugt);
     // issue gpio commands in time sorted order 
     // set_command_time must be sent in temporal order, they are sent into a fifo queue on the usrp and will block until executed
     // clear_command_time does not clear or bypass the buffer as of 10/2014..
@@ -361,7 +361,7 @@ void send_timing_for_sequence(
     fprintf(stderr,"GPIO command issue end time is: %s", asctime(gmt));
 
     debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("All DIO commands sent! clock time %2.4f\n",debugt);
+    DEBUG_PRINT("%s: All DIO commands sent! clock time %2.4f\n", get_log_time(), debugt);
 
     usrp->clear_command_time();
 
@@ -401,8 +401,8 @@ void kodiak_set_rxfe(
     rxfe_dio = (~rxfe_dio) & 0xFF; // invert all, since high means amp  and att off
 
 
-    DEBUG_PRINT("DIO.cpp: received rf_settings: \n   amp1: %d\n   amp2: %d\n   att 0.5 dB: %d\n   att 1 dB  : %d\n   att 2 dB  : %d\n   att 4 dB  : %d\n   att 8 dB  : %d\n   att 16 dB : %d\n", rf_settings.amp1, rf_settings.amp2, rf_settings.att_05_dB, rf_settings.att_1_dB, rf_settings.att_2_dB, rf_settings.att_4_dB, rf_settings.att_8_dB, rf_settings.att_16_dB );
-    DEBUG_PRINT("DIO.cpp: sending rxfe_dio:  %d\n", rxfe_dio);
+    DEBUG_PRINT("%s: DIO.cpp: received rf_settings: \n   amp1: %d\n   amp2: %d\n   att 0.5 dB: %d\n   att 1 dB  : %d\n   att 2 dB  : %d\n   att 4 dB  : %d\n   att 8 dB  : %d\n   att 16 dB : %d\n", get_log_time(), rf_settings.amp1, rf_settings.amp2, rf_settings.att_05_dB, rf_settings.att_1_dB, rf_settings.att_2_dB, rf_settings.att_4_dB, rf_settings.att_8_dB, rf_settings.att_16_dB );
+    DEBUG_PRINT("%s: DIO.cpp: sending rxfe_dio:  %d\n", get_log_time(), rxfe_dio);
 
     usrp->set_gpio_attr("RXA", "OUT", rxfe_dio, RXFE_MASK);
     if (nSides ==2) {

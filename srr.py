@@ -93,6 +93,8 @@ USE_USRP_DRIVER_WRAPPER = True
 nSecs_restart_pause = 10
 delay_between_driver_and_server = 10
 
+editors = ['emacs','gedit','nano','vi','vim']
+
 def myPrint(msg):
    print("||>  {}".format(msg))
 basePrintLine = "||>==============================================================="
@@ -288,6 +290,8 @@ def get_usrp_driver_processes():
     processList = get_processes()
     usrpProcesses = []
     for line in processList:
+        if any(x in line for x in editors):
+            continue
         if 'usrp_driver' in line:
             wordList = [word for word in line.split(" " ) if word != ""]
             try:
