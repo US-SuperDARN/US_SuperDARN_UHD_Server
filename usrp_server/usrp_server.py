@@ -2835,9 +2835,9 @@ class RadarHardwareManager:
               cmd.transmit()
               
               if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
-                 time.sleep(0.001)
-              else:                       
                  time.sleep(0.002)
+              else:                       
+                 time.sleep(0.004)
               
               # check status of usrp drivers
               self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
