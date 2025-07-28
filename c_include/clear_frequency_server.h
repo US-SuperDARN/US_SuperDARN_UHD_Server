@@ -9,7 +9,7 @@
 
 
 // Logging Vars
-#define LOG_TERMINAL_LEVEL  0                           // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
+#define LOG_TERMINAL_LEVEL  1                           // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
 #define LOG_FILE_LEVEL      0
 #define LOG_PREFIX          "[CFS] %s"                  // *Unused* Prefix for log messages
 #define LOG_FILEPATH        "log/cfs/cfs.%s.log"
