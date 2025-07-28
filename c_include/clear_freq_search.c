@@ -653,7 +653,7 @@ void phasing_and_beamforming(
     }
 
     // Apply beamforming
-    int avg_pwr[meta_data->num_antennas];
+    double avg_pwr[meta_data->num_antennas];
     for (int i = 0; i < num_samples; i++) {
         double real_sum = 0.0;
         double imag_sum = 0.0;
@@ -678,7 +678,7 @@ void phasing_and_beamforming(
             // Debug: On last sample, divide for average power
             if (i >= num_samples - 1) {
                 avg_pwr[a_idx] = avg_pwr[a_idx] / num_samples;
-                log_trace("   avg_pwr[%d]    = %d", meta_data->antenna_list[a_idx], avg_pwr[a_idx]);
+                log_trace("   avg_pwr[%d]    = %f", meta_data->antenna_list[a_idx], avg_pwr[a_idx]);
                 if (avg_pwr[a_idx] > MAX_ANT_PWR) {
                     log_warn("   ant#%d Pwr is high", meta_data->antenna_list[a_idx]);
                 }
@@ -1084,7 +1084,7 @@ void process_avg_ant_pwr (
     int num_muted_config_ants,
     int *ant_active_ct,
     int *active_antennas,
-    int *acculated_pwrs
+    long *acculated_pwrs
 ) {
     double avg_pwrs[meta_data->num_antennas];
     double overall_avg_pwr = 0;
