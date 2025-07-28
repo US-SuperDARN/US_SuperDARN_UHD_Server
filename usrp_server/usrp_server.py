@@ -1245,7 +1245,7 @@ class ClearFrequencyService():
 
         return 
 
-    def request_clr_freq(self, radar_id, channel_id, beam_num=None, sample_sep=None, clr_range=None, ):
+    def request_clr_freq(self, radar_id, channel_id, beam_num=None, sample_sep=None, clr_range=None, fcenter=None):
         """ Waits for client requests, then processes server data, writes client 
             data, and requests server to process new data. When process is 
             terminated, the try/finally block cleans up.\
@@ -1254,8 +1254,9 @@ class ClearFrequencyService():
         """
 
         input_data = [
+            fcenter,
             clr_range,
-            beam_num, 
+            beam_num,
             sample_sep,
         ]
 
@@ -1280,12 +1281,12 @@ class ClearFrequencyService():
             self.sl_clrfreq['sem'].acquire()
             print("[clearFrequencyService] ClrFreq Semaphore Acquired...")
 
-            for i in range(self.SAMPLE_PARAM_NUM, self.SAMPLE_PARAM_NUM + 3):
-                
+            for i in range(self.SAMPLE_PARAM_NUM-1, self.SAMPLE_PARAM_NUM + 3):
+
                 # If data present, write to SHM
-                if input_data[i - self.SAMPLE_PARAM_NUM] is not None:
+                if input_data[i - 1] is not None:
                     print(f"[Frequency Client] Data Write: {self.shm_objects[i]['name']}")
-                    self.write_data(self.shm_objects[i], input_data[i - self.SAMPLE_PARAM_NUM])
+                    self.write_data(self.shm_objects[i], input_data[i - 1])
 
             # Write Radar ID
             print(f"[Frequency Client] Data Write: {self.shm_objects[10]['name']}")
@@ -1739,7 +1740,7 @@ class scanManager():
         if len(rawData) != len(metaData['antenna_list']):
             self.logger.error("Mismatch in number of ant samples and ant length. len(rawData)= {} antenna_list: {}".format(len(rawData),metaData['antenna_list']))
         self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
-        clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range)
+        clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range, int(metaData['usrp_fcenter']))
 
 
         self.logger.debug('end calc_clear_freq_on_raw_samples')
