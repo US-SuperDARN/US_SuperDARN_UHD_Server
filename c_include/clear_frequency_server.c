@@ -1408,6 +1408,13 @@ int main() {
                 log_debug("    sample_sep: %d", sample_sep);
             }
 
+            // Read Center Frequency
+            if (*(int*) (fcenter_obj.shm_ptr) != 0) {
+                log_debug( "Freq Center reading...");
+                read_single_int( &(meta_data.usrp_fcenter), fcenter_obj.shm_ptr);
+                log_debug("    fcenter: %d", meta_data.usrp_fcenter);
+            }
+
             // Read Radar ID
             if (*(int*) (radar_id_obj.shm_ptr) >= 0) {
                 log_debug( "Radar ID reading...");
