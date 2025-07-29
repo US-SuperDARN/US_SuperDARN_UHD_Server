@@ -816,6 +816,21 @@ int main() {
     int cur_radar = 0;
     int *muted_config_ants = array_config.gain_control.mute_antenna_ids;
     int num_muted_config_ants = array_config.gain_control.num_mute_antennas;
+    
+    // Read in ststr
+    int stid = array_config.array_info.radar_stid;
+    char *sd_radar_table_path = getenv("SD_RADAR");
+    if (sd_radar_table_path == NULL) {
+        log_fatal( "$SD_RADAR not found. SD Radar Table is inaccessible.\n");
+        perror("Error: $SD_RADAR not found");
+        exit(EXIT_FAILURE);
+    }
+    // log_trace("path get! %s", sd_radar_table_path);
+    
+    // Find ststr using SD_RADAR
+    char ststr[SITE_ID_ELEM + 1] = {0}; 
+    read_sd_radar_dat(sd_radar_table_path, stid, ststr);
+    log_info("Site ID found: %s", ststr);
     log_info( "Done initializing Array Configuration...");
 
 
@@ -963,7 +978,6 @@ int main() {
     
     // Parameters for Reading Restricted Frequencies
     char restrict_file[255] = "";
-    char ststr[SITE_ID_ELEM + 1] = {0}; 
     char new_site_id[SITE_ID_ELEM + 1] = {0};
     char *rst_path = getenv("RSTPATH");
     if (rst_path == NULL) {
@@ -990,140 +1004,126 @@ int main() {
             sem_wait(sl_init.sem);
             log_info( "Initialization data read...");
 
-            // Read Meta Data
-            // if ( *(double*) (meta_obj.shm_ptr) != 0) {
+            // Read Antenna number
+            log_debug( "Antenna Number reading...");
+            read_single_int(&meta_data.num_antennas, antenna_obj.shm_ptr);
+            
+            // If new num_antennas, Reallocate meta SHM 
+            if (meta_data.num_antennas != old_antenna_num) {
+                log_info( "Reallocating Meta Shared Memory...");
+                log_debug("num of antenna: %d", meta_data.num_antennas);
 
-                // Read Antenna number
-                log_debug( "Antenna Number reading...");
-                read_single_int(&meta_data.num_antennas, antenna_obj.shm_ptr);
+                log_trace( "Freeing Meta SHM Cache...");
+                munmap(meta_obj.shm_ptr, meta_obj.size);
                 
-                // If new num_antennas, Reallocate meta SHM 
-                if (meta_data.num_antennas != old_antenna_num) {
-                    log_info( "Reallocating Meta Shared Memory...");
-                    log_debug("num of antenna: %d", meta_data.num_antennas);
-
-                    log_trace( "Freeing Meta SHM Cache...");
-                    munmap(meta_obj.shm_ptr, meta_obj.size);
-                    
-                    // Set Size of meta_data SHM Object
-                    log_trace( "Setting Size of Meta SHM Cache...");
-                    meta_obj.size = (meta_data.num_antennas + META_ELEM) * sizeof(double);
-                    if (ftruncate(meta_obj.shm_fd, meta_obj.size) == -1) {
-                        log_fatal( " ftruncate failed");
-                        perror("ftruncate failed");
-                        exit(EXIT_FAILURE);
-                    }
-
-                    // Request meta_data's Block of Memory
-                    log_trace( "Requesting Meta SHM Cache...");                    
-                    meta_obj.shm_ptr = mmap(0, meta_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED, meta_obj.shm_fd, 0);
-                    if (meta_obj.shm_ptr == MAP_FAILED) {
-                        log_fatal( "Memory Mapping failed for %s", meta_obj.name);
-                        perror("Memory Mapping failed");
-                        exit(EXIT_FAILURE);
-                    }                    
-                    log_trace( "Meta Data successfully cached...");     
-
-                    
-                    // Read Meta Data 
-                    log_trace( "Meta Data reading...");
-                    read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
-                    samples_num = meta_data.number_of_samples;
-
-                    
-                    // Reallocate Samples SHM
-                    log_info( "Reallocating Sample related Memory due to change in Antenna Num...");
-                    realloc_samples(samples_num);
-                    
-
-                    old_antenna_num = meta_data.num_antennas;
-                    log_info( "Reallocation due to change in Antenna Num done...");
+                // Set Size of meta_data SHM Object
+                log_trace( "Setting Size of Meta SHM Cache...");
+                meta_obj.size = (meta_data.num_antennas + META_ELEM) * sizeof(double);
+                if (ftruncate(meta_obj.shm_fd, meta_obj.size) == -1) {
+                    log_fatal( " ftruncate failed");
+                    perror("ftruncate failed");
+                    exit(EXIT_FAILURE);
                 }
+
+                // Request meta_data's Block of Memory
+                log_trace( "Requesting Meta SHM Cache...");                    
+                meta_obj.shm_ptr = mmap(0, meta_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED, meta_obj.shm_fd, 0);
+                if (meta_obj.shm_ptr == MAP_FAILED) {
+                    log_fatal( "Memory Mapping failed for %s", meta_obj.name);
+                    perror("Memory Mapping failed");
+                    exit(EXIT_FAILURE);
+                }                    
+                log_trace( "Meta Data successfully cached...");     
+
                 
-                // Default: Read in Meta Data
-                else {
-                    log_trace( "Meta Data reading...");
-                    read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
-                    samples_num = meta_data.number_of_samples;
+                // Read Meta Data 
+                log_trace( "Meta Data reading...");
+                read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
+                samples_num = meta_data.number_of_samples;
 
-                }
                 
-                // If critical TCS parameters have changed, reset TCS
-                new_tcs_param[0] = samples_num;
-                new_tcs_param[1] = beam_total;
-                new_tcs_param[2] = meta_data.usrp_rf_rate;
-                if (has_tcs_param_changed(old_tcs_param, new_tcs_param) == true) {
-                    log_info( "TCS Parameters changed...");
-                    for (int r_idx = 0; r_idx < radar_num; r_idx++) {
-                        for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
-                            is_tcs_ready [r_idx][range_idx] = false;
-                            tcs_storage_i[r_idx][range_idx] = 0;
-                        }
-                    }
-                    
-                    realloc_storage(samples_num, beam_total, radar_num, avg_ratio);
-
-                    // Reset Avg Antenna Power and Missing Antenna Trackers
-                    valid_sample_cycles = 0;
-                    ccn_invalid_sample_cyles = 0;
-                    for (int r_idx = 0; r_idx < radar_num; r_idx++) {
-                        for(int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
-                            accu_avg_ant_pwr[r_idx][ant_idx] = 0;
-                            ant_active_ct[r_idx][ant_idx] = 0;
-                        }
-                    }
-                    // log_info( "Reinitializing TCS FFTW plan...");
-                    // cleanup_storage_fft();
-                    // init_storage_fft(samples_num, beam_total);
-                }
+                // Reallocate Samples SHM
+                log_info( "Reallocating Sample related Memory due to change in Antenna Num...");
+                realloc_samples(samples_num);
                 
 
-                for (int j = 0; j < meta_data.num_antennas; j++) {
-                    log_trace("    antenna_list[%d]: %d", j, meta_data.antenna_list[j]);
-                }
-                log_debug("     num_antennas: %d", meta_data.num_antennas);
-                log_debug("     num_samples : %d", meta_data.number_of_samples);
-                log_debug("     fcenter: passed during sample DT");
-                log_debug("     rf_rate     : %d", meta_data.usrp_rf_rate);
-                log_debug("     x_spacing   : %f", meta_data.x_spacing);
-            // }
-
-            /// Read Restricted Frequency (by grabbing site ID then reading its restricted freq file)
-            log_debug( "Site ID reading...");
-            read_site_id_data(new_site_id, site_id_obj.shm_ptr, SITE_ID_ELEM);
-            log_debug("    Site ID: %s", ststr);
-            log_debug("    New Site ID: %s", new_site_id);
-    
-            // If first client or new ststr, proceed to read in ststr and Restrict File
-            if (strcmp(new_site_id, ststr) != 0) {
-                log_info( "Site ID assigned, getting site's Resticted Frequencies ...");
-                strncpy(ststr, new_site_id, SITE_ID_ELEM);
-                ststr[SITE_ID_ELEM] = '\0'; 
-                int str_f_result = 0; 
-
-                // Get site specific restrict file and join with path
-                if (strcmp(new_site_id,"lab") != 0) {
-                    log_info( "Using /site.%s/restrict.dat.%s in ststr\n", ststr, ststr);
-                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr, ststr);
-                    if (str_f_result < 1) {
-                        log_error( " site path format failed");
-                        return 1;
-                    }
-                }
-
-                // Default: Get lab testing restrict file
-                else {
-                    log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
-                    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, DEFAULT_SITE_STSTR, DEFAULT_SITE_STSTR);
-                    if (str_f_result < 1) {
-                        log_error( " site path format failed");
-                        return 1;
-                    }
-                }
-
-                log_info("Using restrict file path: %s\n", restrict_file);
-                read_restrict(restrict_file, restricted_freq, &restricted_num);
+                old_antenna_num = meta_data.num_antennas;
+                log_info( "Reallocation due to change in Antenna Num done...");
             }
+            
+            // Default: Read in Meta Data
+            else {
+                log_trace( "Meta Data reading...");
+                read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
+                samples_num = meta_data.number_of_samples;
+            }
+            
+            // If critical TCS parameters have changed, reset TCS
+            new_tcs_param[0] = samples_num;
+            new_tcs_param[1] = beam_total;
+            new_tcs_param[2] = meta_data.usrp_rf_rate;
+            if (has_tcs_param_changed(old_tcs_param, new_tcs_param) == true) {
+                log_info( "TCS Parameters changed...");
+                for (int r_idx = 0; r_idx < radar_num; r_idx++) {
+                    for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
+                        is_tcs_ready [r_idx][range_idx] = false;
+                        tcs_storage_i[r_idx][range_idx] = 0;
+                    }
+                }
+                
+                realloc_storage(samples_num, beam_total, radar_num, avg_ratio);
+
+                // Reset Avg Antenna Power and Missing Antenna Trackers
+                valid_sample_cycles = 0;
+                ccn_invalid_sample_cyles = 0;
+                for (int r_idx = 0; r_idx < radar_num; r_idx++) {
+                    for(int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
+                        accu_avg_ant_pwr[r_idx][ant_idx] = 0;
+                        ant_active_ct[r_idx][ant_idx] = 0;
+                    }
+                }
+                // log_info( "Reinitializing TCS FFTW plan...");
+                // cleanup_storage_fft();
+                // init_storage_fft(samples_num, beam_total);
+            }
+            
+            // Debug: Display meta_data info
+            for (int j = 0; j < meta_data.num_antennas; j++) {
+                log_trace("    antenna_list[%d]: %d", j, meta_data.antenna_list[j]);
+            }
+            log_debug("     num_antennas: %d", meta_data.num_antennas);
+            log_debug("     num_samples : %d", meta_data.number_of_samples);
+            log_debug("     fcenter: passed during sample DT");
+            log_debug("     rf_rate     : %d", meta_data.usrp_rf_rate);
+            log_debug("     x_spacing   : %f", meta_data.x_spacing);
+            
+
+            log_info( "Getting site's Resticted Frequencies...");
+            int str_f_result = 0; 
+            
+            // Get site specific restrict file and join with path
+            if (strcmp(ststr,"lab") != 0) {
+                log_info( "Using /site.%s/restrict.dat.inst in ststr\n", ststr);
+                str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, ststr);
+                if (str_f_result < 1) {
+                    log_error( " site path format failed");
+                    return 1;
+                }
+            }
+
+            // Default: Get lab testing restrict file
+            else {
+                log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
+                str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, DEFAULT_SITE_STSTR);
+                if (str_f_result < 1) {
+                    log_error( " site path format failed");
+                    return 1;
+                }
+            }
+
+            log_info("Using restrict file path: %s\n", restrict_file);
+            read_restrict(restrict_file, restricted_freq, &restricted_num);
+
 
             sem_post(sl_init.sem);
 
