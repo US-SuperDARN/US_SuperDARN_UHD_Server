@@ -435,6 +435,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
     uhd::time_spec_t start_time, rx_start_time;
     uhd::usrp_clock::multi_usrp_clock::sptr gps_clock;
+    std::vector<std::string> sensor_names;
 
     // vector of all pulse start times over an integration period
     std::vector<uhd::time_spec_t> pulse_time_offsets;
@@ -641,10 +642,15 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 DEBUG_PRINT("%s: Clock is using an internal reference (good!)\n", get_log_time());
             }
 
-            if (gps_clock->get_sensor("gps_locked").value == "false") {
-                DEBUG_PRINT("%s: GPS is not locked.\n", get_log_time());
+            sensor_names = gps_clock->get_sensor_names(0);
+            if (std::find(sensor_names.begin(), sensor_names.end(), "gps_locked") == sensor_names.end()) {
+                DEBUG_PRINT("%s: gps_locked sensor not found on clock.\n", get_log_time());
             } else {
-                DEBUG_PRINT("%s: GPS is locked.\n", get_log_time());
+                if (gps_clock->get_sensor("gps_locked").value == "false") {
+                    DEBUG_PRINT("%s: GPS is not locked.\n", get_log_time());
+                } else {
+                    DEBUG_PRINT("%s: GPS is locked.\n", get_log_time());
+                }
             }
 
             // This while loop doesn't work because of the USRP sock timeout
