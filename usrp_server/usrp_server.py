@@ -282,7 +282,7 @@ class usrpSockManager():
                else:
                   index=iSock-offset
                   
-               self.logger.error("Connection lost to usrp {}:{}. Removing it from sock list. ".format(self.addressList_active[jrad][iSock-offset][0], self.addressList_active[jrad][iSock-offset][1])) 
+               self.logger.error("Connection lost to usrp {}:{}. Removing it from sock list. ".format(self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
                   
                self.remove_sock(jrad,self.socks[jrad][index])
                offset += 1 
