@@ -552,10 +552,8 @@ void calc_clear_freq_on_raw_samples(
     // Trasmission separation
     int gb = (1e6 * (GB_MULT - 1) ) / (smsep * 2);
     if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;   // Ensure minimum frequency separation
-    float clear_bw = 1e6 / smsep + gb;          // Clear Bandwidth in Hz
-    log_trace("gb: %d", gb);
-    log_trace("smsep: %d", smsep);
-    log_trace("clear_bw: %f Hz", clear_bw);
+    float clear_bw = 1e6 / smsep + gb * 2;          // Clear Bandwidth in Hz
+    log_info("clear_bw: %f Hz = %f Hz (signal) + 2 * %d Hz (guard)", clear_bw, 1e6 / smsep, gb);
 
     // Display delta_f and num_samples before and after averaging 
     if (VERBOSE) log_trace("delta_f: %f num_samples: %d", delta_f, num_samples);
@@ -973,9 +971,7 @@ void process_beam_clr_freq(
     int gb = (1e6 * (GB_MULT - 1) ) / (smsep * 2);  // Dynamic Guardband based on sample separation
     if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;       // Ensure minimum frequency separation
     float clear_bw = 1e6 / smsep + gb * 2;          // Clear Bandwidth in Hz
-    log_trace("gb: %d", gb);
-    log_trace("smsep: %d", smsep);
-    log_trace("clear_bw: %f Hz", clear_bw);
+    log_info("clear_bw: %f Hz = %f Hz (signal) + 2 * %d Hz (guard)", clear_bw, 1e6 / smsep, gb);
     
     // Find clear frequency
     clock_t t1, t2;
