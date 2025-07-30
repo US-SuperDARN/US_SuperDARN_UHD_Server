@@ -554,8 +554,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-    // boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
-    usleep(1000);
+    boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
     uhd::stream_args_t stream_args("sc16", "sc16");
     
     if (usrp->get_rx_num_channels() < nSides || usrp->get_tx_num_channels() < nSides) {  
@@ -623,7 +622,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
         usrp->set_time_source("external", 0);
         DEBUG_PRINT("Done setting time and clock\n");
      }
-
+    usleep(1000); // Trying to make sure device is stable before accepting connections
+    
     while(true) {
         if(driversock) {
             close(driverconn);
@@ -784,10 +784,14 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     // create local copy of transmit pulse data from shared memory
                     std::complex<int16_t> *shm_pulseaddr;
                     size_t spb = tx_stream->get_max_num_samps();
+
+		    
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
                     // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
+
+		    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -860,9 +864,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                         // create local copy of transmit pulse data from shared memory
                         size_t spb = tx_stream->get_max_num_samps();
+			
                         size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                         size_t number_of_pulses = pulse_time_offsets.size();
                         size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
+			
                         DEBUG_PRINT("spb %ld, pulse length %ld samples, pulse with padding %ld\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
 
@@ -926,7 +932,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     DEBUG_PRINT("READY_DATA command (swing %d), waiting for uhd threads to join back\n", swing);
 
                     
-                    DEBUG_PRINT("READY_DATA unlocking swing a semaphore\n");
+		    float debugt = usrp->get_time_now().get_real_secs();
+                    DEBUG_PRINT("READY_DATA unlocking swing a semaphore at time is %2.5f \n",debugt);
                     unlock_semaphore(sem_rx_vec[swing]);
                     unlock_semaphore(sem_tx_vec[swing]);
         
@@ -986,18 +993,19 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                        mute_output = 0;
                     }
                     else {
-                        DEBUG_PRINT("READY_DATA starting copying rx data buffer to shared memory\n");
-                        // regural rx data
-                        for (iSide = 0; iSide<nSides; iSide++) {
-                            // DEBUG_PRINT("usrp_drivercopy to rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][swing], iSide, iSwing);
-                            memcpy(shm_rx_vec[iSide][swing], &rx_data_buffer[iSide][0], sizeof(std::complex<int16_t>) * nSamples_rx);
-                        }
-                        // auto clear freq samples
-                        for (iSide = 0; iSide<nSides; iSide++) {
-                            for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
-                                rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx+nSamples_pause_after_rx+ iSample];
-                            }
-                        }
+		      debugt = usrp->get_time_now().get_real_secs();
+		      DEBUG_PRINT("READY_DATA starting copying rx data buffer to shared memory at %2.5f\n",debugt);
+		      // regural rx data
+		      for (iSide = 0; iSide<nSides; iSide++) {
+			// DEBUG_PRINT("usrp_drivercopy to rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][swing], iSide, iSwing);
+			memcpy(shm_rx_vec[iSide][swing], &rx_data_buffer[iSide][0], sizeof(std::complex<int16_t>) * nSamples_rx);
+		      }
+		      // auto clear freq samples
+		      for (iSide = 0; iSide<nSides; iSide++) {
+			for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
+			  rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx+nSamples_pause_after_rx+ iSample];
+			}
+		      }
                     }
 
                     if(SAVE_RAW_SAMPLES_DEBUG) {
@@ -1016,7 +1024,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     state_vec[swing] = ST_READY; 
                     DEBUG_PRINT("changing state_vec[swing] to ST_READY\n");
 
-                    DEBUG_PRINT("READY_DATA returning command success \n");
+		    debugt = usrp->get_time_now().get_real_secs();
+                    DEBUG_PRINT("READY_DATA returning command success at %2.5f\n",debugt);
                     sock_send_uint8(driverconn, READY_DATA);
                     break;
                     }
