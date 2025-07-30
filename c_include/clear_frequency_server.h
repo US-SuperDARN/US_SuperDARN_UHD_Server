@@ -97,7 +97,7 @@
 
 
 typedef struct {
-    int radar_stid;
+    char radar_stid[4];
     double x_spacing;
     int nradars;
     int nbeams;

@@ -816,22 +816,7 @@ int main() {
     int cur_radar = 0;
     int *muted_config_ants = array_config.gain_control.mute_antenna_ids;
     int num_muted_config_ants = array_config.gain_control.num_mute_antennas;
-    
-    // Read in ststr
-    int stid = array_config.array_info.radar_stid;
-    char *sd_radar_table_path = getenv("SD_RADAR");
-    if (sd_radar_table_path == NULL) {
-        log_fatal( "$SD_RADAR not found. SD Radar Table is inaccessible.\n");
-        perror("Error: $SD_RADAR not found");
-        exit(EXIT_FAILURE);
-    }
-    // log_trace("path get! %s", sd_radar_table_path);
-    
-    // Find ststr using SD_RADAR
-    char ststr[SITE_ID_ELEM + 1] = {0}; 
-    read_sd_radar_dat(sd_radar_table_path, stid, ststr);
-    log_info("Site ID found: %s", ststr);
-    log_info( "Done initializing Array Configuration...");
+    char *ststr = array_config.array_info.radar_stid;
 
 
     // Allocate temp mem for shm varibles
