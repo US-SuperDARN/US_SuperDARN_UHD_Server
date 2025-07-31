@@ -964,7 +964,6 @@ int main() {
     
     // Parameters for Reading Restricted Frequencies
     char restrict_file[255] = "";
-    char new_site_id[SITE_ID_ELEM + 1] = {0};
     char *rst_path = getenv("RSTPATH");
     if (rst_path == NULL) {
         log_fatal( "$RSTPATH not found. Restrict Freq file is inaccessible.\n");
@@ -1046,19 +1045,16 @@ int main() {
                     exit(EXIT_FAILURE);
                 }                    
                 log_trace( "Meta Data successfully cached...");     
-
                 
                 // Read Meta Data 
                 log_trace( "Meta Data reading...");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                 samples_num = meta_data.number_of_samples;
 
-                
                 // Reallocate Samples SHM
                 log_info( "Reallocating Sample related Memory due to change in Antenna Num...");
                 realloc_samples(samples_num);
-                
-
+            
                 old_antenna_num = meta_data.num_antennas;
                 log_info( "Reallocation due to change in Antenna Num done...");
             }
