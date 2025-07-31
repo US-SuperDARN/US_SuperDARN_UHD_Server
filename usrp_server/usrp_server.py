@@ -250,7 +250,8 @@ class usrpSockManager():
        
        del self.socks[jrad][iSock]
 
-       self.RHM.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.socks[jrad]) 
+       if hasattr(self.RHM, 'clearFreqRawDataManager'):
+          self.RHM.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.socks[jrad])
 
    def get_all_main_antenna_socks(self, jrad):
        main_ant_sock_list = []
