@@ -646,9 +646,7 @@ class ClearFrequencyService():
 
     log = logging.getLogger('clearFrequency')
 
-    def __init__(self, sid = 'lab'):
-        # Process Site ID during Sample Send
-        ClearFrequencyService.sid = sid
+    def __init__(self):
 
         try:
             # Skip Initialization if SHMs exists
@@ -937,9 +935,9 @@ class ClearFrequencyService():
                     flattened_data.append(array_data[i])
                 # Place antenna list last
                 flattened_data += array_data[0]
-            elif atype == "sid":
-                for letter in array_data:
-                    flattened_data.append(bytes(letter, 'ascii'))
+            # elif atype == "sid":
+            #     for letter in array_data:
+            #         flattened_data.append(bytes(letter, 'ascii'))
             else:
                 # Otherwise, just flatten
                 list_of_lists = self.find_list_of_lists(array_data)
@@ -962,8 +960,8 @@ class ClearFrequencyService():
             dtype = 'i'
             if atype == 'meta':
                 dtype = 'd'
-            elif atype == "sid":
-                dtype = b'c'
+            # elif atype == "sid":
+            #     dtype = b'c'
             else:
                 dtype = self.detect_dtype(flattened_data)
             print(f"dtype: {dtype}, elem_num: {obj['elem_num']}, ")
@@ -980,11 +978,6 @@ class ClearFrequencyService():
                     print("[Frequency Client] Writing data:\n", flattened_data)
 
                 obj['shm_ptr'].seek(0)
-                if atype == 'sid':
-                    print(f"ascii bytes: {flattened_data}")
-                    print(f"dtype argument: {dtype * obj['elem_num']}")
-                #     obj['shm_ptr'].write(struct.pack(dtype * obj['elem_num'], bytes(flattened_data, 'ascii')))
-                # else:
                 obj['shm_ptr'].write(struct.pack(dtype * obj['elem_num'], *flattened_data))
             else:
                 print("[Frequency Client] new_data len of: ", 1)
@@ -1209,11 +1202,6 @@ class ClearFrequencyService():
                     # Rearrange meta_data ordering
                     self.write_data(self.shm_objects[6], meta_data_list, 'meta')
 
-                # Write Site ID (SID)
-                print(f"[Frequency Client] Data Write Progress: {self.shm_objects[9]['name']}")
-                print(f"    len of objects list is {len(self.shm_objects)}")
-                self.write_data(self.shm_objects[9], self.sid, 'sid')
-
                 self.sl_init['sem'].release()
                 self.sf_init['sem'].release()
                 print("[clearFrequencyService] Initialization Semaphore Released ...")
@@ -1387,57 +1375,6 @@ class ClearFrequencyService():
                 except posix_ipc.ExistentialError:
                     print(f"Semaphore {sem['name']} does not exist")
 
-    def flag_debug(self, t1 = 0, t2 = 0, t3 = 0):
-
-        # Await for a Client Request
-        print("[clearFrequencyService] Awaiting Client Request...\n")
-        self.sf_client['sem'].acquire()
-        print("[clearFrequencyService] Acquired Client Request...")
-
-        if t1 == 1:
-            self.sl_init['sem'].acquire()
-            self.sl_init['sem'].release()
-
-            self.sf_init['sem'].release()
-            print("[clearFrequencyService] Processed init flags...\n")
-
-        if t2 == 1:
-            print("[clearFrequencyService] Awaiting Sample Semphore Lock...")
-            self.sl_samples['sem'].acquire()
-            self.sl_samples['sem'].release()
-
-            self.sf_samples['sem'].release()
-            print("[Frequency Client] Done writing data to Shared Memory...")
-
-            # Request Server
-            print("[clearFrequencyService] Requesting Server Response...\n\n")
-            self.sf_server['sem'].release()
-        elif t3 == 1:
-            print("[clearFrequencyService] Requesting Sample Semaphore for beam num...")
-            self.sl_samples['sem'].acquire()
-            time.sleep(1)
-            print("[clearFrequencyService] Sample Semaphore Acquired...")
-            self.sl_samples['sem'].release()
-            print("[clearFrequencyService] Sample Semaphore Released ...")
-
-
-            # Send Clear Frequency Request
-            print("[clearFrequencyService] Requesting Clear Freq...")
-            self.sf_clrfreq['sem'].release()
-
-            # Request Server
-            print("[clearFrequencyService] Requesting Server Response...")
-            self.sf_server['sem'].release()
-
-
-            # Read-in Clear Freq data
-            print("[clearFrequencyService] Awaiting Server Response...")
-            self.sf_clrfreq['sem'].acquire()
-            self.sl_clrfreq['sem'].acquire()
-            print("[clearFrequencyService] Recieved Server Response. Reading Clear Freq data...\n\n")
-
-            self.sl_clrfreq['sem'].release()
-
 class clearFrequencyRawDataManager():
     """ Buffers the raw clearfrequency data for all channels
     """
@@ -1454,7 +1391,7 @@ class clearFrequencyRawDataManager():
         self.center_freq = [None for jrad in range(N_RADARs)]
         self.sampling_rate = [None for jrad in range(N_RADARs)]
         self.number_of_samples = None
-        self.CFS = ClearFrequencyService(sid=ThisRadar)
+        self.CFS = ClearFrequencyService()
 
         self.metaData = [{} for jrad in range(N_RADARs)]
 
@@ -1590,7 +1527,7 @@ class scanManager():
        
         self.channel = channel
         self.RHM = channel.parent_RadarHardwareManager
-        self.clearFreqService = ClearFrequencyService(sid=self.RHM.ThisRadar)
+        self.clearFreqService = ClearFrequencyService()
         self.beamSep = self.RHM.array_beam_sep
         self.numBeams = self.RHM.array_nBeams
 
