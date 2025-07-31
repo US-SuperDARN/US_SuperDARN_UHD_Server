@@ -121,7 +121,7 @@ enum driver_states
 namespace po = boost::program_options;
 int32_t driversock = 0;
 int32_t driverconn = 0;
-int32_t verbose = 0;
+int32_t verbose = 1;
 
 void *open_sample_shm(int32_t ant, int32_t dir, int32_t side, int32_t swing, size_t shm_size) {
     void *pshm = NULL;
@@ -549,18 +549,21 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     std::vector<std::vector<void *>> shm_rx_vec(nSides, std::vector<void *>( nSwings));
     std::vector<std::vector<void *>> shm_tx_vec(nSides, std::vector<void *>( nSwings));
 
+    size_t initial_rx_size = 20000000;
+    size_t initial_clrfreq_size = 40000;
     // local buffers for tx and rx
     std::vector<std::vector<std::complex<int16_t>>> tx_samples(nSides,         std::vector<std::complex<int16_t>>(MAX_PULSE_LENGTH,0));
-    std::vector<std::vector<std::complex<int16_t>>> rx_data_buffer(nSides,     std::vector<std::complex<int16_t>>(0));
-    std::vector<std::vector<std::complex<int16_t>>> rx_auto_clear_freq(nSides, std::vector<std::complex<int16_t>>(0));
-     
+    std::vector<std::vector<std::complex<int16_t>>> rx_data_buffer(nSides,     std::vector<std::complex<int16_t>>(initial_rx_size));
+    std::vector<std::vector<std::complex<int16_t>>> rx_auto_clear_freq(nSides, std::vector<std::complex<int16_t>>(initial_clrfreq_size));
+    std::vector<std::vector<std::complex<int16_t>>> clrfreq_data_buffer(nSides, std::vector<std::complex<int16_t>>(initial_clrfreq_size));
 
     std::string usrpargs(as_host->sval[0]);
     usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6";
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-    boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
+    // boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
+    usleep(1000);
     uhd::stream_args_t stream_args("sc16", "sc16");
     
     if (usrp->get_rx_num_channels() < nSides || usrp->get_tx_num_channels() < nSides) {  
@@ -769,15 +772,32 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     // RESIZE LOCAL BUFFERS
                     if(rx_data_buffer[0].size() < nSamples_rx_total) {
-                       for(iSide = 0; iSide < nSides; iSide++) {
-                           rx_data_buffer[iSide].resize(nSamples_rx_total);
-                       }
+		      DEBUG_PRINT("%s: USRP_SETUP resize rx_data_buffer. rx_data_buff size %d   nsamples %d\n", get_log_time(), rx_data_buffer.size(), nSamples_rx_total);
+     		      for(iSide = 0; iSide < nSides; iSide++) {
+			try{
+			    rx_data_buffer[iSide].resize(nSamples_rx_total);
+			  }catch (const std::bad_alloc& e) {
+			    std::cout << "Allocation failed: " << e.what() << '\n';
+		          }catch(const std::exception& x) {
+		  	    std::cerr << typeid(x).name() << std::endl;
+		          }catch(...) {
+			    std::cerr << "unknown exception" << std::endl;
+		        }	
+		      }		  
                     }
                     DEBUG_PRINT("%s: USRP_SETUP resize autoclear freq\n", get_log_time());
 
                     if(nSamples_auto_clear_freq != 0 and rx_auto_clear_freq[0].size() < nSamples_auto_clear_freq) {
                        for(iSide = 0; iSide < nSides; iSide++) {
-                           rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
+			try{
+			  rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
+			}catch (const std::bad_alloc& e){
+			  std::cout << "Allocation failed: " << e.what() << '\n';			 
+			}catch(const std::exception& x) {
+			  std::cerr << typeid(x).name() << std::endl;
+			}catch(...) {
+			  std::cerr << "unknown exception" << std::endl;
+			}
                        }
                     }
 
@@ -853,6 +873,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     state_vec[swing] = ST_READY; 
                     DEBUG_PRINT("%s: changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
                     sock_send_uint8(driverconn, USRP_SETUP);
+		    usleep(100);
                     break;
                     }
 
@@ -1138,7 +1159,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                 case AUTOCLRFREQ: {
                     // has to be called after GET_DATA and before USRP_SETUP
-                    DEBUG_PRINT("%s: entering getting auto clear freq command\n", get_log_time());
+                    DEBUG_PRINT("entering getting auto clear freq command\n");
+                    uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
 
                     if (auto_clear_freq_available) {
 
@@ -1148,7 +1170,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         DEBUG_PRINT("%s: AUTOCLRFREQ samples sending %zu samples for antenna %d usrp side %d...\n", get_log_time(), rx_auto_clear_freq[jSide].size(),antennaVector[jSide],jSide);
 
                         sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
-                        sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[jSide].size());
+                        sock_send_uint32(driverconn, (uint32_t) num_clrfreq_samples);
                       // send samples
                         send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[jSide].size() , 0);
                       }
@@ -1172,7 +1194,12 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     double clrfreq_cfreq         = sock_get_float64(driverconn);
                     double clrfreq_rate          = sock_get_float64(driverconn);
 
-                    std::vector<std::vector<std::complex<int16_t>>> clrfreq_data_buffer(nSides, std::vector<std::complex<int16_t>>(num_clrfreq_samples));
+                    if(num_clrfreq_samples != 0 and clrfreq_data_buffer[0].size() < num_clrfreq_samples) {
+		      DEBUG_PRINT("USRP_SETUP resize clear freq buff. old: %d, new: %d\n",clrfreq_data_buffer[0].size(),num_clrfreq_samples);
+                       for(iSide = 0; iSide < nSides; iSide++) {
+                           clrfreq_data_buffer[iSide].resize(num_clrfreq_samples);
+                       }
+                    }
 
                     uint32_t real_time; 
                     double frac_time;

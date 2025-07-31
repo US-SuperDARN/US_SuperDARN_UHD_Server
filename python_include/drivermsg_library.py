@@ -374,8 +374,9 @@ class usrp_get_time_command(driver_command):
     
 # command get auto clear freq samples
 class usrp_get_auto_clear_freq_command(driver_command):
-    def __init__(self, usrps):
+    def __init__(self, usrps, num_clrfreq_samples):
         driver_command.__init__(self, usrps, UHD_AUTOCLRFREQ)
+        self.queue(num_clrfreq_samples, np.int32, 'num_clrfreq_samples')
 
     def recv_samples_from_one_usrp(self, sock):
 

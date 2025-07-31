@@ -170,6 +170,7 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
               #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
               dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
               
+              time.sleep(0.002)
               if usrpsock.getpeername()[0] != '127.0.0.1':
                  time.sleep(0.002)
                  
