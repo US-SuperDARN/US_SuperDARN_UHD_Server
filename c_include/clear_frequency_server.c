@@ -816,7 +816,8 @@ int main() {
     int cur_radar = 0;
     int *muted_config_ants = array_config.gain_control.mute_antenna_ids;
     int num_muted_config_ants = array_config.gain_control.num_mute_antennas;
-    char *ststr = array_config.array_info.radar_stid;
+    char ststr[SITE_ID_ELEM + 1];
+    strcpy(ststr, array_config.array_info.radar_stid);
 
 
     // Allocate temp mem for shm varibles
@@ -971,6 +972,32 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    log_info( "Getting site's Resticted Frequencies...");
+    int str_f_result = 0; 
+    
+    // Get site specific restrict file and join with path
+    if (strcmp(ststr,"lab") != 0) {
+        log_info( "Using /site.%s/restrict.dat.inst in ststr\n", ststr);
+        str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, ststr);
+        if (str_f_result < 1) {
+            log_error( " site path format failed");
+            return 1;
+        }
+    }
+
+    // Default: Get lab testing restrict file
+    else {
+        log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
+        str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, DEFAULT_SITE_STSTR);
+        if (str_f_result < 1) {
+            log_error( " site path format failed");
+            return 1;
+        }
+    }
+
+    log_info("Using restrict file path: %s\n", restrict_file);
+    read_restrict(restrict_file, restricted_freq, &restricted_num);
+
     // Continuously process clients via shared memory
     while (1) {
         log_info( "Requesting new client to respond...");
@@ -1081,34 +1108,6 @@ int main() {
             log_debug("     fcenter: passed during sample DT");
             log_debug("     rf_rate     : %d", meta_data.usrp_rf_rate);
             log_debug("     x_spacing   : %f", meta_data.x_spacing);
-            
-
-            log_info( "Getting site's Resticted Frequencies...");
-            int str_f_result = 0; 
-            
-            // Get site specific restrict file and join with path
-            if (strcmp(ststr,"lab") != 0) {
-                log_info( "Using /site.%s/restrict.dat.inst in ststr\n", ststr);
-                str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, ststr);
-                if (str_f_result < 1) {
-                    log_error( " site path format failed");
-                    return 1;
-                }
-            }
-
-            // Default: Get lab testing restrict file
-            else {
-                log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
-                str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.inst", rst_path, DEFAULT_SITE_STSTR);
-                if (str_f_result < 1) {
-                    log_error( " site path format failed");
-                    return 1;
-                }
-            }
-
-            log_info("Using restrict file path: %s\n", restrict_file);
-            read_restrict(restrict_file, restricted_freq, &restricted_num);
-
 
             sem_post(sl_init.sem);
 
