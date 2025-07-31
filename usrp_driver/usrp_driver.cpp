@@ -560,8 +560,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-    // boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
-    usleep(1000);
+    boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
     uhd::stream_args_t stream_args("sc16", "sc16");
     
     if (usrp->get_rx_num_channels() < nSides || usrp->get_tx_num_channels() < nSides) {  
@@ -660,7 +659,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
         usrp->set_time_source("external", 0);
         DEBUG_PRINT("%s: Done setting time and clock\n", get_log_time());
      }
-
+    usleep(1000); // Trying to make sure device is stable before accepting connections
+    
     while(true) {
         if(driversock) {
             close(driverconn);
@@ -964,7 +964,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     DEBUG_PRINT("%s: READY_DATA command (swing %d), waiting for uhd threads to join back\n", get_log_time(), swing);
 
                     
-                    DEBUG_PRINT("%s: READY_DATA unlocking swing a semaphore\n", get_log_time());
+                    float debugt = usrp->get_time_now().get_real_secs();
+                    DEBUG_PRINT("%s: READY_DATA unlocking swing a semaphore at time is %2.5f\n", get_log_time(), debugt);
                     unlock_semaphore(sem_rx_vec[swing]);
                     unlock_semaphore(sem_tx_vec[swing]);
         
@@ -1024,7 +1025,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                        mute_output = 0;
                     }
                     else {
-                        DEBUG_PRINT("%s: READY_DATA starting copying rx data buffer to shared memory\n", get_log_time());
+                        debugt = usrp->get_time_now().get_real_secs();
+                        DEBUG_PRINT("%s: READY_DATA starting copying rx data buffer to shared memory at %2.5f\n", get_log_time(), debugt);
                         // regural rx data
                         for (iSide = 0; iSide<nSides; iSide++) {
                             // DEBUG_PRINT("usrp_drivercopy to rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][swing], iSide, iSwing);
@@ -1054,7 +1056,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     state_vec[swing] = ST_READY; 
                     DEBUG_PRINT("%s: changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
 
-                    DEBUG_PRINT("%s: READY_DATA returning command success \n", get_log_time());
+                    debugt = usrp->get_time_now().get_real_secs();
+                    DEBUG_PRINT("%s: READY_DATA returning command success at %2.5f\n", get_log_time(), debugt);
                     sock_send_uint8(driverconn, READY_DATA);
                     break;
                     }

@@ -250,7 +250,8 @@ class usrpSockManager():
        
        del self.socks[jrad][iSock]
 
-       self.RHM.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.socks[jrad]) 
+       if hasattr(self.RHM, 'clearFreqRawDataManager'):
+          self.RHM.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.socks[jrad])
 
    def get_all_main_antenna_socks(self, jrad):
        main_ant_sock_list = []
@@ -282,7 +283,7 @@ class usrpSockManager():
                else:
                   index=iSock-offset
                   
-               self.logger.error("Connection lost to usrp {}:{}. Removing it from sock list. ".format(self.addressList_active[jrad][iSock-offset][0], self.addressList_active[jrad][iSock-offset][1])) 
+               self.logger.error("Connection lost to usrp {}:{}. Removing it from sock list. ".format(self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
                   
                self.remove_sock(jrad,self.socks[jrad][index])
                offset += 1 
@@ -2873,9 +2874,9 @@ class RadarHardwareManager:
               cmd.transmit()
               
               if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
-                 time.sleep(0.001)
-              else:                       
                  time.sleep(0.002)
+              else:                       
+                 time.sleep(0.004)
               
               # check status of usrp drivers
               self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
