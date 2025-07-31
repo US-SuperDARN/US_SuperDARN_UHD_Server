@@ -1407,6 +1407,7 @@ int main() {
             if (*(int*) (channel_id_obj.shm_ptr) >= 0) {
                 log_debug( "Channel ID reading...");
                 read_single_int(&cur_channel, channel_id_obj.shm_ptr);
+                cur_channel -= 1;
                 log_debug("    channel_id: %d", cur_channel);
 
                 if (cur_channel >= STATIC_CHANNEL_NUM || cur_channel < 0) {
