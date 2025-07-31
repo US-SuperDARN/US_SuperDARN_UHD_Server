@@ -1386,18 +1386,18 @@ int main() {
                 log_debug("    fcenter: %d", meta_data.usrp_fcenter);
             }
 
-            // // Read Radar ID
-            // if (*(int*) (radar_id_obj.shm_ptr) >= 0) {
-            //     log_debug( "Radar ID reading...");
-            //     read_single_int(&cur_radar, radar_id_obj.shm_ptr);
-            //     log_debug("    cur_radar: %d", cur_radar);
-            //     if (cur_radar >= radar_num) {
-            //         log_error( "ERROR: Radar ID out of range");
-            //         log_error( "ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
-            //         perror("ERROR: Radar ID out of range");
-            //         exit(EXIT_FAILURE);
-            //     }
-            // }
+            // Read Radar ID
+            if (*(int*) (radar_id_obj.shm_ptr) >= 0) {
+                log_debug( "Radar ID reading...");
+                read_single_int(&cur_radar, radar_id_obj.shm_ptr);
+                log_debug("    cur_radar: %d", cur_radar);
+                if (cur_radar >= radar_num) {
+                    log_error( "ERROR: Radar ID out of range");
+                    log_error( "ERROR: There is likely a semaphore leak or error in CFS order of operations, please close and restart all related processes.");
+                    perror("ERROR: Radar ID out of range");
+                    exit(EXIT_FAILURE);
+                }
+            }
 
             // Read Channel ID
             if (*(int*) (channel_id_obj.shm_ptr) >= 0) {
