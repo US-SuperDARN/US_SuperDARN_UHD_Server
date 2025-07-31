@@ -468,6 +468,58 @@ void read_radar_config(char *filepath, int *avg_ratio) {
     fclose(file);
 }
 
+void read_sd_radar_dat(char *filepath, int stid, char *ststr) {
+    FILE *file = fopen(filepath, "r");
+    if (file == NULL) {
+        file_access_error(filepath);
+        exit(EXIT_FAILURE);
+    }
+
+    log_trace("stid: %d", stid);
+
+    int sd_idx  = 0;
+    int status = 0;
+    int id1     = 0; 
+    int id2     = 0;
+    char loc[256]      = {"\0"};
+    char owner[256]    = {"\0"};
+    char filename[256] = {"\0"};
+    char tmp_ststr[256]= {"\0"};
+    char id_code[32]   = {"\0"};
+    
+    char line[256];
+    int result = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        result = sscanf(line, "%d %d %d %d \"%255[^\"]\" \"%255[^\"]\" \"%255[^\"]\" \"%255[^\"]\" \"%31[^\"]\"", 
+            &sd_idx, 
+            &status,
+            &id1,
+            &id2,
+            loc,
+            owner,
+            filename,
+            tmp_ststr,
+            id_code
+        );
+        // log_trace("line readable? %d", result); 
+        if (result < 9) continue; // Skip empty lines
+        tmp_ststr[3] = '\0'; // Ensure null-termination     
+
+        // Debug: Print word and value
+        // log_trace("Read line: %s, tmp_ststr: %s, sd_idx: %d", line, tmp_ststr, sd_idx);
+
+        // If matching stid found, store the radar acronym
+        if (stid == sd_idx) {
+            strcpy(ststr, tmp_ststr);
+            log_trace("ststr: %s", ststr);
+            break;
+        }
+    }
+
+    fclose(file);
+}
+
 void get_timestamp( char* buffer){
 	time_t rawtime;
 	struct tm *timeinfo;
