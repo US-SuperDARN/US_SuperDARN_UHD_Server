@@ -1120,8 +1120,14 @@ class ClearFrequencyService():
         #     clr_range,
         ]
 
+        # Filter out Zeroed Antenna list elements
+        filtered_antenna_list = []
+        for elem in meta_data['antenna_list']:
+            if elem > 0: 
+                filtered_antenna_list.append(elem)
+
         meta_data_list = [
-                        meta_data['antenna_list'],
+                        filtered_antenna_list,
                         meta_data['number_of_samples'],
                         meta_data['x_spacing'],
                         meta_data['usrp_rf_rate'],
