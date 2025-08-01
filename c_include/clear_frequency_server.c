@@ -941,8 +941,8 @@ int main() {
         beam_total,
         0
     };
-    int valid_sample_cycles = 0;                                        // num of times valid samples were in send() cycle 
-    int ccn_invalid_sample_cyles = 0;                                   // num of times in a row invalid samples were in send() cycle
+    int valid_sample_cycles[STATIC_RADAR_NUM] = {0};                    // num of times valid samples were in send() cycle 
+    int ccn_invalid_sample_cyles[STATIC_RADAR_NUM] = {0};               // num of times in a row invalid samples were in send() cycle
     long accu_avg_ant_pwr[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};  // integrated avg antenna power from sample sets for an accurate avg ant power
     int active_antennas[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};    // active antennas for each radar
     int ant_active_ct[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // num of times antenna was active
@@ -1082,9 +1082,9 @@ int main() {
                 realloc_storage(samples_num, beam_total, radar_num, avg_ratio);
 
                 // Reset Avg Antenna Power and Missing Antenna Trackers
-                valid_sample_cycles = 0;
-                ccn_invalid_sample_cyles = 0;
                 for (int r_idx = 0; r_idx < radar_num; r_idx++) {
+                    valid_sample_cycles[r_idx] = 0;
+                    ccn_invalid_sample_cyles[r_idx] = 0;
                     for(int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
                         accu_avg_ant_pwr[r_idx][ant_idx] = 0;
                         ant_active_ct[r_idx][ant_idx] = 0;
@@ -1197,10 +1197,10 @@ int main() {
             log_info("Active Main Array Antennas: %d", active_ant_num);
             // If has an active antenna, Increment # of valid sample sets 
             if (active_ant_num > 0) {
-                valid_sample_cycles++;
-                ccn_invalid_sample_cyles = 0;
+                valid_sample_cycles[cur_radar]++;
+                ccn_invalid_sample_cyles[cur_radar] = 0;
             }
-            else {ccn_invalid_sample_cyles++;}
+            else {ccn_invalid_sample_cyles[cur_radar]++;}
 
             // Send back Muted Antennas 
             if (USE_ACTIVE_MUTE == 1) write_int(muted_ant_ids[cur_radar], muted_ant_obj.shm_ptr, muted_ant_idx, STATIC_ANTENNA_NUM);
@@ -1720,9 +1720,9 @@ int main() {
             );
 
             // Display Average Antenna Power, reset active antennas, and warn of antenna abnormalities
-            log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles);
+            log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles[cur_radar]);
             for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
-                long avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles;
+                long avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles[cur_radar];
                 char *ant_status;
 
                 // Check if muted in Array Config
@@ -1745,16 +1745,16 @@ int main() {
                     cur_radar, 
                     ant_status,
                     avg_ant_pwr,
-                    valid_sample_cycles - ant_active_ct[cur_radar][ant_idx]
+                    valid_sample_cycles[cur_radar] - ant_active_ct[cur_radar][ant_idx]
                 );
             }
             // If several poor sample sets received in row, forwarn negative effects
-            if (ccn_invalid_sample_cyles >= STORAGE_NUM) {
+            if (ccn_invalid_sample_cyles[cur_radar] >= STORAGE_NUM) {
                 log_error("ERROR: CFS's time integrated samples have been filled with invalid samples. CFS can no longer compensate!");
             }
-            else if (ccn_invalid_sample_cyles >= (STORAGE_NUM - 10)) {
+            else if (ccn_invalid_sample_cyles[cur_radar] >= (STORAGE_NUM - 10)) {
                 log_warn( "WARN: High number of invalid/poor main array sample sets sent! Will drastically effect clr freqs!");
-                log_debug( "[TCS] Invalid sample sets: %d/%d", ccn_invalid_sample_cyles, STORAGE_NUM);
+                log_debug( "[TCS] Invalid sample sets: %d/%d", ccn_invalid_sample_cyles[cur_radar], STORAGE_NUM);
             }
             // // If active antennas are less than # passed to CFS, flag
             // if (active_ant_num < meta_data.num_antennas) {
