@@ -1128,8 +1128,14 @@ class ClearFrequencyService():
         #     clr_range,
         ]
 
+        # Filter out Zeroed Antenna list elements
+        filtered_antenna_list = []
+        for elem in meta_data['antenna_list']:
+            if elem > 0: 
+                filtered_antenna_list.append(elem)
+
         meta_data_list = [
-                        meta_data['antenna_list'],
+                        filtered_antenna_list,
                         meta_data['number_of_samples'],
                         meta_data['x_spacing'],
                         meta_data['usrp_rf_rate'],
@@ -1386,57 +1392,6 @@ class ClearFrequencyService():
                     print(f"Unlinked semaphore {sem['name']}")
                 except posix_ipc.ExistentialError:
                     print(f"Semaphore {sem['name']} does not exist")
-
-    def flag_debug(self, t1 = 0, t2 = 0, t3 = 0):
-
-        # Await for a Client Request
-        print("[clearFrequencyService] Awaiting Client Request...\n")
-        self.sf_client['sem'].acquire()
-        print("[clearFrequencyService] Acquired Client Request...")
-
-        if t1 == 1:
-            self.sl_init['sem'].acquire()
-            self.sl_init['sem'].release()
-
-            self.sf_init['sem'].release()
-            print("[clearFrequencyService] Processed init flags...\n")
-
-        if t2 == 1:
-            print("[clearFrequencyService] Awaiting Sample Semphore Lock...")
-            self.sl_samples['sem'].acquire()
-            self.sl_samples['sem'].release()
-
-            self.sf_samples['sem'].release()
-            print("[Frequency Client] Done writing data to Shared Memory...")
-
-            # Request Server
-            print("[clearFrequencyService] Requesting Server Response...\n\n")
-            self.sf_server['sem'].release()
-        elif t3 == 1:
-            print("[clearFrequencyService] Requesting Sample Semaphore for beam num...")
-            self.sl_samples['sem'].acquire()
-            time.sleep(1)
-            print("[clearFrequencyService] Sample Semaphore Acquired...")
-            self.sl_samples['sem'].release()
-            print("[clearFrequencyService] Sample Semaphore Released ...")
-
-
-            # Send Clear Frequency Request
-            print("[clearFrequencyService] Requesting Clear Freq...")
-            self.sf_clrfreq['sem'].release()
-
-            # Request Server
-            print("[clearFrequencyService] Requesting Server Response...")
-            self.sf_server['sem'].release()
-
-
-            # Read-in Clear Freq data
-            print("[clearFrequencyService] Awaiting Server Response...")
-            self.sf_clrfreq['sem'].acquire()
-            self.sl_clrfreq['sem'].acquire()
-            print("[clearFrequencyService] Recieved Server Response. Reading Clear Freq data...\n\n")
-
-            self.sl_clrfreq['sem'].release()
 
 class clearFrequencyRawDataManager():
     """ Buffers the raw clearfrequency data for all channels
