@@ -107,7 +107,7 @@ class integrationTimeManager():
 class statusUpdater():
    " Class to a file every x minutes to allow checking usrp_status from outside"
 
-   def __init__(self, RHM ):
+   def __init__(self, RHM):
       self.fileName = '/data/log/usrp_server_status.txt'
       self.RHM = RHM
       self.nSeconds_update_period = 5
@@ -116,7 +116,9 @@ class statusUpdater():
 
    def create_status_information(self):
       status = self.str_start
-      status += "USRPs: {} active, {} inactive\n".format(len(self.RHM.usrpManager.addressList_active), len(self.RHM.usrpManager.addressList_inactive))
+      status += self.last_write.strftime("Last time: %Y-%m-%d %H:%M:%S\n")
+      for jrad in range(self.RHM.N_RADARs):
+         status += "Radar {}: USRPs: {} active, {} inactive\n".format(jrad, len(self.RHM.usrpManager.addressList_active[jrad]), len(self.RHM.usrpManager.addressList_inactive[jrad]))
       status += "Channels: {} active (of {})\n".format(self.RHM.nRegisteredChannels, len(np.concatenate(self.RHM.channels).tolist()))
       status += "Sequences per period: {}\n".format(self.RHM.nSequences_per_period)
       return status
