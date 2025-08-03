@@ -119,7 +119,7 @@ class statusUpdater():
       status += self.last_write.strftime("Last time: %Y-%m-%d %H:%M:%S\n")
       for jrad in range(self.RHM.N_RADARs):
          status += "Radar {}: USRPs: {} active, {} inactive\n".format(jrad, len(self.RHM.usrpManager.addressList_active[jrad]), len(self.RHM.usrpManager.addressList_inactive[jrad]))
-      status += "Channels: {} active (of {})\n".format(self.RHM.nRegisteredChannels, len(np.concatenate(self.RHM.channels).tolist()))
+         status += "Radar {}: Channels: {} active (of {})\n".format(jrad, len(self.RHM.active_channels[jrad]), len(self.RHM.channels[jrad]))
       status += "Sequences per period: {}\n".format(self.RHM.nSequences_per_period)
       return status
       
