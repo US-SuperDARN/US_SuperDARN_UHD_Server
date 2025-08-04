@@ -2046,9 +2046,10 @@ class RadarHardwareManager:
              try:
                 usrptimes.append(cmd.recv_time(usrpsock))
              except:
-                self.logger.error("Error in sync USRPs for {}. Removing it...".format(self.usrpManager.hostnameList_active[jrad][iUSRP]))
                 for jrad in range(self.N_RADARs):
                    if usrpsock in self.usrpManager.socks[jrad]:
+                      iSock = self.usrpManager.socks[jrad].index(usrpsock)
+                      self.logger.error("Error in sync USRPs for {}. Removing it...".format(self.usrpManager.hostnameList_active[jrad][iSock]))
                       self.usrpManager.remove_sock(jrad,usrpsock)
            
           self.usrpManager.eval_client_return(cmd, None)
