@@ -1120,11 +1120,16 @@ class ClearFrequencyService():
         #     clr_range,
         ]
 
-        # Filter out Zeroed Antenna list elements
+        # Filter out Muted Antennas from data
         filtered_antenna_list = []
-        for elem in meta_data['antenna_list']:
-            if elem > 0: 
-                filtered_antenna_list.append(elem)
+        filtered_sample_data = []
+        for i in range(0, len(meta_data['antenna_list'])):
+            if meta_data['antenna_list'][i] > 0 or i == 0: 
+                filtered_antenna_list   += meta_data['antenna_list'][i]
+                filtered_sample_data    += raw_samples[i]
+                
+        meta_data['antenna_list'] = filtered_antenna_list
+        meta_data['antenna_num'] = len(filtered_antenna_list)
 
         meta_data_list = [
                         filtered_antenna_list,
