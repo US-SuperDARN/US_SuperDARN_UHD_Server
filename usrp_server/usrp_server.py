@@ -1120,19 +1120,17 @@ class ClearFrequencyService():
         #     clr_range,
         ]
 
-        # Filter out Muted Antennas from data
-        filtered_antenna_list = []
-        filtered_sample_data = []
+        # Filter out Muted Antennas from data                
         for i in range(0, len(meta_data['antenna_list'])):
-            if meta_data['antenna_list'][i] > 0 or i == 0: 
-                filtered_antenna_list   += meta_data['antenna_list'][i]
-                filtered_sample_data    += raw_samples[i]
-                
-        meta_data['antenna_list'] = filtered_antenna_list
-        meta_data['antenna_num'] = len(filtered_antenna_list)
+            tmp_arr = np.array(raw_samples[i])
+            # print(f"ndim is {tmp_arr.ndim} for ant {i}") 
+            if tmp_arr.ndim != 1:
+                del meta_data['antenna_list'][i]
+                print("removing muted ant from antenna_list")
+        meta_data['antenna_num'] = len(meta_data['antenna_list'])       
 
         meta_data_list = [
-                        filtered_antenna_list,
+                        meta_data['antenna_list'],
                         meta_data['number_of_samples'],
                         meta_data['x_spacing'],
                         meta_data['usrp_rf_rate'],
