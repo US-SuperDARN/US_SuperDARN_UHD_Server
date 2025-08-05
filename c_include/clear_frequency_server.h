@@ -32,7 +32,7 @@
 #define STATIC_ANTENNA_NUM      20 
 #define STATIC_RADAR_NUM        4                       // Max Number of possible radars in an array
 #define STATIC_CHANNEL_NUM      6                       // Max Number of possible channels in an array
-#define STATIC_RANGE_NUM        4                       // Max number of possible clear ranges per radar
+#define STATIC_RANGE_NUM        6                       // Max number of possible clear ranges per radar
 #define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table 
 #define BEAM_NUM                16                      // Number of beams to process
 #define SAMPLE_TIME             3                       // Time per Sample (in seconds)
@@ -125,34 +125,4 @@ typedef struct {
     GainControl gain_control;
 } Config;
 
-// typedef struct sample_meta_data {
-//     int *antenna_list;
-//     int num_antennas;
-//     int number_of_samples;
-//     double x_spacing;
-//     int usrp_rf_rate;
-//     int usrp_fcenter;
-// } sample_meta_data;
-
-// typedef struct freq_data {
-//     double *restricted_freq;
-//     double *clear_freq_range;
-// } freq_data;
-
-// typedef struct freq_band {
-//     int f_start;
-//     int f_end;
-//     double noise;
-//     bool is_selected;
-// } freq_band;
-
-
-// typedef struct clear_freq {
-//     double noise;
-//     double tfreq;
-// } clear_freq;
-
-// void file_access_error(const char *filepath) {
-//     printf("[CFS] ERROR: accessing filepath: %s\n", filepath);
-// }
 

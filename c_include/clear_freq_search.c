@@ -309,12 +309,18 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     // }
     
     // Initialize Clear Freq Bands
-    for (int i = 0; i < CLR_BANDS_MAX; i++) {
-        clr_bands[i].f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        clr_bands[i].f_end = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        clr_bands[i].noise = RAND_MAX;
+    freq_band lowest_clr_bands[CLR_BANDS_MAX * 3] = {0}; // Array to hold clr bands that could be intersecting w/ one another 
+    for (int i = 0; i < CLR_BANDS_MAX * 3; i++) {
+        clr_bands[i].f_start    = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        clr_bands[i].f_end      = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        clr_bands[i].noise      = RAND_MAX;
+
+
+        lowest_clr_bands[i].f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        lowest_clr_bands[i].f_end   = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        lowest_clr_bands[i].noise   = RAND_MAX;
     };
-    int min_idx[CLR_BANDS_MAX]; // array of clr_bands' index in the convolve_bw 
+    int min_idx[CLR_BANDS_MAX * 3]; // array of clr_bands' index in the convolve_bw 
     
     // Identify lowest noise bands from convolve results...
     freq_band curr_band;
@@ -322,78 +328,75 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * avg_delta_f;
         curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * avg_delta_f;
         curr_band.noise = convolve_result[i];
-        // if (i < 10) log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
+        // log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         int insert_idx = -1;
         int intersect_idx = -1;
         // Find Insertion spot in clr_freq_bands
-        // Compare curr power with min_powers...
-        for (int j = CLR_BANDS_MAX - 1; j >= 0 ; j--) {
+        for (int j = (CLR_BANDS_MAX * 3) - 1; j >= 0 ; j--) {
             // Update Insert Index; maintaining ascending order 
-            if (curr_band.noise < clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
+            if (curr_band.noise < lowest_clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
                 insert_idx = j;
+                //Only Insertion Point Found...
+                log_debug("    Insertion found...");
+                // Special: Keep pre-existing bands by shifting them to right
+                for (int k = (CLR_BANDS_MAX * 3) - 2; k >= insert_idx; k--) {
+                    log_debug("        shifting clr_bands for insert...");
+                    if (k + 1 < CLR_BANDS_MAX * 3) {
+                        lowest_clr_bands[k + 1] = lowest_clr_bands[k];
+                        min_idx[k + 1] = min_idx[k];
+                    }
+                }
+
+                // Insert curr_band and store its sample index
+                lowest_clr_bands[insert_idx] = curr_band;
+                min_idx[insert_idx] = i;
             }
-            // Check for Intersecting Band; get intersecting clr_band index
-            if ( 
-                ((clr_bands[j].f_start < curr_band.f_start && curr_band.f_start < clr_bands[j].f_end) ||
-                    (clr_bands[j].f_start < curr_band.f_end && curr_band.f_end < clr_bands[j].f_end))) {
-                intersect_idx = j;
-            }
-            // Continue Intersection Search 
         }
 
         // log_debug("    Intersection Search finished...");
         // log_trace("    intersect_idx: %d    insert_idx: %d", intersect_idx, insert_idx);
+    }
 
-        // Insertion Point was Found...
-        if (insert_idx != -1) {
-            // Intersection w/ curr_band was also Found...
-            if (intersect_idx != -1) {
-                // Special: If new band has worse noise, do not place/skip
-                if (insert_idx > intersect_idx) continue;
-                
-                // log_trace("    Intersecting Insertion found w/...");
-                freq_band inter_band = clr_bands[intersect_idx];
+    // Filter non-intersecting bands to clr_bands
+    int curr_clr_band_idx = 0;
+    for (int i = 0; i < CLR_BANDS_MAX * 3; i++) {       // Start with lowest noise clr_bands
+        freq_band curr_band = lowest_clr_bands[i];
+        bool cur_band_intersects = false;
 
-                // log_trace("        i-band = | %d -- %f -- %d|", inter_band.f_start, inter_band.noise, inter_band.f_end);
+        // Success: All Clr Bands Found
+        if (curr_clr_band_idx >= CLR_BANDS_MAX) {
+            log_trace("Found enough Clear Bands; breaking...");
+            break;
+        }
 
-                // Special: Shift inter_band band right till overwritten 
-                if (insert_idx < intersect_idx) {
-                    // Debug: verify bands shift properly @ sample
-                    // for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                    //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
-                    // }
-                    
-                    // log_trace("        shifting clr_bands for intersect...");
-                    for (int j = intersect_idx - 1; j >= insert_idx; j--) {
-                        if (j + 1 < CLR_BANDS_MAX) {
-                            clr_bands[j + 1] = clr_bands[j];
-                            min_idx[j + 1] = min_idx[j];
-                        }
-                    }
-                }
-            } 
-            // Only Insertion Point Found...
-            else {
-                // log_trace("    Insertion found...");
-                // Special: Keep pre-existing bands by shifting them to right
-                for (int j = CLR_BANDS_MAX - 2; j >= insert_idx; j--) {
-                    // log_trace("        shifting clr_bands for insert...");
-                    if (j + 1 < CLR_BANDS_MAX) {
-                        clr_bands[j + 1] = clr_bands[j];
-                        min_idx[j + 1] = min_idx[j];
-                    }
+        // General: Check curr_band for intersections with stored clr_bands
+        if (curr_clr_band_idx > 0) {    // First band is always the lowest, non-intersecting band
+            for (int j = 0; j < curr_clr_band_idx; j++) {
+    
+                // Check freq bound intersection
+                if ( (clr_bands[j].f_start < curr_band.f_start && curr_band.f_start < clr_bands[j].f_end) ||
+                     (clr_bands[j].f_start < curr_band.f_end && curr_band.f_end < clr_bands[j].f_end)
+                ) {
+                    // Skip to next cur_band if intersection found
+                    cur_band_intersects = true;
+                    break;
                 }
             }
+        }
 
-            // Insert curr_band and store its sample index
-            clr_bands[insert_idx] = curr_band;
-            min_idx[insert_idx] = i;
-
-            // Debug: verify shifting @ sample   
-            // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-            //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
-            // }
+        // If curr band is non-intersecting, insert curr_band into clr_bands
+        if (cur_band_intersects == false) {
+            log_trace("    Inserting Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", 
+                curr_clr_band_idx, 
+                clr_bands[curr_clr_band_idx].f_start, 
+                clr_bands[curr_clr_band_idx].noise, 
+                clr_bands[curr_clr_band_idx].f_end
+            );            
+            clr_bands[curr_clr_band_idx].f_start = curr_band.f_start;
+            clr_bands[curr_clr_band_idx].noise = curr_band.noise;
+            clr_bands[curr_clr_band_idx].f_end = curr_band.f_end;
+            curr_clr_band_idx++;
         }
     }
 
