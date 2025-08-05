@@ -772,32 +772,32 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     // RESIZE LOCAL BUFFERS
                     if(rx_data_buffer[0].size() < nSamples_rx_total) {
-		      DEBUG_PRINT("%s: USRP_SETUP resize rx_data_buffer. rx_data_buff size %d   nsamples %d\n", get_log_time(), rx_data_buffer.size(), nSamples_rx_total);
-     		      for(iSide = 0; iSide < nSides; iSide++) {
-			try{
-			    rx_data_buffer[iSide].resize(nSamples_rx_total);
-			  }catch (const std::bad_alloc& e) {
-			    std::cout << "Allocation failed: " << e.what() << '\n';
-		          }catch(const std::exception& x) {
-		  	    std::cerr << typeid(x).name() << std::endl;
-		          }catch(...) {
-			    std::cerr << "unknown exception" << std::endl;
-		        }	
-		      }		  
+                      DEBUG_PRINT("%s: USRP_SETUP resize rx_data_buffer. rx_data_buff size %d   nsamples %d\n", get_log_time(), rx_data_buffer.size(), nSamples_rx_total);
+                      for(iSide = 0; iSide < nSides; iSide++) {
+                        try{
+                          rx_data_buffer[iSide].resize(nSamples_rx_total);
+                        }catch (const std::bad_alloc& e) {
+                          std::cout << "Allocation failed: " << e.what() << '\n';
+                        }catch(const std::exception& x) {
+                          std::cerr << typeid(x).name() << std::endl;
+                        }catch(...) {
+                          std::cerr << "unknown exception" << std::endl;
+                        }
+                      }
                     }
                     DEBUG_PRINT("%s: USRP_SETUP resize autoclear freq\n", get_log_time());
 
                     if(nSamples_auto_clear_freq != 0 and rx_auto_clear_freq[0].size() < nSamples_auto_clear_freq) {
                        for(iSide = 0; iSide < nSides; iSide++) {
-			try{
-			  rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
-			}catch (const std::bad_alloc& e){
-			  std::cout << "Allocation failed: " << e.what() << '\n';			 
-			}catch(const std::exception& x) {
-			  std::cerr << typeid(x).name() << std::endl;
-			}catch(...) {
-			  std::cerr << "unknown exception" << std::endl;
-			}
+                         try{
+                           rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
+                         }catch (const std::bad_alloc& e){
+                           std::cout << "Allocation failed: " << e.what() << '\n';
+                         }catch(const std::exception& x) {
+                           std::cerr << typeid(x).name() << std::endl;
+                         }catch(...) {
+                           std::cerr << "unknown exception" << std::endl;
+                         }
                        }
                     }
 
@@ -873,7 +873,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     state_vec[swing] = ST_READY; 
                     DEBUG_PRINT("%s: changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
                     sock_send_uint8(driverconn, USRP_SETUP);
-		    usleep(100);
+                    usleep(100);
                     break;
                     }
 
@@ -890,8 +890,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     rf_settings.att_8_dB  = ( attTimes2 & 0x10 ) != 0;
                     rf_settings.att_16_dB = ( attTimes2 & 0x20 ) != 0;
                    
-		    //		    kodiak_set_rxfe(usrp, rf_settings, nSides);
-		    mcm_set_rxfe(usrp,rf_settings);
+                    //    kodiak_set_rxfe(usrp, rf_settings, nSides);
+                    mcm_set_rxfe(usrp,rf_settings);
                     sock_send_uint8(driverconn, RXFE_SET);
                     break;
                     }
@@ -935,10 +935,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         // calculate usrp clock time of the start of each pulse over the integration period
                         // so we can schedule the io (perhaps we will have to move io off of the usrp if it can't keep up)
                         for(uint32_t p_i = 0; p_i < number_of_pulses; p_i++) {
-			  double offset_time = (double)pulse_sample_idx_offsets[p_i] / (double)txrate;
-			  pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
-			    
-			  // DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
+                          double offset_time = (double)pulse_sample_idx_offsets[p_i] / (double)txrate;
+                          pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
+
+                          // DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
                         }
 
                         DEBUG_PRINT("%s: first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", get_log_time(), pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
@@ -949,8 +949,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         // send_timing_for_sequence(usrp, start_time, pulse_times);
                         double pulseLength = (double)nSamples_tx_pulse / (double)txrate;
 
-			
-			
                         float debugt = usrp->get_time_now().get_real_secs();
                         DEBUG_PRINT("%s: USRP_DRIVER: spawning worker threads at usrp_time %2.4f\n", get_log_time(), debugt);
 
@@ -958,16 +956,16 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         // works fine with tx_worker and dio_worker, fails if rx_worker is enabled
                         uhd_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &rx_data_buffer, nSamples_rx_total, rx_start_time, &rx_worker_status));
 
-			useconds_t usecs=1000;
-			usleep(usecs);			
+                        useconds_t usecs=1000;
+                        usleep(usecs);
                         if (tx_worker_active) {
-			  uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets,txrate)); 
+                          uhd_threads.create_thread(boost::bind(usrp_tx_worker, tx_stream, &tx_samples, num_samples_per_pulse_with_padding, start_time, pulse_sample_idx_offsets,txrate));
                         }
 
-			usleep(usecs);
+                        usleep(usecs);
                         uhd_threads.create_thread(boost::bind(send_timing_for_sequence, usrp, start_time,  pulse_time_offsets, pulseLength, mimic_active, mimic_delay, nSides)); 
 
-			usleep(usecs);
+                        usleep(usecs);
                         sock_send_uint8(driverconn, TRIGGER_PULSE);
 
                         uhd_threads.join_all(); // wait for transmit threads to finish, drawn from shared memory..
@@ -1159,7 +1157,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                 case AUTOCLRFREQ: {
                     // has to be called after GET_DATA and before USRP_SETUP
-                    DEBUG_PRINT("entering getting auto clear freq command\n");
+                    DEBUG_PRINT("%s: entering getting auto clear freq command\n", get_log_time());
                     uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
 
                     if (auto_clear_freq_available) {
@@ -1195,7 +1193,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     double clrfreq_rate          = sock_get_float64(driverconn);
 
                     if(num_clrfreq_samples != 0 and clrfreq_data_buffer[0].size() < num_clrfreq_samples) {
-		      DEBUG_PRINT("USRP_SETUP resize clear freq buff. old: %d, new: %d\n",clrfreq_data_buffer[0].size(),num_clrfreq_samples);
+                       DEBUG_PRINT("%s: USRP_SETUP resize clear freq buff. old: %d, new: %d\n", get_log_time(), clrfreq_data_buffer[0].size(),num_clrfreq_samples);
                        for(iSide = 0; iSide < nSides; iSide++) {
                            clrfreq_data_buffer[iSide].resize(num_clrfreq_samples);
                        }
