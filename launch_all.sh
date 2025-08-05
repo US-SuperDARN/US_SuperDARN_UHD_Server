@@ -1,32 +1,27 @@
 #!/bin/bash
 
-radar='mcm'
+radar='kod'
 
 sudo ./tools/optimize_network.sh &
 
-errlog -name ${radar}.a -lp 41000 &
-#errlog -name ${radar}.b -lp 42000 &
+errlog -name ${radar}.d -lp 41000 &
+#errlog -name ${radar}.c -lp 42000 &
 
-rawacfwrite -lp 41102 -ep 41000 -c a &
-#rawacfwrite -lp 42102 -ep 42000 -c b &
+rawacfwrite -lp 41102 -ep 41000 -c d &
+#rawacfwrite -lp 42102 -ep 42000 -c d &
 
-fitacfwrite -lp 41103 -ep 41000 -c a &
-#fitacfwrite -lp 42103 -ep 42000 -c b &
-
-
-rtserver -rp 41104 -ep 41000 -tp 1024 & # ch 1
-#rtserver -rp 42104 -ep 42000 -tp 1025 & # ch 2
+fitacfwrite -lp 41103 -ep 41000 -c d &
+#fitacfwrite -lp 42103 -ep 42000 -c c &
 
 
-#Start USRP drivers and CUDA driver on second radar:
-RADAR_2=192.168.100.2
-ssh radar@$RADAR_2 'python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py &' &
+rtserver -rp 41104 -ep 41000 -tp 1401 & # ch 1
+#rtserver -rp 42104 -ep 42000 -tp 1402 & # ch 2
+
 
 python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py server &
 
 sleep 25
-#ssh radar@$RADAR_2 '/home/radar/repos/SuperDARN_UHD_Server/launch_second_radar.sh &' &
-sleep 5
-schedule -name ${radar}.a /data/ros/scd/${radar}.a.scd &
-#schedule -name ${radar}.b /data/ros/scd/${radar}.b.scd &
+schedule -l /data/ros/scdlog/kod.d.scdlog -f /data/ros/scd/kod.d.scd &
+# schedule -name ${radar}.d /data/ros/scd/${radar}.d.scd &
+#schedule -name ${radar}.c /data/ros/scd/${radar}.c.scd &
 

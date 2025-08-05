@@ -99,7 +99,7 @@ class integrationTimeManager():
       if self.RHM.N_RADARs > 1:
          overhead_time = 0.30
       else:
-         overhead_time = 0.20
+         overhead_time = 0.30
 
       return overhead_time
 
@@ -648,7 +648,9 @@ class ClearFrequencyService():
 
     log = logging.getLogger('clearFrequency')
 
-    def __init__(self):
+    def __init__(self, sid = 'lab'):
+        # Process Site ID during Sample Send
+        ClearFrequencyService.sid = sid
 
         try:
             # Skip Initialization if SHMs exists
@@ -937,9 +939,9 @@ class ClearFrequencyService():
                     flattened_data.append(array_data[i])
                 # Place antenna list last
                 flattened_data += array_data[0]
-            # elif atype == "sid":
-            #     for letter in array_data:
-            #         flattened_data.append(bytes(letter, 'ascii'))
+            elif atype == "sid":
+                for letter in array_data:
+                    flattened_data.append(bytes(letter, 'ascii'))
             else:
                 # Otherwise, just flatten
                 list_of_lists = self.find_list_of_lists(array_data)
@@ -962,8 +964,8 @@ class ClearFrequencyService():
             dtype = 'i'
             if atype == 'meta':
                 dtype = 'd'
-            # elif atype == "sid":
-            #     dtype = b'c'
+            elif atype == "sid":
+                dtype = b'c'
             else:
                 dtype = self.detect_dtype(flattened_data)
             print(f"dtype: {dtype}, elem_num: {obj['elem_num']}, ")
@@ -980,6 +982,11 @@ class ClearFrequencyService():
                     print("[Frequency Client] Writing data:\n", flattened_data)
 
                 obj['shm_ptr'].seek(0)
+                if atype == 'sid':
+                    print(f"ascii bytes: {flattened_data}")
+                    print(f"dtype argument: {dtype * obj['elem_num']}")
+                #     obj['shm_ptr'].write(struct.pack(dtype * obj['elem_num'], bytes(flattened_data, 'ascii')))
+                # else:
                 obj['shm_ptr'].write(struct.pack(dtype * obj['elem_num'], *flattened_data))
             else:
                 print("[Frequency Client] new_data len of: ", 1)
@@ -1123,6 +1130,15 @@ class ClearFrequencyService():
         #     clr_range,
         ]
 
+        # Filter out Muted Antennas from data                
+        for i in range(0, len(meta_data['antenna_list'])):
+            tmp_arr = np.array(raw_samples[i])
+            # print(f"ndim is {tmp_arr.ndim} for ant {i}") 
+            if tmp_arr.ndim != 1:
+                del meta_data['antenna_list'][i]
+                print("removing muted ant from antenna_list")
+        meta_data['antenna_num'] = len(meta_data['antenna_list'])       
+
         meta_data_list = [
                         meta_data['antenna_list'],
                         meta_data['number_of_samples'],
@@ -1203,6 +1219,11 @@ class ClearFrequencyService():
 
                     # Rearrange meta_data ordering
                     self.write_data(self.shm_objects[6], meta_data_list, 'meta')
+
+                # Write Site ID (SID)
+                print(f"[Frequency Client] Data Write Progress: {self.shm_objects[9]['name']}")
+                print(f"    len of objects list is {len(self.shm_objects)}")
+                self.write_data(self.shm_objects[9], self.sid, 'sid')
 
                 self.sl_init['sem'].release()
                 self.sf_init['sem'].release()
@@ -1393,7 +1414,7 @@ class clearFrequencyRawDataManager():
         self.center_freq = [None for jrad in range(N_RADARs)]
         self.sampling_rate = [None for jrad in range(N_RADARs)]
         self.number_of_samples = None
-        self.CFS = ClearFrequencyService()
+        self.CFS = ClearFrequencyService(sid=ThisRadar)
 
         self.metaData = [{} for jrad in range(N_RADARs)]
 
@@ -1418,6 +1439,8 @@ class clearFrequencyRawDataManager():
 
         self.sampling_rate = clrfreq_sampling_rate
         self.number_of_samples = number_of_clrfreq_samples
+
+        self.logger.debug('clearFrequencyRawDataManager set_clrfreq_search_span: center {} rate {} number {}'.format(self.center_freq[jrad],self.sampling_rate,self.number_of_samples))
 
         self.metaData[jrad]['usrp_fcenter'] = self.center_freq[jrad] 
         self.metaData[jrad]['number_of_samples'] = self.number_of_samples 
@@ -1529,7 +1552,7 @@ class scanManager():
        
         self.channel = channel
         self.RHM = channel.parent_RadarHardwareManager
-        self.clearFreqService = ClearFrequencyService()
+        self.clearFreqService = ClearFrequencyService(sid=self.RHM.ThisRadar)
         self.beamSep = self.RHM.array_beam_sep
         self.numBeams = self.RHM.array_nBeams
 
@@ -2469,13 +2492,14 @@ class RadarHardwareManager:
                     collect_auto_clear_freq_samples = False
                     auto_clear_freq_meta_data = None
 
-                 self.logger.debug('rnum {} usrp_setup pars: ex_samples{} nsamples_pause {} nsamples_clearfreq {} nsamples_per_pulse {}'.format(jrad,self.nPulses_per_integration_period,  channel.nrf_rx_samples_per_integration_period,nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
+                 self.logger.debug('rnum {} usrp_setup pars: pulses:{}  total_samples: {} nsamples_pause: {} nsamples_clearfreq: {} nsamples_per_pulse: {}'.format(jrad, self.nPulses_per_integration_period, nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
                  
                  cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
                                           self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, self.nPulses_per_integration_period,  channel.nrf_rx_samples_per_integration_period, \
                                           nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse, channel.integration_period_pulse_sample_offsets, \
                                           self.swingManager.activeSwing)
                  cmd.transmit()
+                 time.sleep(0.001)
                  try:
                     if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
                        time.sleep(0.002)
@@ -2814,9 +2838,9 @@ class RadarHardwareManager:
               cmd.transmit()
               
               if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
-                 time.sleep(0.002)
+                 time.sleep(0.001)
               else:                       
-                 time.sleep(0.004)
+                 time.sleep(0.002)
               
               # check status of usrp drivers
               self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
@@ -2905,7 +2929,8 @@ class RadarHardwareManager:
            if transmittingChannelAvailable[jrad] and trigger_next_period and self.auto_collect_clrfrq_after_rx:
               self.clear_search_data_semaphore.acquire()
               self.logger.debug("Getting auto clear freq data for radar {}".format(jrad))
-              cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad])
+              nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
+              cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],nSamples_clear_freq)
               cmd.transmit()
               if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
                  time.sleep(0.001)
