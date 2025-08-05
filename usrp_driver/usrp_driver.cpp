@@ -772,7 +772,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     // RESIZE LOCAL BUFFERS
                     if(rx_data_buffer[0].size() < nSamples_rx_total) {
-                      DEBUG_PRINT("%s: USRP_SETUP resize rx_data_buffer. rx_data_buff size %d   nsamples %d\n", get_log_time(), rx_data_buffer.size(), nSamples_rx_total);
+                      DEBUG_PRINT("%s: USRP_SETUP resize rx_data_buffer. rx_data_buff size %ld   nsamples %ld\n", get_log_time(), rx_data_buffer.size(), nSamples_rx_total);
                       for(iSide = 0; iSide < nSides; iSide++) {
                         try{
                           rx_data_buffer[iSide].resize(nSamples_rx_total);
@@ -1193,7 +1193,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     double clrfreq_rate          = sock_get_float64(driverconn);
 
                     if(num_clrfreq_samples != 0 and clrfreq_data_buffer[0].size() < num_clrfreq_samples) {
-                       DEBUG_PRINT("%s: USRP_SETUP resize clear freq buff. old: %d, new: %d\n", get_log_time(), clrfreq_data_buffer[0].size(),num_clrfreq_samples);
+                       DEBUG_PRINT("%s: USRP_SETUP resize clear freq buff. old: %ld, new: %u\n", get_log_time(), clrfreq_data_buffer[0].size(), num_clrfreq_samples);
                        for(iSide = 0; iSide < nSides; iSide++) {
                            clrfreq_data_buffer[iSide].resize(num_clrfreq_samples);
                        }
