@@ -648,9 +648,7 @@ class ClearFrequencyService():
 
     log = logging.getLogger('clearFrequency')
 
-    def __init__(self, sid = 'lab'):
-        # Process Site ID during Sample Send
-        ClearFrequencyService.sid = sid
+    def __init__(self):
 
         try:
             # Skip Initialization if SHMs exists
@@ -939,9 +937,9 @@ class ClearFrequencyService():
                     flattened_data.append(array_data[i])
                 # Place antenna list last
                 flattened_data += array_data[0]
-            elif atype == "sid":
-                for letter in array_data:
-                    flattened_data.append(bytes(letter, 'ascii'))
+            # elif atype == "sid":
+            #     for letter in array_data:
+            #         flattened_data.append(bytes(letter, 'ascii'))
             else:
                 # Otherwise, just flatten
                 list_of_lists = self.find_list_of_lists(array_data)
@@ -964,8 +962,8 @@ class ClearFrequencyService():
             dtype = 'i'
             if atype == 'meta':
                 dtype = 'd'
-            elif atype == "sid":
-                dtype = b'c'
+            # elif atype == "sid":
+            #     dtype = b'c'
             else:
                 dtype = self.detect_dtype(flattened_data)
             print(f"dtype: {dtype}, elem_num: {obj['elem_num']}, ")
@@ -982,11 +980,6 @@ class ClearFrequencyService():
                     print("[Frequency Client] Writing data:\n", flattened_data)
 
                 obj['shm_ptr'].seek(0)
-                if atype == 'sid':
-                    print(f"ascii bytes: {flattened_data}")
-                    print(f"dtype argument: {dtype * obj['elem_num']}")
-                #     obj['shm_ptr'].write(struct.pack(dtype * obj['elem_num'], bytes(flattened_data, 'ascii')))
-                # else:
                 obj['shm_ptr'].write(struct.pack(dtype * obj['elem_num'], *flattened_data))
             else:
                 print("[Frequency Client] new_data len of: ", 1)
@@ -1220,11 +1213,6 @@ class ClearFrequencyService():
                     # Rearrange meta_data ordering
                     self.write_data(self.shm_objects[6], meta_data_list, 'meta')
 
-                # Write Site ID (SID)
-                print(f"[Frequency Client] Data Write Progress: {self.shm_objects[9]['name']}")
-                print(f"    len of objects list is {len(self.shm_objects)}")
-                self.write_data(self.shm_objects[9], self.sid, 'sid')
-
                 self.sl_init['sem'].release()
                 self.sf_init['sem'].release()
                 print("[clearFrequencyService] Initialization Semaphore Released ...")
@@ -1414,7 +1402,7 @@ class clearFrequencyRawDataManager():
         self.center_freq = [None for jrad in range(N_RADARs)]
         self.sampling_rate = [None for jrad in range(N_RADARs)]
         self.number_of_samples = None
-        self.CFS = ClearFrequencyService(sid=ThisRadar)
+        self.CFS = ClearFrequencyService()
 
         self.metaData = [{} for jrad in range(N_RADARs)]
 
@@ -1552,7 +1540,7 @@ class scanManager():
        
         self.channel = channel
         self.RHM = channel.parent_RadarHardwareManager
-        self.clearFreqService = ClearFrequencyService(sid=self.RHM.ThisRadar)
+        self.clearFreqService = ClearFrequencyService()
         self.beamSep = self.RHM.array_beam_sep
         self.numBeams = self.RHM.array_nBeams
 
@@ -2838,9 +2826,9 @@ class RadarHardwareManager:
               cmd.transmit()
               
               if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
-                 time.sleep(0.001)
-              else:                       
                  time.sleep(0.002)
+              else:                       
+                 time.sleep(0.004)
               
               # check status of usrp drivers
               self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
