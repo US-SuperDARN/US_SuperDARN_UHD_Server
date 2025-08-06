@@ -393,7 +393,7 @@ class usrpSockManager():
        # sync to other usrps
        if do_resync:
          self.RHM._resync_usrps()
-         self.RHM.rxfe_init() 
+         self.RHM.rxfe_init()
 
 
 class usrpMixingFreqManager():
@@ -426,8 +426,8 @@ class usrpMixingFreqManager():
           self.channelList[jrad] = []
 
        newLower, newUpper = self.get_range_of_channel(channel)
-       if newLower < RHM.hardwareLimit_freqRange[0] or newUpper > RHM.hardwareLimit_freqRange[1]:
-          channel.logger.error("radar {} ch {}: channel bandwidth ({} - {} MHz) is not covered by radar hardware limits ({} - {} MHz)".format(channel.rnum, channel.cnum, newLower/1000, newUpper/1000, RHM.hardwareLimit_freqRange[0]/1000, RHM.hardwareLimit_freqRange[1]/1000))
+       if newLower < RHM.hardwareLimit_freqRange[jrad][0] or newUpper > RHM.hardwareLimit_freqRange[jrad][1]:
+          channel.logger.error("radar {} ch {}: channel bandwidth ({} - {} MHz) is not covered by radar hardware limits ({} - {} MHz)".format(channel.rnum, channel.cnum, newLower/1000, newUpper/1000, RHM.hardwareLimit_freqRange[jrad][0]/1000, RHM.hardwareLimit_freqRange[jrad][1]/1000))
           return False
 
        channel.logger.debug("radar {} ch {}: waiting for semaphore of usrpMixingFreqManager".format(channel.rnum, channel.cnum))
@@ -453,8 +453,8 @@ class usrpMixingFreqManager():
              channel.logger.debug("radar {} ch {}: trying to adjust mixing frequency to support new channel".format(channel.rnum, channel.cnum))
              newMixingFreq = (allCh_upper - allCh_lower)/2 + allCh_lower
              # adjust mixing freq that everything is in overall bandwidth
-             newMixingFreq = max(newMixingFreq, RHM.hardwareLimit_freqRange[0]+self.usrp_bandwidth/2)
-             newMixingFreq = min(newMixingFreq, RHM.hardwareLimit_freqRange[1]-self.usrp_bandwidth/2)
+             newMixingFreq = max(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][0]+self.usrp_bandwidth/2)
+             newMixingFreq = min(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][1]-self.usrp_bandwidth/2)
              result = newMixingFreq
 
        # adjust mixing freq to avoid overlap with channel search ranges
@@ -480,8 +480,8 @@ class usrpMixingFreqManager():
                    newMixingFreq += shift*50
 
                    # shift in the other direction if a hardware limit is reached
-                   if (newMixingFreq < RHM.hardwareLimit_freqRange[0] or
-                       newMixingFreq > RHM.hardwareLimit_freqRange[1]):
+                   if (newMixingFreq < RHM.hardwareLimit_freqRange[jrad][0] or
+                       newMixingFreq > RHM.hardwareLimit_freqRange[jrad][1]):
                       shift *= -1
 
                    # stop adjusting after too many attempts
@@ -1380,7 +1380,7 @@ class ClearFrequencyService():
 class clearFrequencyRawDataManager():
     """ Buffers the raw clearfrequency data for all channels
     """
-    def __init__(self, antenna_spacing, usrpManager, N_RADARs, ThisRadar):
+    def __init__(self, antenna_spacing, usrpManager, N_RADARs):
         self.rawData      = [None for jrad in range(N_RADARs)]
         self.antennaList  = [None for jrad in range(N_RADARs)]
         self.recordTime   = [None for jrad in range(N_RADARs)]
@@ -1402,7 +1402,7 @@ class clearFrequencyRawDataManager():
         self.select_clear_freq = threading.BoundedSemaphore()
 
         for j in range(N_RADARs):
-           self.metaData[j]['x_spacing'] = antenna_spacing 
+           self.metaData[j]['x_spacing'] = antenna_spacing[j]
 
         self.logger = logging.getLogger('clearFrequency')
         self.logger.debug('clearFrequencyRawDataManager initialized')
@@ -1439,7 +1439,7 @@ class clearFrequencyRawDataManager():
         self.logger.debug("Updated clear freq raw data with auto_clear_freq data")
 
         # Update Muted Antenna List
-        RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list()
+        #RadarHardwareManager.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
 
 
     def record_new_data(self, jrad):
@@ -1467,7 +1467,7 @@ class clearFrequencyRawDataManager():
             self.recordTime[jrad] = time.time()
 
             # Update Muted Antenna List
-            RadarHardwareManager.mute_antenna_list = self.CFS.get_muted_antenna_list()
+            #RadarHardwareManager.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
 
             self.logger.debug("clrfreq record time: {}".format(self.recordTime[jrad]))
         else:
@@ -1530,8 +1530,8 @@ class scanManager():
         self.channel = channel
         self.RHM = channel.parent_RadarHardwareManager
         self.clearFreqService = ClearFrequencyService()
-        self.beamSep = self.RHM.array_beam_sep
-        self.numBeams = self.RHM.array_nBeams
+        self.beamSep = self.RHM.array_beam_sep[channel.rnum]
+        self.numBeams = self.RHM.array_nBeams[channel.rnum]
 
         self.current_clrFreq_result = None
         self.next_clrFreq_result    = None 
@@ -1750,7 +1750,7 @@ class scanManager():
 # merge information from multiple control programs, handle disparate settings
 # e.g, ready flags and whatnot
 class RadarHardwareManager:
-    mute_antenna_list = []
+    #mute_antenna_list = []
 
     def __init__(self, port):
         self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1778,7 +1778,7 @@ class RadarHardwareManager:
         self.nControlPrograms  = 0  # number of control programs, also include unregistered channels
         self.channel_manager_consecutive_number = 10 # serial number shown in logger of channel_manager
 
-        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.array_x_spacing, self.usrpManager, self.N_RADARs, self.ThisRadar)
+        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.array_x_spacing, self.usrpManager, self.N_RADARs)
         for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 
@@ -1946,29 +1946,50 @@ class RadarHardwareManager:
         # READ array_config.ini
         array_config = configparser.ConfigParser()
         array_config.read('../array_config.ini')
-        self.ini_rxfe_settings  = array_config['rxfe']
-        self.scaling_factor_tx_total = float(array_config['gain_control']['scaling_factor_tx_total'])
-        self.scaling_factor_rx_bb    = float(array_config['gain_control']['scaling_factor_rx_bb'])
-        self.scaling_factor_rx_if    = float(array_config['gain_control']['scaling_factor_rx_if'])
-        self.apply_normalization     = array_config.getboolean('gain_control','use_var_normalization')
-        mute_antenna_str = array_config['gain_control']['mute_antenna_idx'] 
-        if len(mute_antenna_str):
-            self.mute_antenna_list = [int(x) for x in mute_antenna_str.split(",")]
-        else:
-            self.mute_antenna_list = []
 
-        if self.apply_normalization:
-            self.logger.info("Normalizing is active.")
-        if len(self.mute_antenna_list):
-            self.logger.info("Mute antennas before beamforming: {}".format(self.mute_antenna_list))
+        self.N_RADARs = int(array_config['array_info']['nradars'])
 
-        self.ini_array_settings = array_config['array_info']
-        self.ThisRadar       =       self.ini_array_settings['stid']
-        self.N_RADARs        = int(  self.ini_array_settings['nradars'] )
-        self.array_nBeams    = int(  self.ini_array_settings['nbeams'] )
-        self.array_beam_sep  = float(self.ini_array_settings['beam_sep'] ) # degrees
-        self.array_x_spacing = float(self.ini_array_settings['x_spacing'] ) # meters 
-        self.hardwareLimit_freqRange = [float(array_config['hardware_limits']['minimum_tfreq'] ) /1000, float(array_config['hardware_limits']['maximum_tfreq'] )/1000] # converted to kHz
+        self.ThisRadar               = [[] for jrad in range(self.N_RADARs)]
+        self.array_nBeams            = [[] for jrad in range(self.N_RADARs)]
+        self.array_beam_sep          = [[] for jrad in range(self.N_RADARs)]
+        self.array_x_spacing         = [[] for jrad in range(self.N_RADARs)]
+        self.hardwareLimit_freqRange = [[] for jrad in range(self.N_RADARs)]
+
+        self.ini_rxfe_settings       = [[] for jrad in range(self.N_RADARs)]
+        self.scaling_factor_tx_total = [[] for jrad in range(self.N_RADARs)]
+        self.scaling_factor_rx_bb    = [[] for jrad in range(self.N_RADARs)]
+        self.scaling_factor_rx_if    = [[] for jrad in range(self.N_RADARs)]
+        self.apply_normalization     = [[] for jrad in range(self.N_RADARs)]
+        self.mute_antenna_list       = [[] for jrad in range(self.N_RADARs)]
+
+        for jrad in range(self.N_RADARs):
+            self.ThisRadar[jrad]       = array_config['array_info']['stid']
+            self.array_nBeams[jrad]    = int(  array_config['array_info']['nbeams'])
+            self.array_beam_sep[jrad]  = float(array_config['array_info']['beam_sep']) # degrees
+            self.array_x_spacing[jrad] = float(array_config['array_info']['x_spacing']) # meters
+            self.hardwareLimit_freqRange[jrad] = [float(array_config['hardware_limits']['minimum_tfreq'] ) /1000, float(array_config['hardware_limits']['maximum_tfreq'] )/1000] # converted to kHz
+
+            self.ini_rxfe_settings[jrad]       = array_config['rxfe']
+            self.scaling_factor_tx_total[jrad] = float(array_config['gain_control']['scaling_factor_tx_total'])
+            self.scaling_factor_rx_bb[jrad]    = float(array_config['gain_control']['scaling_factor_rx_bb'])
+            self.scaling_factor_rx_if[jrad]    = float(array_config['gain_control']['scaling_factor_rx_if'])
+            self.apply_normalization[jrad]     = array_config.getboolean('gain_control','use_var_normalization')
+            mute_antenna_str = array_config['gain_control']['mute_antenna_idx']
+            if len(mute_antenna_str):
+                self.mute_antenna_list[jrad] = [int(x) for x in mute_antenna_str.split(",")]
+            else:
+                self.mute_antenna_list[jrad] = []
+
+            if self.apply_normalization[jrad]:
+                self.logger.info("Radar {}: Normalizing is active.".format(jrad))
+            if len(self.mute_antenna_list[jrad]):
+                self.logger.info("Radar {}: Mute antennas before beamforming: {}".format(jrad, self.mute_antenna_list[jrad]))
+
+            if (self.N_RADARs == 2) and (jrad == 0):
+                radar_2 = array_config['array_info']['stid_2']
+                array_config = configparser.ConfigParser()
+                array_config.read('../config/{}/array_config__{}.ini'.format(radar_2, radar_2))
+
 
         # READ driver_config.ini
         driver_config = configparser.ConfigParser()
@@ -2071,22 +2092,22 @@ class RadarHardwareManager:
 
 
     #@timeit
-    def rxfe_init(self): # could be done looping over jradar
-       
-        amp1 = self.ini_rxfe_settings.getboolean('enable_amp1')
-        amp2 = self.ini_rxfe_settings.getboolean('enable_amp2')
-
-        att = float(self.ini_rxfe_settings['attenuation'])
-        if att < 0:
-           self.logger.warning('attenuation for rxfe in array.ini is defined positive, but given value is negative ({} dB). correcting that to {} dB...'.format(att, att*(-1)))
-           att *= -1
-
-        if att > 31.5:
-           self.logger.warning('attenuation ({}) for rxfe in array.ini is > 31.5 dB. using maximum atenuation of 31.5 dB'.format(att))
-           att = 31.5
+    def rxfe_init(self):
 
         for jrad in range(self.N_RADARs):
-           self.logger.info("Setting RXFE: Amp1={}, Amp2={}, Attenuation={} dB".format(amp1, amp2, att)) 
+           amp1 = self.ini_rxfe_settings[jrad].getboolean('enable_amp1')
+           amp2 = self.ini_rxfe_settings[jrad].getboolean('enable_amp2')
+
+           att = float(self.ini_rxfe_settings[jrad]['attenuation'])
+           if att < 0:
+              self.logger.warning('attenuation for rxfe in array.ini is defined positive, but given value is negative ({} dB). correcting that to {} dB...'.format(att, att*(-1)))
+              att *= -1
+
+           if att > 31.5:
+              self.logger.warning('attenuation ({}) for rxfe in array.ini is > 31.5 dB. using maximum atenuation of 31.5 dB'.format(att))
+              att = 31.5
+
+           self.logger.info("Radar {}: Setting RXFE: Amp1={}, Amp2={}, Attenuation={} dB".format(jrad, amp1, amp2, att)) 
            cmd = usrp_rxfe_setup_command(self.usrpManager.socks[jrad], amp1, amp2, att*2) # *2 since LSB is 0.5 dB 
            cmd.transmit()
            time.sleep(0.001)
@@ -2191,11 +2212,12 @@ class RadarHardwareManager:
         for ch2add in newChannelList:
            if ch2add not in np.concatenate(RHM.channels).tolist():
               nChannelsNew += 1
-        RHM.apply_channel_scaling(nChannelsWillBeAdded=nChannelsNew)
 
         RHM._calc_period_details(newChannels=newChannelList) # TODO only if this is first channel?
         for channel in newChannelList:
-     
+
+            RHM.apply_channel_scaling(channel.rnum, nChannelsWillBeAdded=nChannelsNew)
+
             # CUDA_ADD_CHANNEL in first period
             RHM.logger.debug('RADAR number: {}'.format(channel.rnum))
             seq=channel.get_current_sequence()
@@ -2423,7 +2445,7 @@ class RadarHardwareManager:
         self.logger.debug('running RHM.trigger_next_swing()')
         self.integration_time_manager.started_trigger_next() #checks time for last integration and sets start time of current integration
      
-        self.apply_channel_scaling() # currently does nothing
+        #self.apply_channel_scaling() # currently does nothing
         
         self._calc_period_details()
         trigger_next_period = self.nSequences_per_period != 0 # don't triger if no time left
@@ -2639,7 +2661,7 @@ class RadarHardwareManager:
                                 back_samples = np.zeros((len(np.concatenate(self.channels).tolist()), nBackAntennas, nSamples_bb), dtype=np.complex64)
 
                              samples = recv_dtype(cudasock, np.float32, nSamples_bb * 2)
-                             samples = (samples[0::2] + 1j * samples[1::2]) * self.scaling_factor_rx_bb # unpacked interleaved i/q
+                             samples = (samples[0::2] + 1j * samples[1::2]) * self.scaling_factor_rx_bb[jrad] # unpacked interleaved i/q
                                
                              if antIdx in self.antenna_idx_list_main[jrad]:
                                 iAntenna = self.antenna_idx_list_main[jrad].index(antIdx)
@@ -2935,35 +2957,35 @@ class RadarHardwareManager:
                   ch_do_not_increase_period.append(ch.scanManager.isPrePeriod or ch.scanManager.isLastPeriod)
                   ch.scanManager.period_finished()
    
-    def apply_channel_scaling(self, nChannelsWillBeAdded=0):
+    def apply_channel_scaling(self, rnum, nChannelsWillBeAdded=0):
 
-        # self.gain_control_divide_by_nChannels(self, nChannelsWillBeAdded)
-        self.no_channel_gain_control()
+        # self.gain_control_divide_by_nChannels(self, rnum, nChannelsWillBeAdded)
+        self.no_channel_gain_control(rnum)
 
 
-    def no_channel_gain_control(self, nChannelsWillBeAdded=0):
-        self.logger.debug("No channel scaling. Global factor for all channels is: totalScalingFactor  = {} ".format(self.scaling_factor_tx_total ))
+    def no_channel_gain_control(self, rnum, nChannelsWillBeAdded=0):
+        self.logger.debug("No channel scaling. Global factor for all channels is: totalScalingFactor  = {} ".format(self.scaling_factor_tx_total[rnum] ))
         for ch in np.concatenate(self.channels).tolist() + self.newChannelList:
-            ch.channelScalingFactor = self.scaling_factor_tx_total
+            ch.channelScalingFactor = self.scaling_factor_tx_total[rnum]
 
 
-    def gain_control_divide_by_nChannels(self, nChannelsWillBeAdded=0):
+    def gain_control_divide_by_nChannels(self, rnum, nChannelsWillBeAdded=0):
         nChannels = len(np.concatenate(self.channels).tolist()) + nChannelsWillBeAdded
-        self.logger.debug("Setting channel scaling factor to: totalScalingFactor / nChannels = {}/ {} ".format(self.scaling_factor_tx_total, nChannels))
+        self.logger.debug("Setting channel scaling factor to: totalScalingFactor / nChannels = {}/ {} ".format(self.scaling_factor_tx_total[rnum], nChannels))
         for ch in np.concatenate(self.channels).tolist() + self.newChannelList:
-            ch.channelScalingFactor = self.scaling_factor_tx_total
+            ch.channelScalingFactor = self.scaling_factor_tx_total[rnum]
 #            ch.channelScalingFactor = 1 / nChannels * self.scaling_factor_tx_total
 
     # normalize
     def calc_normalize_and_mute_factors(RHM, jrad, main_samples, back_samples):
         antenna_scale_factors = np.ones(max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad])+1)
-        for ant_to_mute in RHM.mute_antenna_list:
+        for ant_to_mute in RHM.mute_antenna_list[jrad]:
             # If antenna present and on mute list, mute it
             if (max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad]) + 1) > ant_to_mute:
                 antenna_scale_factors[ant_to_mute] = 0
         antenna_scale_factors = [antenna_scale_factors for i in range(len(np.concatenate(RHM.channels).tolist()))]
 
-        if RHM.apply_normalization:
+        if RHM.apply_normalization[jrad]:
             RHM.logger.info("start normalizing rx samples")
             debugPlot = False
             nChannels, nAntennas_main, nSamples = main_samples.shape
@@ -3067,9 +3089,9 @@ class RadarHardwareManager:
                 cur_beam=channel.ctrlprm_struct.payload['rbeam']
                 cur_freq=channel.ctrlprm_struct.payload['rfreq']
                 
-                bmazm         = calc_beam_azm_rad(RHM.array_nBeams, cur_beam, RHM.array_beam_sep)    # calculate beam azimuth from transmit beam number          
+                bmazm         = calc_beam_azm_rad(RHM.array_nBeams[channel.rnum], cur_beam, RHM.array_beam_sep[channel.rnum])    # calculate beam azimuth from transmit beam number          
                 channel.logger.debug("rx beamforming: radar {} ch {}, beam {}".format(channel.rnum, channel.cnum, channel.scanManager.current_beam))
-                pshift        = calc_phase_increment(bmazm, cur_freq * 1000., RHM.array_x_spacing)       # calculate antenna-to-antenna phase shift for steering at a frequency        
+                pshift        = calc_phase_increment(bmazm, cur_freq * 1000., RHM.array_x_spacing[channel.rnum])       # calculate antenna-to-antenna phase shift for steering at a frequency        
                 channel.logger.debug("rx beamforming: radar {} ch {}, frequency {}".format(channel.rnum, channel.cnum, cur_freq))#, clrFreqResult[0]))
 
 
@@ -3564,7 +3586,7 @@ class RadarChannelHandler:
           transmit_dtype(cudasock, -1, np.int32) # to end transfer process
                    
           cmd.client_return()
-          channel.raw_export_data['data'] = if_samples * RHM.scaling_factor_rx_if
+          channel.raw_export_data['data'] = if_samples * RHM.scaling_factor_rx_if[channel.rnum]
           channel.raw_export_data['nAntennas'] = nAntennas
           channel.raw_export_data['nSamples'] = nSamples_if
           channel.logger.debug('end CUDA_GET_IF_DATA')
@@ -4061,13 +4083,13 @@ class RadarChannelHandler:
 
     def QueryIniSettingsHandler(self, rmsg):
         # send information about tx_scaling_factor_total as txpow
-        tx_factor = self.parent_RadarHardwareManager.scaling_factor_tx_total*100
+        tx_factor = self.parent_RadarHardwareManager.scaling_factor_tx_total[self.rnum]*100
         transmit_dtype(self.conn, tx_factor, np.int32)
 
         # send information about amplification and attenuation settings as atten
-        amp1 = self.parent_RadarHardwareManager.ini_rxfe_settings.getboolean('enable_amp1')
-        amp2 = self.parent_RadarHardwareManager.ini_rxfe_settings.getboolean('enable_amp2')
-        atten = float(self.parent_RadarHardwareManager.ini_rxfe_settings['attenuation'])
+        amp1 = self.parent_RadarHardwareManager.ini_rxfe_settings[self.rnum].getboolean('enable_amp1')
+        amp2 = self.parent_RadarHardwareManager.ini_rxfe_settings[self.rnum].getboolean('enable_amp2')
+        atten = float(self.parent_RadarHardwareManager.ini_rxfe_settings[self.rnum]['attenuation'])
         if amp1 == True:
           atten -= 15.0
         if amp2 == True:
