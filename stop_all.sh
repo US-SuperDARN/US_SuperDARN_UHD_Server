@@ -2,9 +2,6 @@
 
 
 # Kill USRP drivers and CUDA driver on second radar:
-RADAR_2=192.168.100.2
-ssh radar@$RADAR_2 '/home/radar/repos/SuperDARN_UHD_Server/stop_all.sh'
-
 pkill -KILL -f srr_watchdog.py
 
 /home/radar/repos/SuperDARN_UHD_Server/srr.py stop

@@ -8,8 +8,8 @@ linux_libs=-lboost_thread -lboost_system -pthread -l argtable2 -lboost_date_time
 INCLUDES=-I"${HOME}/repos/uhd/host/include" \
 	 -I"${HOME}/repos/uhd/host/include/uhd/types" \
 	 -I"${HOME}/repos/uhd/host/include/uhd/usrp" \
-	 -I"${HOME}/repos/rst-ros/include/base" \
-	 -I"${HOME}/repos/rst-ros/include/superdarn"
+	 -I"${RSTPATH}/include/base" \
+	 -I"${RSTPATH}/include/superdarn"
 
 CPP_SOURCES=usrp_driver.cpp dio.cpp tx_worker.cpp rx_worker.cpp usrp_utils.cpp
 

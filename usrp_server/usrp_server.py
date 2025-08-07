@@ -99,7 +99,7 @@ class integrationTimeManager():
       if self.RHM.N_RADARs > 1:
          overhead_time = 0.30
       else:
-         overhead_time = 0.20
+         overhead_time = 0.30
 
       return overhead_time
 
@@ -250,7 +250,8 @@ class usrpSockManager():
        
        del self.socks[jrad][iSock]
 
-       self.RHM.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.socks[jrad]) 
+       if hasattr(self.RHM, 'clearFreqRawDataManager'):
+          self.RHM.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.socks[jrad])
 
    def get_all_main_antenna_socks(self, jrad):
        main_ant_sock_list = []
@@ -1425,6 +1426,8 @@ class clearFrequencyRawDataManager():
         self.sampling_rate = clrfreq_sampling_rate
         self.number_of_samples = number_of_clrfreq_samples
 
+        self.logger.debug('clearFrequencyRawDataManager set_clrfreq_search_span: center {} rate {} number {}'.format(self.center_freq[jrad],self.sampling_rate,self.number_of_samples))
+
         self.metaData[jrad]['usrp_fcenter'] = self.center_freq[jrad] 
         self.metaData[jrad]['number_of_samples'] = self.number_of_samples 
         self.metaData[jrad]['usrp_rf_rate'] = self.sampling_rate 
@@ -1788,7 +1791,7 @@ class RadarHardwareManager:
         for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 
-           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, self.usrp_rf_rx_rate / CLRFREQ_RES)
+           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(AVG_RATIO * self.usrp_rf_rx_rate / CLRFREQ_RES))
            
         self.active_channels     = [[] for jrad in range(self.N_RADARs)]
         self.channels            = [[] for jrad in range(self.N_RADARs)]   # all channels that are really transmitting
@@ -2474,13 +2477,14 @@ class RadarHardwareManager:
                     collect_auto_clear_freq_samples = False
                     auto_clear_freq_meta_data = None
 
-                 self.logger.debug('rnum {} usrp_setup pars: ex_samples{} nsamples_pause {} nsamples_clearfreq {} nsamples_per_pulse {}'.format(jrad,self.nPulses_per_integration_period,  channel.nrf_rx_samples_per_integration_period,nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
+                 self.logger.debug('rnum {} usrp_setup pars: pulses:{}  total_samples: {} nsamples_pause: {} nsamples_clearfreq: {} nsamples_per_pulse: {}'.format(jrad, self.nPulses_per_integration_period, nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
                  
                  cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
                                           self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, self.nPulses_per_integration_period,  channel.nrf_rx_samples_per_integration_period, \
                                           nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse, channel.integration_period_pulse_sample_offsets, \
                                           self.swingManager.activeSwing)
                  cmd.transmit()
+                 time.sleep(0.001)
                  try:
                     if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
                        time.sleep(0.002)
@@ -2909,8 +2913,9 @@ class RadarHardwareManager:
            # GET AUTO CLEAR FREQ DATA
            if transmittingChannelAvailable[jrad] and trigger_next_period and self.auto_collect_clrfrq_after_rx:
               self.clear_search_data_semaphore.acquire()
-              self.logger.debug("Getting auto clear freq data for radar {}".format(jrad))
-              cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad])
+              nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
+              self.logger.debug("Getting auto clear freq data for radar {}. nSamples_clear_freq: {}".format(jrad,nSamples_clear_freq))
+              cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],int(nSamples_clear_freq))
               cmd.transmit()
               if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
                  time.sleep(0.001)
@@ -2919,7 +2924,7 @@ class RadarHardwareManager:
               # time.sleep(0.01) # Added sleep to allow for data transfer across network connection 
 
               antenna_list, clr_samples = cmd.recv_all()
-              self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples)))
+              self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples[0])))
               auto_clear_freq_meta_data['record_time'] = time.time()
               self.clearFreqRawDataManager.update_auto_clear_freq_data(jrad, antenna_list, clr_samples, auto_clear_freq_meta_data)
               cmd.client_return()

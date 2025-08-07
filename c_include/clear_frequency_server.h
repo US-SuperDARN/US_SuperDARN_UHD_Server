@@ -12,7 +12,7 @@
 #define LOG_TERMINAL_LEVEL  1                           // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
 #define LOG_FILE_LEVEL      0
 #define LOG_PREFIX          "[CFS] %s"                  // *Unused* Prefix for log messages
-#define LOG_FILEPATH        "log/cfs/cfs.%s.log"
+#define LOG_FILEPATH        "/data/log/cfs/cfs.%s.log"
 
 // Server Config Vars
 #define AVG_RATIO               4                       // Number of samples to average during spectral averaging (4 = 4 samples avg-ed per beam)
@@ -24,7 +24,7 @@
 // Filepaths Vars
 #define ARRAY_CONFIG_FILEPATH           "array_config.ini"
 #define RADAR_CONST_CONFIG_FILEPATH     "python_include/radar_config_constants.py"
-#define DEFAULT_SITE_STSTR             "sys"        // Default site config to use if not passed from usrp_server 
+#define DEFAULT_SITE_STSTR              "cve"        // Default site config to use if not passed from usrp_server 
 
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500

@@ -589,7 +589,7 @@ class ProcessingGPU(object):
 
     # add a USRP with some constant calibration time delay and phase offset (should be frequency dependant?)
     # instead, calibrate VNA on one path then measure S2P of other paths, use S2P file as calibration?
-    def addUSRP(self, usrp_hostname = '', driver_hostname = '', mainarray = True, radar = 0, array_idx = -1, x_position = None, tdelay = 0, side = 'a', phase_offset = None):
+    def addUSRP(self, usrp_hostname = '', driver_hostname = '', mainarray = True, radar = 0, array_idx = -1, tdelay = 0, side = 'a', phase_offset = None):
         iAntenna =  self.antenna_index_list.tolist().index(int(array_idx))
         self.tdelays[iAntenna] = tdelay
         if phase_offset == None:

@@ -374,8 +374,10 @@ class usrp_get_time_command(driver_command):
     
 # command get auto clear freq samples
 class usrp_get_auto_clear_freq_command(driver_command):
-    def __init__(self, usrps):
+    def __init__(self, usrps, num_clrfreq_samples):
         driver_command.__init__(self, usrps, UHD_AUTOCLRFREQ)
+        self.logger.debug("num_clrfreq_samples: {}".format(num_clrfreq_samples))
+        self.queue(np.int32(num_clrfreq_samples), np.int32, 'num_clrfreq_samples')
 
     def recv_samples_from_one_usrp(self, sock):
 
@@ -388,8 +390,8 @@ class usrp_get_auto_clear_freq_command(driver_command):
             if antenna_no_side == -1:
                 sample_buf_side = []
             else:
-                nSamples = recv_dtype(sock, np.uint32)
-                print("clear search number of samples:",nSamples)
+                nSamples = recv_dtype(sock, np.int32)
+                self.logger.debug("clear search return number of samples:{}".format(nSamples))
                 
                 if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
                     time.sleep(0.003)

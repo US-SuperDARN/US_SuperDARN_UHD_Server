@@ -12,6 +12,7 @@
 #include <time.h>
 
 #include "tx_worker.h"
+#include "usrp_utils.h"
 
 #define TEST_TXWORKER 0
 #define SAVE_TX_SAMPLES_DEBUG 0
@@ -46,7 +47,7 @@ void usrp_tx_worker(
     gettimeofday(&t0,NULL);
 
     fprintf(stderr,"TX_WORKER starting up\n");
-    DEBUG_PRINT("TX_WORKER starting up\n");
+    DEBUG_PRINT("%s: TX_WORKER starting up\n", get_log_time());
 
     float priority=1;
     bool realtime=true;
@@ -63,11 +64,11 @@ void usrp_tx_worker(
     size_t spb = tx_stream->get_max_num_samps();
     int32_t samples_per_pulse = padded_num_samples_per_pulse - 2*spb; 
     fprintf(stderr,"TX_WORKER nSamples_per_pulse=%i + 2*%zu (zero padding)\n", samples_per_pulse, spb);
-    DEBUG_PRINT("TX_WORKER nSamples_per_pulse=%i + 2*%zu (zero padding)\n", samples_per_pulse, spb);
+    DEBUG_PRINT("%s: TX_WORKER nSamples_per_pulse=%i + 2*%zu (zero padding)\n", get_log_time(), samples_per_pulse, spb);
     int iSide;
     int nSides = pulse_samples.size();
     std::vector<std::complex<int16_t>*> buffer(nSides); 
-    DEBUG_PRINT("TX_WORKER nSides=%i\n", nSides);
+    DEBUG_PRINT("%s: TX_WORKER nSides=%i\n", get_log_time(), nSides);
 
     // assume at least spb length zero padding before first pulse
     size_t tx_burst_length_samples = pulse_sample_idx_offsets[number_of_pulses-1] + samples_per_pulse -1;
@@ -128,12 +129,12 @@ void usrp_tx_worker(
     //    if(DEBUG && sample_idx) std::cout << boost::format(" Sent packet:  idx: %i") % sample_idx << std::endl;
         nacc_samples += ntx_samples;
     }
-    DEBUG_PRINT("TX_WORKER tx_burst_length_samples=%li\n", tx_burst_length_samples );
+    DEBUG_PRINT("%s: TX_WORKER tx_burst_length_samples=%li\n", get_log_time(), tx_burst_length_samples);
 
     md.end_of_burst = true;
     tx_stream->send(&pulse_samples[0], 0, md, timeout);
 
-    DEBUG_PRINT("Waiting for async burst ACK... ");
+    DEBUG_PRINT("%s: Waiting for async burst ACK... ", get_log_time());
     uhd::async_metadata_t async_md;
     bool got_async_burst_ack = false;
 
@@ -143,12 +144,12 @@ void usrp_tx_worker(
     
     DEBUG_PRINT((got_async_burst_ack ? "success\n" : "fail\n"));
 
-    DEBUG_PRINT("TX_WORKER finished pulses\n");
+    DEBUG_PRINT("%s: TX_WORKER finished pulses\n", get_log_time());
 
     gettimeofday(&t1,NULL);
     double elapsed=(t1.tv_sec-t0.tv_sec)*1E6;
     elapsed+=(t1.tv_usec-t0.tv_usec);
     std::cout << "finished transmitting pulse sequence, elapsed tx worker time (us): " << elapsed << "\n";
-    DEBUG_PRINT("TX_WORKER finished\n");
+    DEBUG_PRINT("%s: TX_WORKER finished\n", get_log_time());
  
 }

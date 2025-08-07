@@ -32,6 +32,7 @@
 #include <uhd/utils/thread.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
+#include <uhd/usrp_clock/multi_usrp_clock.hpp>
 #include <uhd/transport/udp_simple.hpp>
 #include <uhd/exception.hpp>
 
@@ -61,8 +62,9 @@
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
+#define GPS_WAIT 2   // in seconds
 #define SETUP_WAIT 1 // in seconds
-#define nSwings 2 // swings are slots in the swing buffer
+#define nSwings 2    // swings are slots in the swing buffer
 
 
 #define MAX_SOCKET_RETRYS 5
@@ -119,7 +121,7 @@ enum driver_states
 namespace po = boost::program_options;
 int32_t driversock = 0;
 int32_t driverconn = 0;
-int32_t verbose = 0;
+int32_t verbose = 1;
 
 void *open_sample_shm(int32_t ant, int32_t dir, int32_t side, int32_t swing, size_t shm_size) {
     void *pshm = NULL;
@@ -251,7 +253,7 @@ ssize_t sock_send_cshort(int32_t sock, std::complex<short int> d)
 {
    ssize_t status = send(sock, &d, sizeof(std::complex<short int>), 0);
    if(status != sizeof(std::complex<short int>)) {
-        fprintf(stderr, "error sending compelx short\n");
+        fprintf(stderr, "error sending complex short\n");
    }
    return status;
 }
@@ -432,6 +434,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     uint32_t tx_worker_active;
 
     uhd::time_spec_t start_time, rx_start_time;
+    uhd::usrp_clock::multi_usrp_clock::sptr gps_clock;
 
     // vector of all pulse start times over an integration period
     std::vector<uhd::time_spec_t> pulse_time_offsets;
@@ -442,7 +445,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     boost::thread_group clrfreq_threads;
 
     // process config file for port and SHM sizes
-    DEBUG_PRINT("USRP_DRIVER starting to read driver_config.ini\n");
+    DEBUG_PRINT("%s: USRP_DRIVER starting to read driver_config.ini\n", get_log_time());
     boost::property_tree::ptree pt;
     boost::property_tree::ini_parser::read_ini("../driver_config.ini", pt);
 
@@ -454,9 +457,12 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     txshm_size = std::stoi(pt.get<std::string>("shm_settings.txshm_size"));
 
     usrp_driver_base_port = std::stoi(pt.get<std::string>("network_settings.USRPDriverPort"));
-    
+
+    std::string addr = "addr=" + pt.get<std::string>("network_settings.GPSOctoclockHostname");
+    const char *clk_addr = addr.c_str();
+
     boost::property_tree::ptree pt_array;
-    DEBUG_PRINT("USRP_DRIVER starting to read array_config.ini\n");
+    DEBUG_PRINT("%s: USRP_DRIVER starting to read array_config.ini\n", get_log_time());
     boost::property_tree::ini_parser::read_ini("../array_config.ini", pt_array);
     mimic_active = std::stof(pt_array.get<std::string>("mimic.mimic_active")) != 0;
     mimic_delay  = std::stof(pt_array.get<std::string>("mimic.mimic_delay"));
@@ -480,7 +486,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     double txrate, rxrate, txfreq, rxfreq;
     double txrate_new, rxrate_new, txfreq_new, rxfreq_new;
 
-    DEBUG_PRINT("usrp_driver debug mode enabled\n");
+    DEBUG_PRINT("%s: usrp_driver debug mode enabled\n", get_log_time());
 
     nerrors = arg_parse(argc,argv,argtable);
     if (nerrors > 0) {
@@ -514,25 +520,25 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     std::vector<uint64_t> channel_numbers;
     // both sides
     if( nSides == 2 ) {
-        DEBUG_PRINT("Setting side A: ant_idx %d\n",ai_ant_a->ival[0]);
+        DEBUG_PRINT("%s: Setting side A: ant_idx %d\n",get_log_time(), ai_ant_a->ival[0]);
         antennaVector[0] = ai_ant_a->ival[0];
         channel_numbers.push_back(0);
 
-        DEBUG_PRINT("Setting side B: ant_idx %d\n",ai_ant_b->ival[0]);
+        DEBUG_PRINT("%s: Setting side B: ant_idx %d\n", get_log_time(), ai_ant_b->ival[0]);
         antennaVector[1] = ai_ant_b->ival[0];
         channel_numbers.push_back(1);
     } else {
      // side A
      if (ai_ant_a->count == 1) {
-        DEBUG_PRINT("Setting side A: ant_idx %d\n",ai_ant_a->ival[0]);
+        DEBUG_PRINT("%s: Setting side A: ant_idx %d\n", get_log_time(), ai_ant_a->ival[0]);
         antennaVector[0] = ai_ant_a->ival[0];
         channel_numbers.push_back(0);
      // side B
      } else {
-        DEBUG_PRINT("Setting side B: ant_idx %d\n",ai_ant_b->ival[0]);
+        DEBUG_PRINT("%s: Setting side B: ant_idx %d\n", get_log_time(), ai_ant_b->ival[0]);
         antennaVector[0] = ai_ant_b->ival[0];
         channel_numbers.push_back(1);
-        DEBUG_PRINT("Warning: For one side use DIO output is always on Side A!!!!!!!!!!!!!"); // TODO correct this
+        DEBUG_PRINT("%s: Warning: For one side use DIO output is always on Side A!!!!!!!!!!!!!", get_log_time()); // TODO correct this
 
 
      }
@@ -543,22 +549,25 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     std::vector<std::vector<void *>> shm_rx_vec(nSides, std::vector<void *>( nSwings));
     std::vector<std::vector<void *>> shm_tx_vec(nSides, std::vector<void *>( nSwings));
 
+    size_t initial_rx_size = 20000000;
+    size_t initial_clrfreq_size = 40000;
     // local buffers for tx and rx
     std::vector<std::vector<std::complex<int16_t>>> tx_samples(nSides,         std::vector<std::complex<int16_t>>(MAX_PULSE_LENGTH,0));
-    std::vector<std::vector<std::complex<int16_t>>> rx_data_buffer(nSides,     std::vector<std::complex<int16_t>>(0));
-    std::vector<std::vector<std::complex<int16_t>>> rx_auto_clear_freq(nSides, std::vector<std::complex<int16_t>>(0));
-     
+    std::vector<std::vector<std::complex<int16_t>>> rx_data_buffer(nSides,     std::vector<std::complex<int16_t>>(initial_rx_size));
+    std::vector<std::vector<std::complex<int16_t>>> rx_auto_clear_freq(nSides, std::vector<std::complex<int16_t>>(initial_clrfreq_size));
+    std::vector<std::vector<std::complex<int16_t>>> clrfreq_data_buffer(nSides, std::vector<std::complex<int16_t>>(initial_clrfreq_size));
 
     std::string usrpargs(as_host->sval[0]);
     usrpargs = "addr0=" + usrpargs + ",master_clock_rate=200.0e6";
     uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(usrpargs);
     usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
     usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t("A:0 B:0"));
-    boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
+    // boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
+    usleep(1000);
     uhd::stream_args_t stream_args("sc16", "sc16");
     
     if (usrp->get_rx_num_channels() < nSides || usrp->get_tx_num_channels() < nSides) {  
-       DEBUG_PRINT("ERROR: Number of defined channels (%i) is smaller than avaialable channels:\n    usrp->get_rx_num_channels(): %lu \n    usrp->get_tx_num_channels(): %lu \n\n", nSides, usrp->get_rx_num_channels(),   usrp->get_tx_num_channels());
+       DEBUG_PRINT("%s: ERROR: Number of defined channels (%i) is smaller than avaialable channels:\n    usrp->get_rx_num_channels(): %lu \n    usrp->get_tx_num_channels(): %lu \n\n", get_log_time(), nSides, usrp->get_rx_num_channels(),   usrp->get_tx_num_channels());
        return -1;
     }
     stream_args.channels = channel_numbers;
@@ -594,7 +603,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
             int shm_side = 0;
             shm_rx_vec[iSide][iSwing] = open_sample_shm(antennaVector[iSide], RXDIR, shm_side, iSwing, rxshm_size);
             shm_tx_vec[iSide][iSwing] = open_sample_shm(antennaVector[iSide], TXDIR, shm_side, iSwing, txshm_size);
-            DEBUG_PRINT("usrp_driver rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][iSwing], iSide, iSwing);
+            DEBUG_PRINT("%s: usrp_driver rx shm addr: %p iSide: %d iSwing: %d\n", get_log_time(), shm_rx_vec[iSide][iSwing], iSide, iSwing);
 
             if (antennaVector[iSide] < 19 ) { // semaphores only for antennas of first polarization TODO check if this is enough
                sem_rx_vec[iSwing] = open_sample_semaphore(antennaVector[iSide], iSwing, RXDIR);
@@ -604,7 +613,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     }
 
     if(al_interferometer->count > 0) {
-       DEBUG_PRINT("Disable tx_worker ...\n");
+       DEBUG_PRINT("%s: Disable tx_worker ...\n", get_log_time());
        tx_worker_active = 0;
     } else {
        tx_worker_active = 1;
@@ -616,14 +625,44 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     }
     else {
     // sync clock with external 10 MHz and PPS
-        DEBUG_PRINT("Set clock: external\n");
+        DEBUG_PRINT("%s: Set clock: external\n", get_log_time());
+        if (strcmp(clk_addr, "addr=")) {
+            gps_clock = uhd::usrp_clock::multi_usrp_clock::make(uhd::device_addr_t(clk_addr));
+
+            if (gps_clock->get_sensor("gps_detected").value == "false") {
+                DEBUG_PRINT("%s: No GPSDO detected on clock.", get_log_time());
+            } else {
+                DEBUG_PRINT("%s: GPSDO detected on clock.\n", get_log_time());
+            }
+
+            if (gps_clock->get_sensor("using_ref").value != "internal") {
+                DEBUG_PRINT("%s: Clock is not using an internal reference (bad!)\n", get_log_time());
+            } else {
+                DEBUG_PRINT("%s: Clock is using an internal reference (good!)\n", get_log_time());
+            }
+
+            if (gps_clock->get_sensor("gps_locked").value == "false") {
+                DEBUG_PRINT("%s: GPS is not locked.\n", get_log_time());
+            } else {
+                DEBUG_PRINT("%s: GPS is locked.\n", get_log_time());
+            }
+
+            // This while loop doesn't work because of the USRP sock timeout
+            // in usrp_server, so only sync if GPS is locked
+            //while (!(gps_clock->get_sensor("gps_locked").to_bool())) {
+            //    DEBUG_PRINT("%s: Waiting for GPS lock...\n", get_log_time());
+            //    std::this_thread::sleep_for(std::chrono::seconds(GPS_WAIT));
+            //}
+        } else {
+            DEBUG_PRINT("%s: No GPS octoclock address found in driver_config.ini\n", get_log_time());
+        }
+
         usrp->set_clock_source("external", 0);
-        DEBUG_PRINT("Set time: external\n");
+        DEBUG_PRINT("%s: Set time: external\n", get_log_time());
         usrp->set_time_source("external", 0);
-        DEBUG_PRINT("Done setting time and clock\n");
+        DEBUG_PRINT("%s: Done setting time and clock\n", get_log_time());
      }
-    usleep(1000); // Trying to make sure device is stable before accepting connections
-    
+
     while(true) {
         if(driversock) {
             close(driverconn);
@@ -671,13 +710,13 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
         while(true) {
             // wait for transport endpoint to connect?
             
-            DEBUG_PRINT("USRP_DRIVER waiting for command\n");
+            DEBUG_PRINT("%s: USRP_DRIVER waiting for command\n", get_log_time());
             uint8_t command = sock_get_cmd(driverconn, &cmd_status);
-            DEBUG_PRINT("USRP_DRIVER received command, status: %zu\n", cmd_status);
+            DEBUG_PRINT("%s: USRP_DRIVER received command, status: %zu\n", get_log_time(), cmd_status);
              
             // see if socket is closed..
             if(cmd_status == 11 || cmd_status == 0 || cmd_status < 0) {
-                DEBUG_PRINT("USRP_DRIVER lost connection to usrp_server, waiting for fresh connection, %d tries remaining\n", connect_retrys);
+                DEBUG_PRINT("%s: USRP_DRIVER lost connection to usrp_server, waiting for fresh connection, %d tries remaining\n", get_log_time(), connect_retrys);
                 close(driversock);
                 if(connect_retrys-- < 0) {
                     exit(1);
@@ -698,7 +737,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     
                     swing      = sock_get_int16(  driverconn); 
                     
-                    DEBUG_PRINT("entering USRP_SETUP command (swing %d)\n", swing);
+                    DEBUG_PRINT("%s: entering USRP_SETUP command (swing %d)\n", get_log_time(), swing);
                   
                     txfreq_new = sock_get_float64(driverconn);
                     rxfreq_new = sock_get_float64(driverconn);
@@ -713,10 +752,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     nSamples_tx_pulse        = sock_get_uint64(driverconn);
                     nSamples_rx_total        = nSamples_rx + nSamples_pause_after_rx + nSamples_auto_clear_freq;
 
-                    DEBUG_PRINT("USRP_SETUP number of requested rx samples: %d + %ld pause + %ld auto clear freq\n", (uint32_t) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
-                    DEBUG_PRINT("USRP_SETUP number of requested tx samples per pulse: %d\n", (uint32_t) nSamples_tx_pulse);
-                    DEBUG_PRINT("USRP_SETUP existing tx rate : %f (swing %d)\n", txrate, swing);
-                    DEBUG_PRINT("USRP_SETUP requested tx rate: %f\n", txrate_new);
+                    DEBUG_PRINT("%s: USRP_SETUP number of requested rx samples: %d + %ld pause + %ld auto clear freq\n", get_log_time(), (uint32_t) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
+                    DEBUG_PRINT("%s: USRP_SETUP number of requested tx samples per pulse: %d\n", get_log_time(), (uint32_t) nSamples_tx_pulse);
+                    DEBUG_PRINT("%s: USRP_SETUP existing tx rate : %f (swing %d)\n", get_log_time(), txrate, swing);
+                    DEBUG_PRINT("%s: USRP_SETUP requested tx rate: %f\n", get_log_time(), txrate_new);
 
                     // resize 
                     pulse_sample_idx_offsets.resize(npulses);
@@ -728,19 +767,35 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 //        DEBUG_PRINT("USRP_SETUP received %zu pulse offset\n", pulse_sample_idx_offsets[i]);
 
                     }
-                    DEBUG_PRINT("USRP_SETUP resize autoclear freq\n");
 
                     // RESIZE LOCAL BUFFERS
                     if(rx_data_buffer[0].size() < nSamples_rx_total) {
-                       for(iSide = 0; iSide < nSides; iSide++) {
-                           rx_data_buffer[iSide].resize(nSamples_rx_total);
-                       }
+		      DEBUG_PRINT("%s: USRP_SETUP resize rx_data_buffer. rx_data_buff size %d   nsamples %d\n", get_log_time(), rx_data_buffer.size(), nSamples_rx_total);
+     		      for(iSide = 0; iSide < nSides; iSide++) {
+			try{
+			    rx_data_buffer[iSide].resize(nSamples_rx_total);
+			  }catch (const std::bad_alloc& e) {
+			    std::cout << "Allocation failed: " << e.what() << '\n';
+		          }catch(const std::exception& x) {
+		  	    std::cerr << typeid(x).name() << std::endl;
+		          }catch(...) {
+			    std::cerr << "unknown exception" << std::endl;
+		        }	
+		      }		  
                     }
-                    DEBUG_PRINT("USRP_SETUP resize autoclear freq\n");
 
                     if(nSamples_auto_clear_freq != 0 and rx_auto_clear_freq[0].size() < nSamples_auto_clear_freq) {
+   		      DEBUG_PRINT("%s: USRP_SETUP resize autoclear freq. rx_auto_clear size: %d\n",get_log_time(), rx_auto_clear_freq[0].size());
                        for(iSide = 0; iSide < nSides; iSide++) {
-                           rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
+			try{
+			  rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
+			}catch (const std::bad_alloc& e){
+			  std::cout << "Allocation failed: " << e.what() << '\n';			 
+			}catch(const std::exception& x) {
+			  std::cerr << typeid(x).name() << std::endl;
+			}catch(...) {
+			  std::cerr << "unknown exception" << std::endl;
+			}
                        }
                     }
 
@@ -784,14 +839,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     // create local copy of transmit pulse data from shared memory
                     std::complex<int16_t> *shm_pulseaddr;
                     size_t spb = tx_stream->get_max_num_samps();
-
-		    
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
                     // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
-
-		    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -818,13 +869,14 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 
                     state_vec[swing] = ST_READY; 
-                    DEBUG_PRINT("changing state_vec[swing] to ST_READY\n");
+                    DEBUG_PRINT("%s: changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
                     sock_send_uint8(driverconn, USRP_SETUP);
+		    usleep(100);
                     break;
                     }
 
                 case RXFE_SET: {
-                    DEBUG_PRINT("entering RXFE_SET command\n");
+                    DEBUG_PRINT("%s: entering RXFE_SET command\n", get_log_time());
                     RXFESettings rf_settings;
                     rf_settings.amp1 = sock_get_uint8(driverconn);
                     rf_settings.amp2 = sock_get_uint8(driverconn);
@@ -845,31 +897,30 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 case TRIGGER_PULSE: {
 
                     swing      = sock_get_int16(  driverconn); 
-                    DEBUG_PRINT("entering TRIGGER_PULSE command (swing %d)\n", swing );
+                    DEBUG_PRINT("%s: entering TRIGGER_PULSE command (swing %d)\n", get_log_time(), swing);
 
                     if (state_vec[swing] != ST_READY) {
                         sock_send_uint8(driverconn, TRIGGER_BUSY);
-                        DEBUG_PRINT("TRIGGER_PULSE busy in state_vec[swing] %d, returning\n", state_vec[swing]);
+                        DEBUG_PRINT("%s: TRIGGER_PULSE busy in state_vec[%d] %d, returning\n", get_log_time(), swing, state_vec[swing]);
                     }
                     else {
 
-                        DEBUG_PRINT("TRIGGER_PULSE ready\n");
+                        DEBUG_PRINT("%s: TRIGGER_PULSE ready\n", get_log_time());
                         state_vec[swing] = ST_PULSE;
 
-                        DEBUG_PRINT("TRIGGER_PULSE locking semaphore\n");
+                        DEBUG_PRINT("%s: TRIGGER_PULSE locking semaphore\n", get_log_time());
                         lock_semaphore(sem_rx_vec[swing]); 
                         lock_semaphore(sem_tx_vec[swing]); 
 
-                        DEBUG_PRINT("TRIGGER_PULSE semaphore locked\n");
+                        DEBUG_PRINT("%s: TRIGGER_PULSE semaphore locked\n", get_log_time());
 
                         // create local copy of transmit pulse data from shared memory
                         size_t spb = tx_stream->get_max_num_samps();
-			
                         size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                         size_t number_of_pulses = pulse_time_offsets.size();
                         size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-			
-                        DEBUG_PRINT("spb %ld, pulse length %ld samples, pulse with padding %ld\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
+
+                        DEBUG_PRINT("%s: spb %ld, pulse length %ld samples, pulse with padding %ld\n", get_log_time(), spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
 
                         // read in time for start of pulse sequence over socket
@@ -888,7 +939,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			  // DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
                         }
 
-                        DEBUG_PRINT("first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
+                        DEBUG_PRINT("%s: first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", get_log_time(), pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
 
                         rx_start_time = offset_time_spec(start_time, tr_to_pulse_delay/1e6);
                         rx_start_time = offset_time_spec(rx_start_time, pulse_sample_idx_offsets[0]/txrate); 
@@ -899,9 +950,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			
 			
                         float debugt = usrp->get_time_now().get_real_secs();
-                        DEBUG_PRINT("USRP_DRIVER: spawning worker threads at usrp_time %2.4f\n", debugt);
+                        DEBUG_PRINT("%s: USRP_DRIVER: spawning worker threads at usrp_time %2.4f\n", get_log_time(), debugt);
 
-                        DEBUG_PRINT("TRIGGER_PULSE creating rx and tx worker threads on swing %d (nSamples_rx= %d + %ld pause + %ld auto clear freq )\n", swing,(int) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
+                        DEBUG_PRINT("%s: TRIGGER_PULSE creating rx and tx worker threads on swing %d (nSamples_rx= %d + %ld pause + %ld auto clear freq )\n", get_log_time(), swing,(int) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
                         // works fine with tx_worker and dio_worker, fails if rx_worker is enabled
                         uhd_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &rx_data_buffer, nSamples_rx_total, rx_start_time, &rx_worker_status));
 
@@ -918,7 +969,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         sock_send_uint8(driverconn, TRIGGER_PULSE);
 
                         uhd_threads.join_all(); // wait for transmit threads to finish, drawn from shared memory..
-                        DEBUG_PRINT("TRIGGER_PULSE rx_worker, tx_worker and dio threads on swing %d\n joined.", swing);
+                        DEBUG_PRINT("%s: TRIGGER_PULSE rx_worker, tx_worker and dio threads on swing %d joined.\n", get_log_time(), swing);
 
 
                     }
@@ -929,15 +980,15 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                 case READY_DATA: {
                     swing      = sock_get_int16(  driverconn); 
-                    DEBUG_PRINT("READY_DATA command (swing %d), waiting for uhd threads to join back\n", swing);
+                    DEBUG_PRINT("%s: READY_DATA command (swing %d), waiting for uhd threads to join back\n", get_log_time(), swing);
 
                     
-		    float debugt = usrp->get_time_now().get_real_secs();
-                    DEBUG_PRINT("READY_DATA unlocking swing a semaphore at time is %2.5f \n",debugt);
+                    float debugt = usrp->get_time_now().get_real_secs();
+                    DEBUG_PRINT("%s: READY_DATA unlocking swing a semaphore at time is %2.5f\n", get_log_time(), debugt);
                     unlock_semaphore(sem_rx_vec[swing]);
                     unlock_semaphore(sem_tx_vec[swing]);
         
-                    DEBUG_PRINT("READY_DATA usrp worker threads joined, semaphore unlocked, sending metadata\n");
+                    DEBUG_PRINT("%s: READY_DATA usrp worker threads joined, semaphore unlocked, sending metadata\n", get_log_time());
                     // TODO: handle multiple channels of data.., use channel index to pick correct swath of memory to copy into shm
                   
                    // rx_worker_status =1; //DEBUG
@@ -969,7 +1020,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                       auto_clear_freq_available = 1;
                     }
     
-                    DEBUG_PRINT("READY_DATA state: %d, ant: %d, num_samples: %zu\n", state_vec[swing], antennaVector[0], nSamples_rx);
+                    DEBUG_PRINT("%s: READY_DATA state: %d, ant: %d, num_samples: %zu\n", get_log_time(), state_vec[swing], antennaVector[0], nSamples_rx);
                     sock_send_int32(driverconn, state_vec[swing]);  // send status
                     sock_send_int32(driverconn, antennaVector[0]);   // send antenna TODO do this for both antennas?
                     sock_send_int32(driverconn, nSamples_rx);     // nsamples;  send send number of samples
@@ -984,7 +1035,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 
   
                     if (mute_output) {
-                       DEBUG_PRINT("READY_DATA: Filling SHM with zeros (because of rx_worker error) \n");
+                       DEBUG_PRINT("%s: READY_DATA: Filling SHM with zeros (because of rx_worker error)\n", get_log_time());
 
                        for (iSide = 0; iSide<nSides; iSide++) {
                           memset(shm_rx_vec[iSide][swing],  0, rxshm_size);
@@ -993,19 +1044,19 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                        mute_output = 0;
                     }
                     else {
-		      debugt = usrp->get_time_now().get_real_secs();
-		      DEBUG_PRINT("READY_DATA starting copying rx data buffer to shared memory at %2.5f\n",debugt);
-		      // regural rx data
-		      for (iSide = 0; iSide<nSides; iSide++) {
-			// DEBUG_PRINT("usrp_drivercopy to rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][swing], iSide, iSwing);
-			memcpy(shm_rx_vec[iSide][swing], &rx_data_buffer[iSide][0], sizeof(std::complex<int16_t>) * nSamples_rx);
-		      }
-		      // auto clear freq samples
-		      for (iSide = 0; iSide<nSides; iSide++) {
-			for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
-			  rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx+nSamples_pause_after_rx+ iSample];
-			}
-		      }
+                        debugt = usrp->get_time_now().get_real_secs();
+                        DEBUG_PRINT("%s: READY_DATA starting copying rx data buffer to shared memory at %2.5f\n", get_log_time(), debugt);
+                        // regural rx data
+                        for (iSide = 0; iSide<nSides; iSide++) {
+                            // DEBUG_PRINT("usrp_drivercopy to rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][swing], iSide, iSwing);
+                            memcpy(shm_rx_vec[iSide][swing], &rx_data_buffer[iSide][0], sizeof(std::complex<int16_t>) * nSamples_rx);
+                        }
+                        // auto clear freq samples
+                        for (iSide = 0; iSide<nSides; iSide++) {
+                            for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
+                                rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx+nSamples_pause_after_rx+ iSample];
+                            }
+                        }
                     }
 
                     if(SAVE_RAW_SAMPLES_DEBUG) {
@@ -1020,18 +1071,18 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     }
 
-                    DEBUG_PRINT("READY_DATA finished copying rx data buffer to shared memory\n");
+                    DEBUG_PRINT("%s: READY_DATA finished copying rx data buffer to shared memory\n", get_log_time());
                     state_vec[swing] = ST_READY; 
-                    DEBUG_PRINT("changing state_vec[swing] to ST_READY\n");
+                    DEBUG_PRINT("%s: changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
 
-		    debugt = usrp->get_time_now().get_real_secs();
-                    DEBUG_PRINT("READY_DATA returning command success at %2.5f\n",debugt);
+                    debugt = usrp->get_time_now().get_real_secs();
+                    DEBUG_PRINT("%s: READY_DATA returning command success at %2.5f\n", get_log_time(), debugt);
                     sock_send_uint8(driverconn, READY_DATA);
                     break;
                     }
 
                 case UHD_GETTIME: {
-                    DEBUG_PRINT("entering UHD_GETTIME command\n");
+                    DEBUG_PRINT("%s: entering UHD_GETTIME command\n", get_log_time());
                     start_time = usrp->get_time_now();
 
                     uint32_t real_time = start_time.get_real_secs();
@@ -1040,13 +1091,13 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     sock_send_uint32(driverconn, real_time);
                     sock_send_float64(driverconn, frac_time);
 
-                    DEBUG_PRINT("UHD_GETTIME current UHD time: %d %.2f command\n", real_time, frac_time);
+                    DEBUG_PRINT("%s: UHD_GETTIME current UHD time: %d %.2f command\n", get_log_time(), real_time, frac_time);
                     sock_send_uint8(driverconn, UHD_GETTIME);
                     break;
                     }
                 // command to reset time, sync time with external PPS pulse
                 case UHD_SYNC: {
-                    DEBUG_PRINT("entering UHD_SYNC command\n");
+                    DEBUG_PRINT("%s: entering UHD_SYNC command\n", get_log_time());
                     // if --intclk flag passed to usrp_driver, set clock source as internal and do not sync time
                     if(al_intclk->count > 0) {
                         usrp->set_time_now(uhd::time_spec_t(0.0));
@@ -1061,9 +1112,43 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         usrp->set_time_next_pps(uhd::time_spec_t(0.0));
                         boost::this_thread::sleep(boost::posix_time::milliseconds(1100));
                  */
-                        DEBUG_PRINT("Start setting unknown pps\n");
-                        usrp->set_time_unknown_pps(uhd::time_spec_t(11.0));
-                        DEBUG_PRINT("end setting unknown pps\n");
+
+                        // Sync time to the GPS Octoclock if it is available and locked
+                        if (strcmp(clk_addr, "addr=") &&
+                            gps_clock->get_sensor("gps_locked").to_bool()) {
+
+                            auto wait_for_update = [&]() {
+                                uhd::time_spec_t last = usrp->get_time_last_pps();
+                                uhd::time_spec_t next = usrp->get_time_last_pps();
+                                while (next == last) {
+                                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                                    last = next;
+                                    next = usrp->get_time_last_pps();
+                                }
+                                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                            };
+
+                            DEBUG_PRINT("%s: Start setting GPS-locked PPS.\n", get_log_time());
+                            wait_for_update();
+                            usrp->set_time_next_pps(uhd::time_spec_t(static_cast<double>(gps_clock->get_time() + 1)));
+                            wait_for_update();
+                            DEBUG_PRINT("%s: End setting GPS-locked PPS.\n", get_log_time());
+
+                            auto clock_time = uhd::time_spec_t(static_cast<double>(gps_clock->get_time()));
+
+                            for (uint32_t board=0; board < usrp->get_num_mboards(); board++) {
+                                auto usrp_time = usrp->get_time_last_pps(board);
+                                auto time_diff = clock_time - usrp_time;
+
+                                DEBUG_PRINT("%s: Time difference between USRPs and GPS clock for board %d is %f\n",
+                                            get_log_time(), board, time_diff.get_real_secs());
+                            }
+                        } else {
+                            DEBUG_PRINT("%s: Start setting unknown pps\n", get_log_time());
+                            usrp->set_time_unknown_pps(uhd::time_spec_t(11.0));
+                            DEBUG_PRINT("%s: End setting unknown pps\n", get_log_time());
+                        }
+
                      }
 
                     sock_send_uint8(driverconn, UHD_SYNC);
@@ -1073,18 +1158,19 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 case AUTOCLRFREQ: {
                     // has to be called after GET_DATA and before USRP_SETUP
                     DEBUG_PRINT("entering getting auto clear freq command\n");
+                    uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
 
                     if (auto_clear_freq_available) {
 
                       sock_send_int32(driverconn, (int32_t) nSides );
 
                       for( int jSide=0; jSide<(int)nSides; jSide++ ){
-                        DEBUG_PRINT("AUTOCLRFREQ samples sending %zu samples for antenna %d usrp side %d...\n", rx_auto_clear_freq[jSide].size(),antennaVector[jSide],jSide);
+                        DEBUG_PRINT("%s: AUTOCLRFREQ samples sending %d samples for antenna %d usrp side %d...\n", get_log_time(), num_clrfreq_samples,antennaVector[jSide],jSide);
 
                         sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
-                        sock_send_uint32(driverconn, (uint32_t) rx_auto_clear_freq[jSide].size());
+                        sock_send_uint32(driverconn, (int32_t) num_clrfreq_samples);
                       // send samples
-                        send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * rx_auto_clear_freq[jSide].size() , 0);
+                        send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
                       }
 
                     }
@@ -1099,24 +1185,29 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     }
                 case CLRFREQ: {
-                    DEBUG_PRINT("entering CLRFREQ command\n");
+                    DEBUG_PRINT("%s: entering CLRFREQ command\n", get_log_time());
                     uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
                     uint32_t clrfreq_time_full   = sock_get_uint32(driverconn);
                     double clrfreq_time_frac     = sock_get_float64(driverconn);
                     double clrfreq_cfreq         = sock_get_float64(driverconn);
                     double clrfreq_rate          = sock_get_float64(driverconn);
 
-                    std::vector<std::vector<std::complex<int16_t>>> clrfreq_data_buffer(nSides, std::vector<std::complex<int16_t>>(num_clrfreq_samples));
+                    if(num_clrfreq_samples != 0 and clrfreq_data_buffer[0].size() < num_clrfreq_samples) {
+		      DEBUG_PRINT("USRP_SETUP resize clear freq buff. old: %d, new: %d\n",clrfreq_data_buffer[0].size(),num_clrfreq_samples);
+                       for(iSide = 0; iSide < nSides; iSide++) {
+                           clrfreq_data_buffer[iSide].resize(num_clrfreq_samples);
+                       }
+                    }
 
                     uint32_t real_time; 
                     double frac_time;
 
-                    DEBUG_PRINT("CLRFREQ time: %d . %.2f \n", clrfreq_time_full, clrfreq_time_frac);
-                    DEBUG_PRINT("CLRFREQ rate: %.2f, CLRFREQ_nsamples %d, freq: %.2f\n", clrfreq_rate, num_clrfreq_samples, clrfreq_cfreq);
+                    DEBUG_PRINT("%s: CLRFREQ time: %d . %.2f \n", get_log_time(), clrfreq_time_full, clrfreq_time_frac);
+                    DEBUG_PRINT("%s: CLRFREQ rate: %.2f, CLRFREQ_nsamples %d, freq: %.2f\n", get_log_time(), clrfreq_rate, num_clrfreq_samples, clrfreq_cfreq);
                     uhd::time_spec_t clrfreq_start_time = uhd::time_spec_t(clrfreq_time_full, clrfreq_time_frac);
                     real_time = clrfreq_start_time.get_real_secs();
                     frac_time = clrfreq_start_time.get_frac_secs();
-                    DEBUG_PRINT("CLRFREQ UHD clrfreq target time: %d %.2f \n", real_time, frac_time);
+                    DEBUG_PRINT("%s: CLRFREQ UHD clrfreq target time: %d %.2f \n", get_log_time(), real_time, frac_time);
 
 
                     // TODO: only set rate if it is different!
@@ -1125,7 +1216,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                        rxrate = usrp->get_rx_rate();
                        clrfreq_rate = rxrate;
                     }
-                    DEBUG_PRINT("CLRFREQ actual rate: %.2f\n", clrfreq_rate);
+                    DEBUG_PRINT("%s: CLRFREQ actual rate: %.2f\n", get_log_time(), clrfreq_rate);
                     //clrfreq_cfreq = usrp->get_rx_freq(); 
                     //DEBUG_PRINT("CLRFREQ actual freq: %.2f\n", clrfreq_cfreq);
                     clrfreq_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &clrfreq_data_buffer, num_clrfreq_samples, clrfreq_start_time, &clrfreq_rx_worker_status));
@@ -1149,7 +1240,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 
                     sock_send_int32(driverconn, (int32_t) nSides);
-                    DEBUG_PRINT("CLRFREQ received samples, relaying %d samples back...\n", num_clrfreq_samples);
+                    DEBUG_PRINT("%s: CLRFREQ received samples, relaying %d samples back...\n", get_log_time(), num_clrfreq_samples);
                     for( int jSide = 0; jSide < (int) nSides; jSide++ ){
 
                       sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
@@ -1164,7 +1255,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     //    sock_send_cshort(driverconn, clrfreq_data_buffer[0][i]);
                    // }
 
-                    DEBUG_PRINT("CLRFREQ samples sent for antenna %d...\n", antennaVector[0]);
+                    DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[0]);
                     // restore usrp rates
                     usrp->set_rx_rate(rxrate);
                     usrp->set_rx_freq(rxfreq);
@@ -1173,14 +1264,14 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     start_time = usrp->get_time_now();
                     real_time = start_time.get_real_secs();
                     frac_time = start_time.get_frac_secs();
-                    DEBUG_PRINT("CLRFREQ finished at UHD time: %d %.2f \n", real_time, frac_time);
+                    DEBUG_PRINT("%s: CLRFREQ finished at UHD time: %d %.2f \n", get_log_time(), real_time, frac_time);
 
                     break;
 
                     }
 
                 case EXIT: {
-                    DEBUG_PRINT("entering EXIT command\n");
+                    DEBUG_PRINT("%s: entering EXIT command\n", get_log_time());
 
                     exit_driver = 1;
                     break;
@@ -1200,7 +1291,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
             // clean exit
             if (exit_driver) {
-                DEBUG_PRINT("Shutting down driver\n");
+                DEBUG_PRINT("%s: Shutting down driver\n", get_log_time());
                 close(driverconn);
 
                 for(iSide = 0; iSide < nSides; iSide++) {

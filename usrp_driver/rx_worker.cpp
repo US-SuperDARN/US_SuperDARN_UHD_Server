@@ -50,7 +50,7 @@ void usrp_rx_worker(
     uhd::set_thread_priority_safe(priority,realtime);
 
     float debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("entering RX_WORKER %2.4f\n",debugt);
+    DEBUG_PRINT("%s: entering RX_WORKER %2.4f\n", get_log_time(), debugt);
  //   fprintf( stderr, "RX WORKER nSamples requested: %i\n", num_requested_samps );
  //   fprintf( stderr, "RX WORKER nSides : %i\n", nSides );
 
@@ -59,7 +59,7 @@ void usrp_rx_worker(
 
     uhd::time_spec_t rx_usrp_pre_stream_time = usrp->get_time_now();
     if(offset_time_spec(start_time, RX_OFFSET) - rx_usrp_pre_stream_time.get_real_secs() < RX_STREAM_EXEC_TIME) {
-        fprintf(stderr, "Error in rx_worker: not enough time before start of stream, skipping this integration period..");
+        fprintf(stderr, "Error in rx_worker: not enough time before start of stream, skipping this integration period..\n");
         *return_status= RX_WORKER_STREAM_TIME_ERROR;
         return;
     }
@@ -93,7 +93,7 @@ void usrp_rx_worker(
     rx_usrp_pre_stream_time = usrp->get_time_now();
     time_to_start = start_time.get_real_secs() - rx_usrp_pre_stream_time.get_real_secs();
     fprintf(stderr,"#timing: time left for rx_worker  %f ms\n", time_to_start*1000);
-    DEBUG_PRINT("rx_worker: samples_remaining_to stream: %ld  max_samples_per_stream: %ld\n",samples_remaining_to_stream,max_samples_per_stream);
+    DEBUG_PRINT("%s: rx_worker: samples_remaining_to stream: %ld  max_samples_per_stream: %ld\n", get_log_time(), samples_remaining_to_stream,max_samples_per_stream);
 
 
     //int counter=0;
@@ -106,11 +106,11 @@ void usrp_rx_worker(
        
         // issue the first stream command to be timed at the start of the integration period
 	debugt = usrp->get_time_now().get_real_secs();
-	DEBUG_PRINT("RX_WORKER: before stream command %2.4f\n",debugt);
+	DEBUG_PRINT("%s: RX_WORKER: before stream command %2.4f\n", get_log_time(), debugt);
         stream_cmd.stream_now = false;
         usrp->issue_stream_cmd(stream_cmd); 
 	debugt = usrp->get_time_now().get_real_secs();
-	DEBUG_PRINT("RX_WORKER: issued stream command %2.4f\n",debugt);//,++counter);
+	DEBUG_PRINT("%s: RX_WORKER: issued stream command %2.4f\n", get_log_time(), debugt);//,++counter);
 
         samples_remaining_to_stream -= max_samples_per_stream;
 
@@ -122,7 +122,7 @@ void usrp_rx_worker(
             samples_remaining_to_stream -= max_samples_per_stream;
 	    usleep(usecs);
 	    debugt = usrp->get_time_now().get_real_secs();
-	    DEBUG_PRINT("RX_WORKER: issued stream command %2.4f\n",debugt);//,++counter);
+	    DEBUG_PRINT("%s: RX_WORKER: issued stream command %2.4f\n", get_log_time(), debugt);//,++counter);
         }
         
         // finally, issue a NUM_SAMPS_AND_DONE command for the last command
@@ -132,7 +132,7 @@ void usrp_rx_worker(
         usrp->issue_stream_cmd(stream_cmd); 
 	usleep(usecs);
 	debugt = usrp->get_time_now().get_real_secs();
-	DEBUG_PRINT("RX_WORKER: issued last stream command %2.4f\n",debugt);//,++counter);
+	DEBUG_PRINT("%s: RX_WORKER: issued last stream command %2.4f\n", get_log_time(), debugt);//,++counter);
     }
     
     else {
@@ -156,14 +156,14 @@ void usrp_rx_worker(
     }
  */
     debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("starting rx_worker while loop %2.4f\n",debugt);
+    DEBUG_PRINT("%s: starting rx_worker while loop %2.4f\n", get_log_time(), debugt);
     while(num_acc_samps < num_requested_samps) {
 
         size_t samp_request = std::min(max_samples_per_packet, num_requested_samps - num_acc_samps);
         for (int iSide = 0; iSide < nSides; iSide++) {
             buff_ptrs[iSide] = &((*rx_data_buffer)[iSide][num_acc_samps]);
             if (num_acc_samps == 0)
-               DEBUG_PRINT("rx_worker addr: %p iSide: %d \n    ", buff_ptrs[iSide], iSide);
+               DEBUG_PRINT("%s: rx_worker addr: %p iSide: %d\n", get_log_time(), buff_ptrs[iSide], iSide);
         }
 
         size_t num_rx_samps = rx_stream->recv(buff_ptrs , samp_request, md, timeout);
@@ -201,7 +201,7 @@ void usrp_rx_worker(
         num_acc_samps += num_rx_samps;
     }
     debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("RX_WORKER fetched samples! %2.4f\n",debugt);
+    DEBUG_PRINT("%s:     RX_WORKER fetched samples! %2.4f\n", get_log_time(), debugt);
 //    if(DEBUG) std::cout << boost::format("RX_WORKER : %u full secs, %f frac secs") % md.time_spec.get_full_secs() % md.time_spec.get_frac_secs() << std::endl;
 
     if (num_acc_samps != num_requested_samps){
@@ -263,7 +263,7 @@ void usrp_rx_worker(
     }
 */
 
-    DEBUG_PRINT("RX_WORKER finished\n");
+    DEBUG_PRINT("%s: RX_WORKER finished\n", get_log_time());
     return;
 }
 

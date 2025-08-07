@@ -20,7 +20,6 @@ from phasing_utils import calc_beam_azm_rad, calc_phase_increment, rad_to_rect, 
 from radar_config_constants import *
 
 RESTRICTED_POWER = 1e12 # arbitrary high power for restricted frequency
-RESTRICT_FILE = '/home/radar_user/repos/rst-ros/tables/superdarn/site/site.cve/restrict.dat.cve'
 
 SAVE_CLEAR_FREQUENCY_SEARCH = False 
 CLEAR_FREQUENCY_DUMP_DIR = '/data/logs/clearfreq_logs/'
@@ -171,6 +170,7 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
               #dbPrint("antenna {} clrfreq rate is: {} (requested: {})".format(output_antenna_idx_list[-1], clrfreq_rate_actual, clrfreq_rate_requested))
               dbPrint("antenna {} waiting for {} samples".format(antenna_no_tmp, int(num_clrfreq_samples)))
               
+              time.sleep(0.002)
               if usrpsock.getpeername()[0] != '127.0.0.1':
                  time.sleep(0.002)
                  
