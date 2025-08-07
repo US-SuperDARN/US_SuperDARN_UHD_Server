@@ -662,8 +662,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
         usrp->set_time_source("external", 0);
         DEBUG_PRINT("%s: Done setting time and clock\n", get_log_time());
      }
-    usleep(1000); // Trying to make sure device is stable before accepting connections
-    
+
     while(true) {
         if(driversock) {
             close(driverconn);
@@ -768,7 +767,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 //        DEBUG_PRINT("USRP_SETUP received %zu pulse offset\n", pulse_sample_idx_offsets[i]);
 
                     }
-                    DEBUG_PRINT("%s: USRP_SETUP resize autoclear freq\n", get_log_time());
 
                     // RESIZE LOCAL BUFFERS
                     if(rx_data_buffer[0].size() < nSamples_rx_total) {
@@ -785,9 +783,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 		        }	
 		      }		  
                     }
-                    DEBUG_PRINT("%s: USRP_SETUP resize autoclear freq\n", get_log_time());
 
                     if(nSamples_auto_clear_freq != 0 and rx_auto_clear_freq[0].size() < nSamples_auto_clear_freq) {
+   		      DEBUG_PRINT("%s: USRP_SETUP resize autoclear freq. rx_auto_clear size: %d\n",get_log_time(), rx_auto_clear_freq[0].size());
                        for(iSide = 0; iSide < nSides; iSide++) {
 			try{
 			  rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
@@ -1167,10 +1165,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                       sock_send_int32(driverconn, (int32_t) nSides );
 
                       for( int jSide=0; jSide<(int)nSides; jSide++ ){
-                        DEBUG_PRINT("%s: AUTOCLRFREQ samples sending %zu samples for antenna %d usrp side %d...\n", get_log_time(), num_clrfreq_samples, antennaVector[jSide],jSide);
+                        DEBUG_PRINT("%s: AUTOCLRFREQ samples sending %d samples for antenna %d usrp side %d...\n", get_log_time(), num_clrfreq_samples,antennaVector[jSide],jSide);
 
                         sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
-                        sock_send_uint32(driverconn, (uint32_t) num_clrfreq_samples);
+                        sock_send_uint32(driverconn, (int32_t) num_clrfreq_samples);
                       // send samples
                         send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
                       }
