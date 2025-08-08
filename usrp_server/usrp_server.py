@@ -2477,7 +2477,7 @@ class RadarHardwareManager:
                     collect_auto_clear_freq_samples = False
                     auto_clear_freq_meta_data = None
 
-                 self.logger.debug('rnum {} usrp_setup pars: pulses:{}  total_samples: {} nsamples_pause: {} nsamples_clearfreq: {} nsamples_per_pulse: {}'.format(jrad, self.nPulses_per_integration_period, nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
+                 self.logger.debug('rnum {} usrp_setup pars: pulses:{}  total_samples: {} nsamples_pause: {} nsamples_clearfreq: {} nsamples_per_pulse: {}'.format(jrad, self.nPulses_per_integration_period, channel.nrf_rx_samples_per_integration_period, nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
                  
                  cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
                                           self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, self.nPulses_per_integration_period,  channel.nrf_rx_samples_per_integration_period, \
