@@ -1529,6 +1529,7 @@ int main() {
             radar_table[cur_radar][cur_channel].clr_band.f_start = 0;
             radar_table[cur_radar][cur_channel].clr_band.noise = 0;
             radar_table[cur_radar][cur_channel].clr_band.f_end = 0;
+            radar_table[cur_radar][cur_channel].clr_band.is_selected = false;
 
 
             log_info( "    avg_ratio: %d", avg_ratio);
