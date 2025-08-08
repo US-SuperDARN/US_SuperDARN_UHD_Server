@@ -63,7 +63,7 @@ int ini_parse(const char* filename, ini_handler handler, void* user);
 
 
 // Config and Debug Flags
-#define BIN_OR_CSV_LOG  1   // 0 for Bin, otherwise CSV
+#define BIN_OR_CSV_LOG  0   // 0 for Bin, otherwise CSV
 
 #define TEST_SAMPLES 0
 #define TEST_CLR_RANGE 1
