@@ -1529,6 +1529,29 @@ int main() {
             radar_table[cur_radar][cur_channel].clr_band.f_start = 0;
             radar_table[cur_radar][cur_channel].clr_band.noise = 0;
             radar_table[cur_radar][cur_channel].clr_band.f_end = 0;
+            radar_table[cur_radar][cur_channel].last_time = 0;
+
+            // Check for inactive channels to unmask
+            for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
+                for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
+                    if (radar_table[r_idx][c_idx].last_time == 0) continue;
+
+                    if (time(NULL) - radar_table[r_idx][c_idx].last_time > 10) {
+                        log_debug("Unmasking old reserved clr band[%d]: | %dHz -- %dHz |",
+                            restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx,
+                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start,
+                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end
+                        );
+                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end = 0;
+                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start = 0;
+                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].noise = 0;
+                        radar_table[r_idx][c_idx].clr_band.f_start = 0;
+                        radar_table[r_idx][c_idx].clr_band.noise = 0;
+                        radar_table[r_idx][c_idx].clr_band.f_end = 0;
+                        radar_table[r_idx][c_idx].last_time = 0;
+                    }
+                }
+            }
 
 
             log_info( "    avg_ratio: %d", avg_ratio);
@@ -1649,6 +1672,7 @@ int main() {
                         radar_table[cur_radar][cur_channel].clr_band = clr_bands[i];
                         radar_table[cur_radar][cur_channel].clear_freq_range[0] = clr_range[cur_radar][cur_range][0];
                         radar_table[cur_radar][cur_channel].clear_freq_range[1] = clr_range[cur_radar][cur_range][1];
+                        radar_table[cur_radar][cur_channel].last_time = time(NULL);
                         if (restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel >= RESTRICT_NUM) {
                             log_error("    ERROR: Reservation into restricted_freq failed due to overflow index!");
                             perror("ERROR: Reservation into restricted_freq failed due to overflow index!");
