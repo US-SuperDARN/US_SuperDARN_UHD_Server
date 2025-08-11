@@ -1529,6 +1529,7 @@ int main() {
             radar_table[cur_radar][cur_channel].clr_band.f_start = 0;
             radar_table[cur_radar][cur_channel].clr_band.noise = 0;
             radar_table[cur_radar][cur_channel].clr_band.f_end = 0;
+            radar_table[cur_radar][cur_channel].clr_band.is_selected = false;
             radar_table[cur_radar][cur_channel].last_time = 0;
 
             // Check for inactive channels to unmask
@@ -1548,6 +1549,7 @@ int main() {
                         radar_table[r_idx][c_idx].clr_band.f_start = 0;
                         radar_table[r_idx][c_idx].clr_band.noise = 0;
                         radar_table[r_idx][c_idx].clr_band.f_end = 0;
+                        radar_table[r_idx][c_idx].clr_band.is_selected = false;
                         radar_table[r_idx][c_idx].last_time = 0;
                     }
                 }
