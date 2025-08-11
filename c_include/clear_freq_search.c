@@ -591,7 +591,7 @@ void calc_clear_freq_on_raw_samples(
     // }      
     
 
-    // Save data to csv
+    // Save data
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {

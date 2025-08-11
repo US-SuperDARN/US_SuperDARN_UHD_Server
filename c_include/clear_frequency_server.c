@@ -489,8 +489,10 @@ void handle_sig(int sig) {
     log_warn( "Main processes and communication terminated. Goodbye.\n");
     
     fclose(log_file);
-    fclose(fft_file);
-    fclose(clr_file);
+    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
+        fclose(fft_file);
+        fclose(clr_file);
+    }
     exit(sig);
 }
 
@@ -742,29 +744,31 @@ int main() {
     log_info("Pre-Cleaning all Shared Memory...\n");
     cleanup();
     
-    log_trace("Initializing FFT File");
-    char* tcs_spectra_filename_template[128] = {0};
-    char* tcs_spectra_filename[128] = {0};
-    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", "tcs.%s");
-    char *ext = BIN_OR_CSV_LOG ? "csv" : "bin";
-    log_trace("extension \"%s\" enabled", ext);
-    gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
-    fft_file = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
-    if (fft_file == NULL) {
-        file_access_error(tcs_spectra_filename);
-        return;
-    }
+    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
+        log_trace("Initializing FFT File");
+        char* tcs_spectra_filename_template[128] = {0};
+        char* tcs_spectra_filename[128] = {0};
+        sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", "tcs.%s");
+        char *ext = BIN_OR_CSV_LOG ? "csv" : "bin";
+        log_trace("extension \"%s\" enabled", ext);
+        gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
+        fft_file = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+        if (fft_file == NULL) {
+            file_access_error(tcs_spectra_filename);
+            return;
+        }
 
-    log_trace("Initializing Clear Freq File");
-    char *tcs_clr_filename_template[128] = {0};
-    char *tcs_clr_filename[128] = {0};
-    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", "tcs.%s");
-    gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
-    clr_file = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
-    if (clr_file == NULL) {
-        file_access_error(tcs_clr_filename);
-        return;
-    }
+        log_trace("Initializing Clear Freq File");
+        char *tcs_clr_filename_template[128] = {0};
+        char *tcs_clr_filename[128] = {0};
+        sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", "tcs.%s");
+        gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
+        clr_file = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+        if (clr_file == NULL) {
+            file_access_error(tcs_clr_filename);
+            return;
+        }
+}
 
     // Open Shared Memory Object
     log_trace( "Initializing Shared Memory Object...");
