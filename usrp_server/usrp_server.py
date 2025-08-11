@@ -1793,7 +1793,7 @@ class RadarHardwareManager:
         for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 
-           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, self.usrp_rf_rx_rate / CLRFREQ_RES)
+           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(AVG_RATIO * self.usrp_rf_rx_rate / CLRFREQ_RES))
            
         self.active_channels     = [[] for jrad in range(self.N_RADARs)]
         self.channels            = [[] for jrad in range(self.N_RADARs)]   # all channels that are really transmitting
@@ -2938,9 +2938,9 @@ class RadarHardwareManager:
            # GET AUTO CLEAR FREQ DATA
            if transmittingChannelAvailable[jrad] and trigger_next_period and self.auto_collect_clrfrq_after_rx:
               self.clear_search_data_semaphore.acquire()
-              self.logger.debug("Getting auto clear freq data for radar {}".format(jrad))
               nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
-              cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],nSamples_clear_freq)
+              self.logger.debug("Getting auto clear freq data for radar {}. nSamples_clear_freq: {}".format(jrad,nSamples_clear_freq))
+              cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],int(nSamples_clear_freq))
               cmd.transmit()
               if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
                  time.sleep(0.001)
@@ -2949,7 +2949,7 @@ class RadarHardwareManager:
               # time.sleep(0.01) # Added sleep to allow for data transfer across network connection 
 
               antenna_list, clr_samples = cmd.recv_all()
-              self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples)))
+              self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples[0])))
               auto_clear_freq_meta_data['record_time'] = time.time()
               self.clearFreqRawDataManager.update_auto_clear_freq_data(jrad, antenna_list, clr_samples, auto_clear_freq_meta_data)
               cmd.client_return()

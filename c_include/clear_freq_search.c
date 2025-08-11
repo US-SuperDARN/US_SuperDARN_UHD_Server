@@ -309,12 +309,21 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     // }
     
     // Initialize Clear Freq Bands
-    for (int i = 0; i < CLR_BANDS_MAX; i++) {
-        clr_bands[i].f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        clr_bands[i].f_end = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        clr_bands[i].noise = RAND_MAX;
+    freq_band lowest_clr_bands[CLR_BANDS_MAX * 3] = {0}; // Array to hold clr bands that could be intersecting w/ one another 
+    for (int i = 0; i < CLR_BANDS_MAX * 3; i++) {
+        if (i < CLR_BANDS_MAX) {
+            clr_bands[i].f_start    = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+            clr_bands[i].f_end      = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+            clr_bands[i].noise      = RAND_MAX;
+            clr_bands[i].is_selected= false;
+        }
+
+        lowest_clr_bands[i].f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        lowest_clr_bands[i].f_end   = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+        lowest_clr_bands[i].noise   = RAND_MAX;
+        lowest_clr_bands[i].is_selected = false;
     };
-    int min_idx[CLR_BANDS_MAX]; // array of clr_bands' index in the convolve_bw 
+    int min_idx[CLR_BANDS_MAX * 3]; // array of clr_bands' index in the convolve_bw 
     
     // Identify lowest noise bands from convolve results...
     freq_band curr_band;
@@ -322,78 +331,83 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * avg_delta_f;
         curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * avg_delta_f;
         curr_band.noise = convolve_result[i];
-        // if (i < 10) log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
+        // log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         int insert_idx = -1;
         int intersect_idx = -1;
         // Find Insertion spot in clr_freq_bands
-        // Compare curr power with min_powers...
-        for (int j = CLR_BANDS_MAX - 1; j >= 0 ; j--) {
+        for (int j = (CLR_BANDS_MAX * 3) - 1; j >= 0 ; j--) {
             // Update Insert Index; maintaining ascending order 
-            if (curr_band.noise < clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
+            if (curr_band.noise < lowest_clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
                 insert_idx = j;
+                //Only Insertion Point Found...
+                // log_debug("    Insertion found @ %d...", j);
+                // Special: Keep pre-existing bands by shifting them to right
+                for (int k = (CLR_BANDS_MAX * 3) - 2; k >= insert_idx; k--) {
+                    // log_debug("        shifting clr_bands for insert...");
+                    if (k + 1 < CLR_BANDS_MAX * 3) {
+                        lowest_clr_bands[k + 1] = lowest_clr_bands[k];
+                        min_idx[k + 1] = min_idx[k];
+                    }                    
+                }
+
+                // Insert curr_band and store its sample index
+                lowest_clr_bands[insert_idx] = curr_band;
+                min_idx[insert_idx] = i;
             }
-            // Check for Intersecting Band; get intersecting clr_band index
-            if ( 
-                ((clr_bands[j].f_start < curr_band.f_start && curr_band.f_start < clr_bands[j].f_end) ||
-                    (clr_bands[j].f_start < curr_band.f_end && curr_band.f_end < clr_bands[j].f_end))) {
-                intersect_idx = j;
-            }
-            // Continue Intersection Search 
         }
 
         // log_debug("    Intersection Search finished...");
         // log_trace("    intersect_idx: %d    insert_idx: %d", intersect_idx, insert_idx);
+    }
 
-        // Insertion Point was Found...
-        if (insert_idx != -1) {
-            // Intersection w/ curr_band was also Found...
-            if (intersect_idx != -1) {
-                // Special: If new band has worse noise, do not place/skip
-                if (insert_idx > intersect_idx) continue;
-                
-                // log_trace("    Intersecting Insertion found w/...");
-                freq_band inter_band = clr_bands[intersect_idx];
+    // Filter non-intersecting bands to clr_bands
+    int curr_clr_band_idx = 0;
+    for (int i = 0; i < CLR_BANDS_MAX * 3; i++) {       // Start with lowest noise clr_bands
+        freq_band curr_band = lowest_clr_bands[i];
+        bool cur_band_intersects = false;
 
-                // log_trace("        i-band = | %d -- %f -- %d|", inter_band.f_start, inter_band.noise, inter_band.f_end);
+        log_trace("    low band[%d]: | %dMHz -- Noise: %f -- %dMHz |", 
+            i, 
+            lowest_clr_bands[i].f_start, 
+            lowest_clr_bands[i].noise, 
+            lowest_clr_bands[i].f_end
+        );   
 
-                // Special: Shift inter_band band right till overwritten 
-                if (insert_idx < intersect_idx) {
-                    // Debug: verify bands shift properly @ sample
-                    // for (int j = 0; j < CLR_BANDS_MAX; j++) {
-                    //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
-                    // }
-                    
-                    // log_trace("        shifting clr_bands for intersect...");
-                    for (int j = intersect_idx - 1; j >= insert_idx; j--) {
-                        if (j + 1 < CLR_BANDS_MAX) {
-                            clr_bands[j + 1] = clr_bands[j];
-                            min_idx[j + 1] = min_idx[j];
-                        }
-                    }
-                }
-            } 
-            // Only Insertion Point Found...
-            else {
-                // log_trace("    Insertion found...");
-                // Special: Keep pre-existing bands by shifting them to right
-                for (int j = CLR_BANDS_MAX - 2; j >= insert_idx; j--) {
-                    // log_trace("        shifting clr_bands for insert...");
-                    if (j + 1 < CLR_BANDS_MAX) {
-                        clr_bands[j + 1] = clr_bands[j];
-                        min_idx[j + 1] = min_idx[j];
-                    }
+        // Success: All Clr Bands Found
+        if (curr_clr_band_idx >= CLR_BANDS_MAX) {
+            log_trace("Found enough Clear Bands; breaking...");
+            break;
+        }
+
+        // General: Check curr_band for intersections with stored clr_bands
+        if (curr_clr_band_idx > 0) {    // First band always has no possible intersections 
+            for (int j = 0; j < curr_clr_band_idx; j++) {
+                // Check freq bound intersection
+                if ( (clr_bands[j].f_start <= curr_band.f_start && curr_band.f_start <= clr_bands[j].f_end) ||
+                     (clr_bands[j].f_start <= curr_band.f_end   && curr_band.f_end <= clr_bands[j].f_end)
+                ) {
+                    // Skip to next cur_band if intersection found
+                    cur_band_intersects = true;
+                    log_trace("    intersects w/ clr_band[%d]: | %dMHz -- Noise: %f -- %dMHz |", 
+                        j, 
+                        clr_bands[j].f_start, 
+                        clr_bands[j].noise, 
+                        clr_bands[j].f_end
+                    );
+
+                    break;
                 }
             }
+        }
 
-            // Insert curr_band and store its sample index
-            clr_bands[insert_idx] = curr_band;
-            min_idx[insert_idx] = i;
-
-            // Debug: verify shifting @ sample   
-            // if (i == 10) for (int j = 0; j < CLR_BANDS_MAX; j++) {
-            //     log_trace("Clear Freq Band[%d]: | %dMHz -- Noise: %f -- %dMHz |", j, clr_bands[j].f_start, clr_bands[j].noise, clr_bands[j].f_end);
-            // }
+        // If curr band is non-intersecting, insert curr_band into clr_bands
+        if (cur_band_intersects == false) {
+            log_trace("    Inserting as idx#%d...", curr_clr_band_idx);            
+            clr_bands[curr_clr_band_idx].f_start = curr_band.f_start;
+            clr_bands[curr_clr_band_idx].noise = curr_band.noise;
+            clr_bands[curr_clr_band_idx].f_end = curr_band.f_end;
+            curr_clr_band_idx++;
         }
     }
 
@@ -901,18 +915,18 @@ void process_avg_beam_spectra(
     // Save data to csv
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
         char* avg_spectra_filename[128] = {0};
-        sprintf(avg_spectra_filename, SPECTRUM_FILE, "%s", "avg.%s");
+        sprintf(avg_spectra_filename, SPECTRUM_FILE, "%s", "tcs.%s");
         log_trace("avg_spectra_filename: %s\n", avg_spectra_filename);
         
-        log_warn("Logging for TCS has some bugs being worked out and has been disabled in the meantime.");
+        // log_warn("Logging for TCS has some bugs being worked out and has been disabled in the meantime.");
         // Write logs if its folder accessable
-        // if (BIN_OR_CSV_LOG == 0) {
-            // write_spectrum_mag_bin(avg_spectra_filename, avg_beam_spectra, avg_freq_vector, num_avg_samples);
-        // } else {
-            // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);                                                     // Used to check complex Samples after Beamforming; ...
-            // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);                                                     // Plot w/ sample_plot.py
-            // write_spectrum_mag_csv(avg_spectra_filename, avg_beam_spectra, avg_freq_vector, num_avg_samples);  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
-        // }
+        if (BIN_OR_CSV_LOG == 0) {
+            write_spectrum_mag_bin(avg_spectra_filename, avg_beam_spectra[cur_beam], avg_freq_vector, num_avg_samples);
+        } else {
+            // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);      // Used to check complex Samples after Beamforming; ...
+            // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);      // Plot w/ sample_plot.py
+            write_spectrum_mag_csv(avg_spectra_filename, avg_beam_spectra[cur_beam], avg_freq_vector, num_avg_samples);  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
+        }
         log_trace("[CFS] \'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
     } else log_trace("[CFS] \'save_spectra\' not found. Not logging spectra nor clr_frequency.");
 }
@@ -985,15 +999,15 @@ void process_beam_clr_freq(
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
         char* avg_clr_freq_filename[256] = {0};
         sprintf(avg_clr_freq_filename, CLR_FREQ_FILE, "%s", "avg.%s"); 
-        log_warn("Logging for TCS has some bugs being worked out and has been disabled in the meantime.");
+        // log_warn("Logging for TCS has some bugs being worked out and has been disabled in the meantime.");
 
         // Write logs if its folder accessable
-        // if (BIN_OR_CSV_LOG == 0) {
-        //     write_clr_freq_bin(avg_clr_freq_filename, clr_bands);                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
-        // } else {
-        //     write_clr_freq_csv(avg_clr_freq_filename, clr_bands);
-        // }
-        // log_trace("[CFS] \'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
+        if (BIN_OR_CSV_LOG == 0) {
+            write_clr_freq_bin(avg_clr_freq_filename, clr_bands);
+        } else {
+            write_clr_freq_csv(avg_clr_freq_filename, clr_bands); // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
+        }
+        log_trace("[CFS] \'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
     } else log_trace("[CFS] \'save_spectra\' not found. Not logging spectra nor clr_frequency.");
 }
 
@@ -1036,18 +1050,6 @@ clear_freq clear_freq_search(
 
     // Beam Angle Calculation
     double beam_angle = calc_beam_angle(n_beams, cur_beam, beam_sep);  
-
-    // Debug: Display parameters
-    log_trace("=--- Clear Freq Variables ---=");
-    log_trace("num_samples: %d num_antennas: %d x_spacing: %lf usrp_rf_rate: %d usrp_fcenter: %d",
-        meta_data.number_of_samples,
-        meta_data.num_antennas,
-        meta_data.x_spacing,
-        meta_data.usrp_rf_rate,
-        meta_data.usrp_fcenter
-    );       
-    log_trace("n_beams: %d beam_sep: %f beam_num: %d beam_angle: %f", n_beams, beam_sep, cur_beam, beam_angle);
-
 
     // Stopwatch Start
     double t1,t2;
