@@ -1182,8 +1182,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     sock_send_uint8(driverconn, AUTOCLRFREQ);
 
                     break;
-
                     }
+		  
                 case CLRFREQ: {
                     DEBUG_PRINT("%s: entering CLRFREQ command\n", get_log_time());
                     uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);

@@ -192,6 +192,7 @@ class usrpSockManager():
                usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+               time.sleep(0.002)
                usrpsock.connect(connectPar)
                self.logger.debug('USRP server connection {}:{}'.format(usrpConfig['driver_hostname'], port))
                
@@ -370,6 +371,7 @@ class usrpSockManager():
                usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+               time.sleep(0.002)
                usrpsock.connect(usrp)
 
                self.socks[jrad].append(usrpsock)
@@ -2444,6 +2446,8 @@ class RadarHardwareManager:
         
 
         # START LOOP OVER RADARS
+
+        # block to fill current swing
         
         # look for one active channel
         transmittingChannelAvailable = [False for j in range(self.N_RADARs)]
@@ -2588,6 +2592,8 @@ class RadarHardwareManager:
 
 
 
+        # Block to process last swing
+        
         for jrad in range(self.N_RADARs):
            if not radar_active[jrad]:
               continue
