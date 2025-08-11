@@ -117,7 +117,10 @@ int radar_table_sizes[] = {
     STATIC_CHANNEL_NUM,
 };
 
+// FFT, Clear Freq, Logging Files
 FILE *log_file = NULL;
+FILE *fft_file = NULL;
+FILE *clr_file = NULL; 
 
 
 void add_ptr(void **ptr) {
@@ -484,8 +487,10 @@ void handle_sig(int sig) {
     
     // Prompt exit to terminal  
     log_warn( "Main processes and communication terminated. Goodbye.\n");
-        
+    
     fclose(log_file);
+    fclose(fft_file);
+    fclose(clr_file);
     exit(sig);
 }
 
@@ -737,6 +742,29 @@ int main() {
     log_info("Pre-Cleaning all Shared Memory...\n");
     cleanup();
     
+    log_trace("Initializing FFT File");
+    char* tcs_spectra_filename_template[128] = {0};
+    char* tcs_spectra_filename[128] = {0};
+    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", "tcs.%s");
+    char *ext = BIN_OR_CSV_LOG ? "csv" : "bin";
+    log_trace("extension \"%s\" enabled", ext);
+    gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
+    fft_file = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+    if (fft_file == NULL) {
+        file_access_error(tcs_spectra_filename);
+        return;
+    }
+
+    log_trace("Initializing Clear Freq File");
+    char *tcs_clr_filename_template[128] = {0};
+    char *tcs_clr_filename[128] = {0};
+    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", "tcs.%s");
+    gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
+    clr_file = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+    if (clr_file == NULL) {
+        file_access_error(tcs_clr_filename);
+        return;
+    }
 
     // Open Shared Memory Object
     log_trace( "Initializing Shared Memory Object...");
@@ -1608,7 +1636,8 @@ int main() {
                         STORAGE_NUM,
                         &meta_data,
                         avg_beam_spectrum,
-                        avg_freq_vector
+                        avg_freq_vector,
+                        fft_file
                     );
                     log_trace( "    Avg Beam Spectrum done...");
 
@@ -1622,7 +1651,8 @@ int main() {
                         avg_freq_vector,
                         (int) (meta_data.number_of_samples / avg_ratio),
                         &meta_data,
-                        clr_bands
+                        clr_bands,
+                        clr_file
                     );
                     log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
                 } // end of TCS 
