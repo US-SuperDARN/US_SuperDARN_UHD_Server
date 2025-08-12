@@ -587,14 +587,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 
     // initialize rxfe gpio
-    //    kodiak_init_rxfe(usrp, nSides);
     mcm_init_rxfe(usrp);
     // initialize other gpio on usrp
     init_timing_signals(usrp, mimic_active, nSides);
-    
-    //if(CAPTURE_ERRORS) {
-    //    signal(SIGINT, siginthandler);
-    //}
     
     // open shared memory buffers and semaphores created by cuda_driver.py
     // for dual polarization we use antenna numbers 20 to 35 (side is always 0)
@@ -647,12 +642,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 DEBUG_PRINT("%s: GPS is locked.\n", get_log_time());
             }
 
-            // This while loop doesn't work because of the USRP sock timeout
-            // in usrp_server, so only sync if GPS is locked
-            //while (!(gps_clock->get_sensor("gps_locked").to_bool())) {
-            //    DEBUG_PRINT("%s: Waiting for GPS lock...\n", get_log_time());
-            //    std::this_thread::sleep_for(std::chrono::seconds(GPS_WAIT));
-            //}
         } else {
             DEBUG_PRINT("%s: No GPS octoclock address found in driver_config.ini\n", get_log_time());
         }
@@ -935,8 +924,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         for(uint32_t p_i = 0; p_i < number_of_pulses; p_i++) {
                           double offset_time = (double)pulse_sample_idx_offsets[p_i] / (double)txrate;
                           pulse_time_offsets[p_i] = offset_time_spec(start_time, offset_time);
-
-                          // DEBUG_PRINT("TRIGGER_PULSE pulse time %d is %2.5lf offset is %2.5lf\n", p_i, pulse_time_offsets[p_i].get_real_secs()- pulse_time_offsets[0].get_real_secs(),(double)pulse_sample_idx_offsets[p_i]/(double)txrate-(double)pulse_sample_idx_offsets[0]/(double)txrate);
                         }
 
                         DEBUG_PRINT("%s: first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", get_log_time(), pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
@@ -952,7 +939,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                         DEBUG_PRINT("%s: TRIGGER_PULSE creating rx and tx worker threads on swing %d (nSamples_rx= %d + %ld pause + %ld auto clear freq )\n", get_log_time(), swing,(int) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
                         // works fine with tx_worker and dio_worker, fails if rx_worker is enabled
-                        uhd_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &rx_data_buffer, nSamples_rx_total, rx_start_time, &rx_worker_status));
+                        uhd_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &rx_data_buffer, nSamples_rx_total, rx_start_time, rxrate, &rx_worker_status));
 
                         useconds_t usecs=1000;
                         usleep(usecs);
@@ -1103,14 +1090,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     else {
 
-                 /*       const uhd::time_spec_t last_pps_time = usrp->get_time_last_pps();
-                        while (last_pps_time == usrp->get_time_last_pps()) {
-                            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-                        }
-                        usrp->set_time_next_pps(uhd::time_spec_t(0.0));
-                        boost::this_thread::sleep(boost::posix_time::milliseconds(1100));
-                 */
-
                         // Sync time to the GPS Octoclock if it is available and locked
                         if (strcmp(clk_addr, "addr=") &&
                             gps_clock->get_sensor("gps_locked").to_bool()) {
@@ -1180,8 +1159,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     sock_send_uint8(driverconn, AUTOCLRFREQ);
 
                     break;
-
                     }
+		  
                 case CLRFREQ: {
                     DEBUG_PRINT("%s: entering CLRFREQ command\n", get_log_time());
                     uint32_t num_clrfreq_samples = sock_get_uint32(driverconn);
@@ -1215,9 +1194,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                        clrfreq_rate = rxrate;
                     }
                     DEBUG_PRINT("%s: CLRFREQ actual rate: %.2f\n", get_log_time(), clrfreq_rate);
-                    //clrfreq_cfreq = usrp->get_rx_freq(); 
-                    //DEBUG_PRINT("CLRFREQ actual freq: %.2f\n", clrfreq_cfreq);
-                    clrfreq_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &clrfreq_data_buffer, num_clrfreq_samples, clrfreq_start_time, &clrfreq_rx_worker_status));
+                    clrfreq_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &clrfreq_data_buffer, num_clrfreq_samples, clrfreq_start_time, rxrate, &clrfreq_rx_worker_status));
 
                     clrfreq_threads.join_all();
 
@@ -1247,11 +1224,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     // send back samples
                       send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
                     }
-
-                    //for(uint32_t i = 0; i < num_clrfreq_samples; i++) {
-                        //DEBUG_PRINT("sending %d - %d\n", i, clrfreq_data_buffer[0][i]);
-                    //    sock_send_cshort(driverconn, clrfreq_data_buffer[0][i]);
-                   // }
 
                     DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[0]);
                     // restore usrp rates
@@ -1306,7 +1278,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                 }
             
             // TODO: close usrp streams?
-//            sock_send_uint8(driverconn, EXIT);
             exit(1);
           }
 
