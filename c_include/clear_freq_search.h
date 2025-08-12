@@ -30,6 +30,7 @@ typedef struct freq_band {
 typedef struct radar_freq_data {
     int clear_freq_range[2];
     freq_band clr_band;
+    time_t last_time;
 } radar_freq_data;
 
 typedef struct clear_freq {
@@ -63,7 +64,7 @@ int ini_parse(const char* filename, ini_handler handler, void* user);
 
 
 // Config and Debug Flags
-#define BIN_OR_CSV_LOG  1   // 0 for Bin, otherwise CSV
+#define BIN_OR_CSV_LOG  0   // 0 for Bin, otherwise CSV
 
 #define TEST_SAMPLES 0
 #define TEST_CLR_RANGE 1
