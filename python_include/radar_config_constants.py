@@ -8,7 +8,7 @@ INTEGRATION_PERIOD_SYNC_TIME_ONESEC = .2
 INTEGRATION_PERIOD_SYNC_TIME = .2
 
 # DELAY before clear freq record
-MIN_CLRFREQ_DELAY = .50
+MIN_CLRFREQ_DELAY = .010
 
 # Frequency Resolution (in Hz) 
 # Do NOT use scientific notation
