@@ -67,15 +67,12 @@ void usrp_rx_worker(
     uhd::rx_metadata_t md;
     md.error_code = uhd::rx_metadata_t::ERROR_CODE_NONE;
 
-    size_t samples_remaining_to_stream = num_requested_samps;
-
     // calculate the number of samples to stream that is a multiple of the maximum samples per packet
     size_t samples_to_stream = num_requested_samps - (num_requested_samps % max_samples_per_packet) + max_samples_per_packet;
     double timeout = 5.0;
 
     // DEBUG to check timing
     double time_to_start;
-    useconds_t usecs=200;
     rx_usrp_pre_stream_time = usrp->get_time_now();
     time_to_start = start_time.get_real_secs() - rx_usrp_pre_stream_time.get_real_secs();
     fprintf(stderr,"#timing: time left for rx_worker  %f ms\n", time_to_start*1000);
@@ -85,7 +82,7 @@ void usrp_rx_worker(
     uhd::stream_cmd_t stream_cmd = uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_DONE;
     stream_cmd.stream_now = false;
     stream_cmd.time_spec = offset_time_spec(start_time, RX_OFFSET);
-    stream_cmd.num_samps = samples_remaining_to_stream;
+    stream_cmd.num_samps = num_requested_samps;
     usrp->issue_stream_cmd(stream_cmd); 
 
     size_t num_acc_samps = 0;
