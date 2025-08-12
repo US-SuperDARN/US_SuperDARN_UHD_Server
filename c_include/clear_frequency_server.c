@@ -117,7 +117,10 @@ int radar_table_sizes[] = {
     STATIC_CHANNEL_NUM,
 };
 
+// FFT, Clear Freq, Logging Files
 FILE *log_file = NULL;
+FILE *fft_file = NULL;
+FILE *clr_file = NULL; 
 
 
 void add_ptr(void **ptr) {
@@ -484,8 +487,12 @@ void handle_sig(int sig) {
     
     // Prompt exit to terminal  
     log_warn( "Main processes and communication terminated. Goodbye.\n");
-        
+    
     fclose(log_file);
+    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
+        fclose(fft_file);
+        fclose(clr_file);
+    }
     exit(sig);
 }
 
@@ -737,6 +744,31 @@ int main() {
     log_info("Pre-Cleaning all Shared Memory...\n");
     cleanup();
     
+    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
+        log_trace("Initializing FFT File");
+        char* tcs_spectra_filename_template[128] = {0};
+        char* tcs_spectra_filename[128] = {0};
+        sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", "tcs.%s");
+        char *ext = BIN_OR_CSV_LOG ? "csv" : "bin";
+        log_trace("extension \"%s\" enabled", ext);
+        gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
+        fft_file = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+        if (fft_file == NULL) {
+            file_access_error(tcs_spectra_filename);
+            return;
+        }
+
+        log_trace("Initializing Clear Freq File");
+        char *tcs_clr_filename_template[128] = {0};
+        char *tcs_clr_filename[128] = {0};
+        sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", "tcs.%s");
+        gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
+        clr_file = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+        if (clr_file == NULL) {
+            file_access_error(tcs_clr_filename);
+            return;
+        }
+}
 
     // Open Shared Memory Object
     log_trace( "Initializing Shared Memory Object...");
@@ -1529,6 +1561,7 @@ int main() {
             radar_table[cur_radar][cur_channel].clr_band.f_start = 0;
             radar_table[cur_radar][cur_channel].clr_band.noise = 0;
             radar_table[cur_radar][cur_channel].clr_band.f_end = 0;
+            radar_table[cur_radar][cur_channel].last_time = 0;
             radar_table[cur_radar][cur_channel].clr_band.is_selected = false;
             radar_table[cur_radar][cur_channel].last_time = 0;
 
@@ -1550,6 +1583,28 @@ int main() {
                         radar_table[r_idx][c_idx].clr_band.noise = 0;
                         radar_table[r_idx][c_idx].clr_band.f_end = 0;
                         radar_table[r_idx][c_idx].clr_band.is_selected = false;
+                        radar_table[r_idx][c_idx].last_time = 0;
+                    }
+                }
+            }
+
+            // Check for inactive channels to unmask
+            for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
+                for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
+                    if (radar_table[r_idx][c_idx].last_time == 0) continue;
+
+                    if (time(NULL) - radar_table[r_idx][c_idx].last_time > 10) {
+                        log_debug("Unmasking old reserved clr band[%d]: | %dHz -- %dHz |",
+                            restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx,
+                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start,
+                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end
+                        );
+                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end = 0;
+                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start = 0;
+                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].noise = 0;
+                        radar_table[r_idx][c_idx].clr_band.f_start = 0;
+                        radar_table[r_idx][c_idx].clr_band.noise = 0;
+                        radar_table[r_idx][c_idx].clr_band.f_end = 0;
                         radar_table[r_idx][c_idx].last_time = 0;
                     }
                 }
@@ -1609,7 +1664,8 @@ int main() {
                         STORAGE_NUM,
                         &meta_data,
                         avg_beam_spectrum,
-                        avg_freq_vector
+                        avg_freq_vector,
+                        fft_file
                     );
                     log_trace( "    Avg Beam Spectrum done...");
 
@@ -1623,7 +1679,8 @@ int main() {
                         avg_freq_vector,
                         (int) (meta_data.number_of_samples / avg_ratio),
                         &meta_data,
-                        clr_bands
+                        clr_bands,
+                        clr_file
                     );
                     log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
                 } // end of TCS 

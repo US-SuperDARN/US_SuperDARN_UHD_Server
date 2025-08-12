@@ -591,17 +591,48 @@ void calc_clear_freq_on_raw_samples(
     // }      
     
 
-    // Save data to csv
+    // Save data
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
-            write_spectrum_mag_bin(SPECTRUM_FILE, avg_spectrum, avg_freq_vector, num_avg_samples);
-            write_clr_freq_bin(CLR_FREQ_FILE, clr_bands);                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
+            FILE *tmp_file = NULL;
+            write_spectrum_mag_bin(
+                &tmp_file,
+                avg_spectrum, 
+                avg_freq_vector, 
+                num_avg_samples
+            );
+
+            fclose(tmp_file);
+            tmp_file = NULL;
+
+            write_clr_freq_bin(
+                &tmp_file,
+                clr_bands, 
+                clear_freq_range
+            );                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
+            fclose(tmp_file);
         } else {
+            FILE *tmp_file = NULL;
             // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);                                                     // Used to check complex Samples after Beamforming; ...
             // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);                                                     // Plot w/ sample_plot.py
-            write_spectrum_mag_csv(SPECTRUM_FILE, avg_spectrum, avg_freq_vector, num_avg_samples);  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
-            write_clr_freq_csv(CLR_FREQ_FILE, clr_bands);
+            write_spectrum_mag_csv(
+                &tmp_file,
+                avg_spectrum, 
+                avg_freq_vector, 
+                num_avg_samples
+            );  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
+
+            fclose(tmp_file);
+            tmp_file = NULL;
+
+            write_clr_freq_csv(
+                &tmp_file, 
+                clr_bands, 
+                clear_freq_range
+            );
+
+            fclose(tmp_file);
         }
         log_warn("\'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
     } else log_warn("\'save_spectra\' not found. Not logging spectra nor clr_frequency.");
@@ -854,7 +885,8 @@ void process_avg_beam_spectra(
     int spectra_num,
     sample_meta_data *meta_data,
     double **avg_beam_spectra,
-    double *avg_freq_vector
+    double *avg_freq_vector,
+    FILE *fft_file
 ) {
     log_debug("Entered process_avg_beam_spectra()...");
 
@@ -914,18 +946,25 @@ void process_avg_beam_spectra(
 
     // Save data to csv
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
-        char* avg_spectra_filename[128] = {0};
-        sprintf(avg_spectra_filename, SPECTRUM_FILE, "%s", "tcs.%s");
-        log_trace("avg_spectra_filename: %s\n", avg_spectra_filename);
-        
+                
         // log_warn("Logging for TCS has some bugs being worked out and has been disabled in the meantime.");
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
-            write_spectrum_mag_bin(avg_spectra_filename, avg_beam_spectra[cur_beam], avg_freq_vector, num_avg_samples);
+            write_spectrum_mag_bin(
+                &fft_file, 
+                avg_beam_spectra[cur_beam], 
+                avg_freq_vector, 
+                num_avg_samples
+            );
         } else {
             // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);      // Used to check complex Samples after Beamforming; ...
             // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);      // Plot w/ sample_plot.py
-            write_spectrum_mag_csv(avg_spectra_filename, avg_beam_spectra[cur_beam], avg_freq_vector, num_avg_samples);  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
+            write_spectrum_mag_csv(
+                &fft_file,
+                avg_beam_spectra[cur_beam], 
+                avg_freq_vector, 
+                num_avg_samples
+            );  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
         }
         log_trace("[CFS] \'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
     } else log_trace("[CFS] \'save_spectra\' not found. Not logging spectra nor clr_frequency.");
@@ -958,7 +997,8 @@ void process_beam_clr_freq(
     double *avg_freq_vector,
     int num_avg_samples,
     sample_meta_data *meta_data,
-    freq_band *clr_bands
+    freq_band *clr_bands,
+    FILE *clr_file
 ) {
     log_debug("Entered process_beam_clr_freq()...");
 
@@ -998,14 +1038,21 @@ void process_beam_clr_freq(
     // Save data to csv
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
         char* avg_clr_freq_filename[256] = {0};
-        sprintf(avg_clr_freq_filename, CLR_FREQ_FILE, "%s", "avg.%s"); 
-        // log_warn("Logging for TCS has some bugs being worked out and has been disabled in the meantime.");
+        sprintf(avg_clr_freq_filename, CLR_FREQ_FILE, "%s", "tcs.%s"); 
 
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
-            write_clr_freq_bin(avg_clr_freq_filename, clr_bands);
+            write_clr_freq_bin(
+                &clr_file, 
+                clr_bands, 
+                clear_freq_range
+            );
         } else {
-            write_clr_freq_csv(avg_clr_freq_filename, clr_bands); // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
+            write_clr_freq_csv( 
+                &clr_file,
+                clr_bands, 
+                clear_freq_range
+            ); // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
         }
         log_trace("[CFS] \'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
     } else log_trace("[CFS] \'save_spectra\' not found. Not logging spectra nor clr_frequency.");
