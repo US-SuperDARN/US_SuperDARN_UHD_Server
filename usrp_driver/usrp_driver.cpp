@@ -1223,9 +1223,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     // send back samples
                       send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                      DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
                     }
 
-                    DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[0]);
                     // restore usrp rates
                     usrp->set_rx_rate(rxrate);
                     usrp->set_rx_freq(rxfreq);
