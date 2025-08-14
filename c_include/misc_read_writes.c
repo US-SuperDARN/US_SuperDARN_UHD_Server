@@ -10,9 +10,10 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include "log.h"
+#include <inttypes.h>
 
 void file_access_error(const char *filepath) {
-    log_error("[ERROR: accessing filepath: %s\n", filepath);
+    log_error("ERROR: accessing filepath: %s\n", filepath);
     perror("Error");
     exit(EXIT_FAILURE);
 }
@@ -108,8 +109,12 @@ void write_spectrum_mag_csv(
 
         fprintf(*file, "Frequency,Power\n");
     }
+
+    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes 
+    // (&t, sizeof(__uint64_t), 1, *file);
     
     for (int i = 0; i < num_samples; i++) {
+        if (i == 0) fprintf(*file, "%f,%f,%" PRId64 "\n", freq_vector[i], spectrum[i]);
         fprintf(*file, "%f,%f\n", freq_vector[i], spectrum[i]);
     }
 
@@ -129,6 +134,8 @@ void write_spectrum_mag_bin(
     char timestamp[buffer_size];
     char name[buffer_size]; 
 
+    log_trace("file pointer: %p", (void*)file);
+    log_trace("file pointer: %p", file); 
 
     // If file doesn't exists, ... 
     if (*file == NULL) {
@@ -145,9 +152,13 @@ void write_spectrum_mag_bin(
         }
 
         // Only write number of samples once per file
+        log_trace("num_samples: %d",num_samples);
         fwrite(&num_samples, sizeof(int), 1, *file);
     }
 
+    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes 
+
+    fwrite(&t, sizeof(__uint64_t), 1, *file);
     fwrite(freq_vector, sizeof(double), num_samples, *file);
     fwrite(spectrum, sizeof(double), num_samples, *file);
 
