@@ -1794,6 +1794,9 @@ class RadarHardwareManager:
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 
            self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(AVG_RATIO * self.usrp_rf_rx_rate / CLRFREQ_RES))
+
+           self.send_usrp_setup_command(jrad)
+           
            
         self.active_channels     = [[] for jrad in range(self.N_RADARs)]
         self.channels            = [[] for jrad in range(self.N_RADARs)]   # all channels that are really transmitting
@@ -2012,6 +2015,22 @@ class RadarHardwareManager:
         self.logger.debug("usrp_init() complete")
 
 
+    def send_usrp_setup_command(self,jrad):
+       self.logger.debug("Initial call to USRP_SETUP to set initial parameters")
+       cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
+                                self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, 1, 0, 0, 0, 0, [0], 0)
+       cmd.transmit()
+       time.sleep(0.001)
+       try:
+          if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
+             time.sleep(0.002)
+       except:
+          self.logger.debug("No USRPs for radar {}".format(jrad))
+          
+       self.usrpManager.eval_client_return(cmd, jrad)
+       self.logger.debug("end USRP_SETUP")
+
+        
     def send_cuda_setup_command(self):
       if self.commonChannelParameter == {}:
          self.logger.debug("Skipping call of cuda_setup because up/down samplingRates are unknown.")

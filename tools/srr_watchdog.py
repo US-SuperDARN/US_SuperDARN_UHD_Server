@@ -144,6 +144,8 @@ usrp_driver_watcher = usrpDriverWatcher(fileName, usrp_restart_period)
 killer =  GracefulKiller()
 restart_server = False
 
+new_start = True
+
 while True:
 
    if watch_usrp_server:
@@ -154,8 +156,8 @@ while True:
            m_time = 0
        now = time.mktime(time.localtime())
        file_age = now - m_time
-       restart_server = file_age_limit < file_age 
-
+       restart_server = (file_age_limit < file_age ) | new_start 
+       new_start = False
 
    if restart_server:
        log("Age of usrp_server status file is {} seconds. Restarting all processes (with srr.py) ...".format(file_age))
