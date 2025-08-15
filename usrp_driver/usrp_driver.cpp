@@ -43,7 +43,7 @@
 #include <boost/format.hpp>
 #include <boost/thread.hpp>
 #include <boost/cstdint.hpp>
-
+#include <boost/chrono.hpp>
 
 #include "usrp_utils.h"
 #include "tx_worker.h"
@@ -63,7 +63,7 @@
 #endif
 
 #define GPS_WAIT 2   // in seconds
-#define SETUP_WAIT 1 // in seconds
+#define SETUP_WAIT 100 // in milliseconds
 #define nSwings 2    // swings are slots in the swing buffer
 
 
@@ -483,7 +483,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     struct arg_end  *ae_argend         = arg_end(ARG_MAXERRORS);
     void* argtable[] = {al_help, ai_ant_a, ai_ant_b, as_host, al_intclk, al_interferometer, ae_argend};
     
-    double txrate, rxrate, txfreq, rxfreq;
+    double txrate=0, rxrate=0, txfreq=0, rxfreq=0;
     double txrate_new, rxrate_new, txfreq_new, rxfreq_new;
 
     DEBUG_PRINT("%s: usrp_driver debug mode enabled\n", get_log_time());
@@ -658,7 +658,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
             close(driversock);
         }
    
-        boost::this_thread::sleep(boost::posix_time::seconds(SETUP_WAIT));
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(SETUP_WAIT));
 
         // bind to socket for communication with usrp_server.py:
         driversock = socket(AF_INET, SOCK_STREAM, 0);
@@ -745,6 +745,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     DEBUG_PRINT("%s: USRP_SETUP number of requested tx samples per pulse: %d\n", get_log_time(), (uint32_t) nSamples_tx_pulse);
                     DEBUG_PRINT("%s: USRP_SETUP existing tx rate : %f (swing %d)\n", get_log_time(), txrate, swing);
                     DEBUG_PRINT("%s: USRP_SETUP requested tx rate: %f\n", get_log_time(), txrate_new);
+                    DEBUG_PRINT("%s: USRP_SETUP existing tx freq : %f  rx freq: %f\n", get_log_time(), txfreq, rxfreq);
+                    DEBUG_PRINT("%s: USRP_SETUP requested tx freq: %f  rx freq: %f\n", get_log_time(), txfreq_new, rxfreq_new);
 
                     // resize 
                     pulse_sample_idx_offsets.resize(npulses);
@@ -792,27 +794,35 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
    
                     // if necessary, retune USRP frequency and sampling rate
                     if(rxrate != rxrate_new) {
-                       usrp->set_rx_rate(rxrate_new);
-                       rxrate = usrp->get_rx_rate();
+		      DEBUG_PRINT("%s: USRP_SETUP resetting rxrate from %f to %f\n",get_log_time(), rxrate, rxrate_new);
+		      usrp->set_rx_rate(rxrate_new);
+		      rxrate = usrp->get_rx_rate();
+		      DEBUG_PRINT("%s: USRP_SETUP actual rxrate: %f\n",get_log_time(), rxrate);
                     }
 
                     if(txrate != txrate_new) {
-                       usrp->set_tx_rate(txrate_new);
-                       txrate = usrp->get_tx_rate();
+		      DEBUG_PRINT("%s: USRP_SETUP resetting txrate from %f to %f\n",get_log_time(), txrate, txrate_new);
+		      usrp->set_tx_rate(txrate_new);
+		      txrate = usrp->get_tx_rate();
+		      DEBUG_PRINT("%s: USRP_SETUP actual txrate: %f\n",get_log_time(), txrate);
                     }
 
-                    if(rxfreq != rxfreq_new) {
-                       for(iSide = 0; iSide < nSides; iSide++) {
-                          usrp->set_rx_freq(rxfreq_new, iSide);
-                       }
-                       rxfreq = usrp->get_rx_freq();
+                    if( fabs(rxfreq - rxfreq_new) > 1) {
+		      DEBUG_PRINT("%s: USRP_SETUP resetting rxfreq from %f to %f\n",get_log_time(), rxfreq, rxfreq_new);
+		      for(iSide = 0; iSide < nSides; iSide++) {
+			usrp->set_rx_freq(rxfreq_new, iSide);
+		      }
+		      rxfreq = usrp->get_rx_freq(1);
+		      DEBUG_PRINT("%s: USRP_SETUP actual rxfreq: %f\n",get_log_time(), rxfreq);
                     }
 
-                    if(txfreq != txfreq_new) {
-                       for(iSide = 0; iSide < nSides; iSide++) {
-                          usrp->set_tx_freq(txfreq_new, iSide);
-                       }
-                       txfreq = usrp->get_tx_freq();
+                    if( fabs(txfreq - txfreq_new) > 1 ) {
+		      DEBUG_PRINT("%s: USRP_SETUP resetting txfreq from %f to %f\n",get_log_time(), txfreq, txfreq_new);
+		      for(iSide = 0; iSide < nSides; iSide++) {
+			usrp->set_tx_freq(txfreq_new, iSide);
+		      }
+		      txfreq = usrp->get_tx_freq();
+		      DEBUG_PRINT("%s: USRP_SETUP actual txfreq: %f\n",get_log_time(), txfreq);
                     }
 
                     if(verbose) {
@@ -831,7 +841,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-                    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -847,7 +856,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     if(SAVE_RAW_SAMPLES_DEBUG) {
                         FILE *raw_dump_fp;
                         char raw_dump_name[80];
-                       // DEBUG_PRINT("Exporting %i raw tx_samples (%i + 2* %i)\n", num_samples_per_pulse_with_padding, nSamples_tx_pulse, spb);
                         for (iSide =0; iSide < nSides; iSide++){
                             sprintf(raw_dump_name,"%s/raw_samples_tx_ant_%d.cint16", diag_dir, antennaVector[iSide]);
                             raw_dump_fp = fopen(raw_dump_name, "wb");
@@ -857,8 +865,15 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     }
 
 
+                    DEBUG_PRINT("%s: USRP_SETUP sending back parameters rxfreq %f \n", get_log_time(), rxfreq);
+                    sock_send_float64(driverconn, rxrate);
+                    sock_send_float64(driverconn, rxfreq);
+                    sock_send_float64(driverconn, txrate);
+                    sock_send_float64(driverconn, txfreq);
+
                     state_vec[swing] = ST_READY; 
-                    DEBUG_PRINT("%s: changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
+                    DEBUG_PRINT("%s: USRP_SETUP changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
+		    
                     sock_send_uint8(driverconn, USRP_SETUP);
                     usleep(100);
                     break;
@@ -1189,12 +1204,20 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
                     // TODO: only set rate if it is different!
                     if(rxrate != clrfreq_rate) {
-                       usrp->set_rx_rate(clrfreq_rate);
-                       rxrate = usrp->get_rx_rate();
-                       clrfreq_rate = rxrate;
-                    }
+		      usrp->set_rx_rate(clrfreq_rate);
+		      clrfreq_rate = usrp->get_rx_rate();
+                    }		    
                     DEBUG_PRINT("%s: CLRFREQ actual rate: %.2f\n", get_log_time(), clrfreq_rate);
-                    clrfreq_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &clrfreq_data_buffer, num_clrfreq_samples, clrfreq_start_time, rxrate, &clrfreq_rx_worker_status));
+
+                    if( fabs(rxfreq - clrfreq_cfreq) > 1 ) {
+		      for( iSide = 0; iSide < nSides; iSide++ ){
+			usrp->set_rx_freq(clrfreq_cfreq,iSide);
+		      }
+		      clrfreq_cfreq = usrp->get_rx_freq(1);
+                    }
+                    DEBUG_PRINT("%s: CLRFREQ actual rx_freq: %.2f\n", get_log_time(), clrfreq_cfreq);
+
+                    clrfreq_threads.create_thread(boost::bind(usrp_rx_worker, usrp, rx_stream, &clrfreq_data_buffer, num_clrfreq_samples, clrfreq_start_time, clrfreq_rate, &clrfreq_rx_worker_status));
 
                     clrfreq_threads.join_all();
 
@@ -1226,10 +1249,27 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                       DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
                     }
 
-                    // restore usrp rates
-                    usrp->set_rx_rate(rxrate);
-                    usrp->set_rx_freq(rxfreq);
+                    DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[0]);
 
+
+		    // restore usrp rates
+                    if(rxrate != clrfreq_rate) {
+		      for( iSide = 0; iSide < nSides; iSide++ ){
+			usrp->set_rx_rate(rxrate,iSide);
+		      }
+		      rxrate = usrp->get_rx_rate(1);
+		      DEBUG_PRINT("%s: CLRFREQ reset actual rxrate: %.2f\n", get_log_time(), rxrate);
+                    }		    
+
+                    if(fabs(rxfreq - clrfreq_cfreq) > 1) {
+		      for( iSide = 0; iSide < nSides; iSide++ ){		      
+			usrp->set_rx_freq(rxfreq,iSide);
+		      }
+		      rxfreq = usrp->get_rx_freq(1);
+		      DEBUG_PRINT("%s: CLRFREQ reset actual rxfreq: %.2f\n", get_log_time(), rxfreq);
+                    }
+
+		    
                     sock_send_uint8(driverconn, CLRFREQ);
                     start_time = usrp->get_time_now();
                     real_time = start_time.get_real_secs();
@@ -1237,7 +1277,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     DEBUG_PRINT("%s: CLRFREQ finished at UHD time: %d %.2f \n", get_log_time(), real_time, frac_time);
 
                     break;
-
                     }
 
                 case EXIT: {

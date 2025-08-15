@@ -1777,7 +1777,12 @@ class RadarHardwareManager:
         self.logger.info('listening on port ' + str(port) + ' for control programs')
 
         self.exit_usrp_server = False
- 
+
+        self.set_par_semaphore = threading.BoundedSemaphore()
+        self.usrp_setup_semaphore = threading.BoundedSemaphore()
+        self.channel_spawn_semaphore = threading.BoundedSemaphore()
+        self.clear_search_data_semaphore = threading.BoundedSemaphore()
+                
         self.ini_file_init()
         self.usrp_init()
         self.logger.info('USRPs initialized, now going to RXFE')
@@ -1796,15 +1801,15 @@ class RadarHardwareManager:
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 
            self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(AVG_RATIO * self.usrp_rf_rx_rate / CLRFREQ_RES))
+
+           self.send_usrp_setup_command(jrad)
+           
            
         self.active_channels     = [[] for jrad in range(self.N_RADARs)]
         self.channels            = [[] for jrad in range(self.N_RADARs)]   # all channels that are really transmitting
         self.newChannelList      = []   # waiting list for channels to be added at the right time (between two trigger_next() calls)
         self.swingManager        = swingManager()
 
-        self.set_par_semaphore = threading.BoundedSemaphore()
-        self.channel_spawn_semaphore = threading.BoundedSemaphore()
-        self.clear_search_data_semaphore = threading.BoundedSemaphore()
         self.processing_swing_invalid = False
         self.trigger_next_function_running = False
         self.commonChannelParameter = {}
@@ -2035,6 +2040,33 @@ class RadarHardwareManager:
         self.logger.debug("usrp_init() complete")
 
 
+    def send_usrp_setup_command(self,jrad):
+       self.logger.debug("Call to USRP_SETUP to set initial parameters")
+       self.usrp_setup_semaphore.acquire()
+       cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
+                                self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, 1, 0, 0, 0, 0, [0], 0)
+       cmd.transmit()
+       time.sleep(0.001)
+
+       # rxrate,rxfreq,txrate,txfreq = cmd.receive_settings(self.usrpManager.socks[jrad])
+       rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
+       cmd.client_return()
+       
+       self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate {} txfreq {}".format(rxrate,rxfreq,txrate,txfreq))
+                 
+       try:
+          if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
+             time.sleep(0.002)
+       except:
+          self.logger.debug("No USRPs for radar {}".format(jrad))
+
+       # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
+          
+       # self.usrpManager.eval_client_return(cmd, jrad)
+       self.usrp_setup_semaphore.release()
+       self.logger.debug("end USRP_SETUP")
+
+        
     def send_cuda_setup_command(self):
       if self.commonChannelParameter == {}:
          self.logger.debug("Skipping call of cuda_setup because up/down samplingRates are unknown.")
@@ -2062,7 +2094,9 @@ class RadarHardwareManager:
           sys.exit(0)
           
        socks=np.concatenate(self.usrpManager.socks).tolist()
-          
+
+       self.usrp_setup_semaphore.acquire()
+       
        while not usrps_synced:
 
           cmd = usrp_sync_time_command(socks)
@@ -2098,11 +2132,13 @@ class RadarHardwareManager:
              self.logger.warning('_resync_USRP USRP syncronization failed, trying again ({}) ...'.format(iResync))
              iResync += 1 
              time.sleep(0.1)
-                 
+
+             
        if not first_sync:        
           for jrad in range(self.N_RADARs):
              self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) 
 
+       self.usrp_setup_semaphore.release()
 
     #@timeit
     def rxfe_init(self):
@@ -2507,6 +2543,8 @@ class RadarHardwareManager:
                     auto_clear_freq_meta_data = None
 
                  self.logger.debug('rnum {} usrp_setup pars: pulses:{}  total_samples: {} nsamples_pause: {} nsamples_clearfreq: {} nsamples_per_pulse: {}'.format(jrad, self.nPulses_per_integration_period, channel.nrf_rx_samples_per_integration_period, nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
+
+                 self.usrp_setup_semaphore.acquire()
                  
                  cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
                                           self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, self.nPulses_per_integration_period,  channel.nrf_rx_samples_per_integration_period, \
@@ -2514,14 +2552,26 @@ class RadarHardwareManager:
                                           self.swingManager.activeSwing)
                  cmd.transmit()
                  time.sleep(0.001)
+
+                 # rxrate,rxfreq,txrate,txfreq = cmd.receive_settings(self.usrpManager.socks[jrad][0])
+                 rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
+                 cmd.client_return()
+                 
+                 self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate{} txfreq{}".format(rxrate,rxfreq,txrate,txfreq))
+
+                 # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
+                 
+                 
                  try:
                     if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
                        time.sleep(0.002)
                  except:
                     self.logger.debug("No USRPs for radar {}".format(jrad))
 
-                 self.usrpManager.eval_client_return(cmd, jrad)
+                 # self.usrpManager.eval_client_return(cmd, jrad)
                  self.logger.debug("end USRP_SETUP")
+
+                 self.usrp_setup_semaphore.release()
 
                  # wait if periods should be time synchronized  
                  for tmpChannel in self.channels[jrad]:
@@ -3346,10 +3396,10 @@ class RadarChannelHandler:
 
         if period == "current":
            beam = self.scanManager.current_beam
-           freq = self.scanManager.get_current_clearFreq_result(self.rnum)[0]
+           freq = int(self.scanManager.get_current_clearFreq_result(self.rnum)[0])
         elif period == "next":
            beam = self.scanManager.next_beam
-           freq = self.scanManager.get_next_clearFreq_result(self.rnum)[0]
+           freq = int(self.scanManager.get_next_clearFreq_result(self.rnum)[0])
         else:
             self.logger.error("unknown period specifier: {} (valid: current or next )".format(period)) 
        
