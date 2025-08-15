@@ -807,7 +807,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 		      DEBUG_PRINT("%s: USRP_SETUP actual txrate: %f\n",get_log_time(), txrate);
                     }
 
-                    if(rxfreq != rxfreq_new) {
+                    if( fabs(rxfreq - rxfreq_new) > 1) {
 		      DEBUG_PRINT("%s: USRP_SETUP resetting rxfreq from %f to %f\n",get_log_time(), rxfreq, rxfreq_new);
 		      for(iSide = 0; iSide < nSides; iSide++) {
 			usrp->set_rx_freq(rxfreq_new, iSide);
@@ -816,7 +816,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 		      DEBUG_PRINT("%s: USRP_SETUP actual rxfreq: %f\n",get_log_time(), rxfreq);
                     }
 
-                    if(txfreq != txfreq_new) {
+                    if( fabs(txfreq - txfreq_new) > 1 ) {
 		      DEBUG_PRINT("%s: USRP_SETUP resetting txfreq from %f to %f\n",get_log_time(), txfreq, txfreq_new);
 		      for(iSide = 0; iSide < nSides; iSide++) {
 			usrp->set_tx_freq(txfreq_new, iSide);
@@ -841,7 +841,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     size_t pulse_bytes = sizeof(std::complex<int16_t>) * nSamples_tx_pulse;
                     size_t number_of_pulses = pulse_time_offsets.size();
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
-                    // DEBUG_PRINT("spb %d, pulse length %d samples, pulse with padding %d\n", spb, nSamples_tx_pulse, num_samples_per_pulse_with_padding);
 
                     // TODO unpack and pad tx sample
                     for (iSide = 0; iSide<nSides; iSide++) {
@@ -857,7 +856,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     if(SAVE_RAW_SAMPLES_DEBUG) {
                         FILE *raw_dump_fp;
                         char raw_dump_name[80];
-                       // DEBUG_PRINT("Exporting %i raw tx_samples (%i + 2* %i)\n", num_samples_per_pulse_with_padding, nSamples_tx_pulse, spb);
                         for (iSide =0; iSide < nSides; iSide++){
                             sprintf(raw_dump_name,"%s/raw_samples_tx_ant_%d.cint16", diag_dir, antennaVector[iSide]);
                             raw_dump_fp = fopen(raw_dump_name, "wb");
@@ -867,8 +865,15 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     }
 
 
+                    DEBUG_PRINT("%s: USRP_SETUP sending back parameters rxfreq %f \n", get_log_time(), rxfreq);
+                    sock_send_float64(driverconn, rxrate);
+                    sock_send_float64(driverconn, rxfreq);
+                    sock_send_float64(driverconn, txrate);
+                    sock_send_float64(driverconn, txfreq);
+
                     state_vec[swing] = ST_READY; 
                     DEBUG_PRINT("%s: USRP_SETUP changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
+		    
                     sock_send_uint8(driverconn, USRP_SETUP);
 		    usleep(100);
                     break;
@@ -1207,7 +1212,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     }		    
                     DEBUG_PRINT("%s: CLRFREQ actual rate: %.2f\n", get_log_time(), clrfreq_rate);
 
-                    if(rxfreq != clrfreq_cfreq) {
+                    if( fabs(rxfreq - clrfreq_cfreq) > 1 ) {
 		      for( iSide = 0; iSide < nSides; iSide++ ){
 			usrp->set_rx_freq(clrfreq_cfreq,iSide);
 		      }
@@ -1258,7 +1263,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 		      DEBUG_PRINT("%s: CLRFREQ reset actual rxrate: %.2f\n", get_log_time(), rxrate);
                     }		    
 
-                    if(rxfreq != clrfreq_cfreq) {
+                    if(fabs(rxfreq - clrfreq_cfreq) > 1) {
 		      for( iSide = 0; iSide < nSides; iSide++ ){		      
 			usrp->set_rx_freq(rxfreq,iSide);
 		      }
@@ -1274,7 +1279,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                     DEBUG_PRINT("%s: CLRFREQ finished at UHD time: %d %.2f \n", get_log_time(), real_time, frac_time);
 
                     break;
-
                     }
 
                 case EXIT: {

@@ -304,6 +304,16 @@ class usrp_setup_command(driver_command):
         self.queue(num_requested_tx_samples, np.uint64, 'num_requested_tx_samples')
         self.queue(pulse_offsets_vector, np.uint64, 'pulse_offsets_vector')
 
+    def receive_settings(self):
+        for sock in self.clients:
+            rxrate = recv_dtype(sock, np.float64)
+            rxfreq = recv_dtype(sock, np.float64)
+            txrate = recv_dtype(sock, np.float64)
+            txfreq = recv_dtype(sock, np.float64)
+        
+        return rxrate,rxfreq,txrate,txfreq
+
+    
 # set rxfe (amplifier and attenuator) settings 
 class usrp_rxfe_setup_command(driver_command):
     def __init__(self, usrps, amp0 = 0, amp1 = 0, att = 0):
