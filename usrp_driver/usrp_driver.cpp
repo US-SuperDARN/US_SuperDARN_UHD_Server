@@ -66,6 +66,8 @@
 #define SETUP_WAIT 100 // in milliseconds
 #define nSwings 2    // swings are slots in the swing buffer
 
+#define PULSE_TIMELOG true
+#define LINE_LENGTH 20
 
 #define MAX_SOCKET_RETRYS 5
 #define TRIGGER_BUSY 'b'
@@ -92,6 +94,7 @@
 
 const char * log_dir = "/data/log/usrp_driver";
 const char * diag_dir = "/data/diagnostic_samples/usrp_driver"; 
+const char * PTLogPath = "/data/log/usrp_driver/pulse_timing/";
 
 // create log and diag_samples dir
 void init_all_dirs() {
@@ -99,6 +102,11 @@ void init_all_dirs() {
    
    if (stat(log_dir, &st) == -1) {
        mkdir(log_dir, 0777);
+   }
+   if (PULSE_TIMELOG){
+     if (stat(PTLogPath, &st) == -1) {
+       mkdir(PTLogPath, 0777);
+     }
    }
    if (SAVE_RAW_SAMPLES_DEBUG){
        if (stat(diag_dir, &st) == -1) {
@@ -399,6 +407,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     
     size_t rxshm_size, txshm_size;
 
+    int PtimeLoggingAntenna;
+
     bool mimic_active;
     float mimic_delay;
 
@@ -444,6 +454,12 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     boost::thread_group uhd_threads;
     boost::thread_group clrfreq_threads;
 
+    // variables to get filename for pulse time log
+    struct tm *gmt;
+    struct timespec file_tm;
+    int stat;
+    char PTfname[128];
+    
     // process config file for port and SHM sizes
     DEBUG_PRINT("%s: USRP_DRIVER starting to read driver_config.ini\n", get_log_time());
     boost::property_tree::ptree pt;
@@ -461,6 +477,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     std::string addr = "addr=" + pt.get<std::string>("network_settings.GPSOctoclockHostname");
     const char *clk_addr = addr.c_str();
 
+    PtimeLoggingAntenna = std::stoi(pt.get<std::string>("log_settings.PtimeLoggingAntenna"));
+    
     boost::property_tree::ptree pt_array;
     DEBUG_PRINT("%s: USRP_DRIVER starting to read array_config.ini\n", get_log_time());
     boost::property_tree::ini_parser::read_ini("../array_config.ini", pt_array);
@@ -908,6 +926,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                         DEBUG_PRINT("%s: TRIGGER_PULSE busy in state_vec[%d] %d, returning\n", get_log_time(), swing, state_vec[swing]);
                     }
                     else {
+		      
 
                         DEBUG_PRINT("%s: TRIGGER_PULSE ready\n", get_log_time());
                         state_vec[swing] = ST_PULSE;
@@ -942,7 +961,31 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			    
                         }
 
-                        DEBUG_PRINT("%s: first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", get_log_time(), pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
+
+			if( PULSE_TIMELOG & ((antennaVector[0]==PtimeLoggingAntenna) | (antennaVector[1]==PtimeLoggingAntenna))){
+			  stat = clock_gettime(CLOCK_REALTIME, &file_tm);
+			  
+			  gmt = gmtime(&file_tm.tv_sec);
+			  sprintf(PTfname,"%s%04d%02d%02d%02d-PulseTimeLog",PTLogPath, 1900+gmt->tm_year, gmt->tm_mon+1, gmt->tm_mday,gmt->tm_hour);
+			  FILE* fd = fopen(PTfname,"a");
+			  if ( fd == NULL ) 
+			    {
+			      std::cerr << "Could not open file:  " << PTfname   << "\n";
+			      break;
+			    }
+			  fprintf(fd,"%s ",get_log_time());
+			  int32_t line_count=0;
+			  for( int32_t p_i=0; p_i<number_of_pulses; p_i++ ){
+			    fprintf(fd,"%f, ",pulse_time_offsets[p_i]);
+			    line_count++;
+			    if( (line_count % LINE_LENGTH) == 0 ) fprintf(fd,"\n");
+			  }
+			  fprintf(fd,"\n");
+			  fprintf(fd,"\n");
+			  fclose(fd);
+			}
+
+			DEBUG_PRINT("%s: first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", get_log_time(), pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
 
                         rx_start_time = offset_time_spec(start_time, tr_to_pulse_delay/1e6);
                         rx_start_time = offset_time_spec(rx_start_time, pulse_sample_idx_offsets[0]/txrate); 
