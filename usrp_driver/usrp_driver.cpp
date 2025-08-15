@@ -1249,8 +1249,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
                       DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
                     }
 
-                    DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[0]);
-
 
 		    // restore usrp rates
                     if(rxrate != clrfreq_rate) {
