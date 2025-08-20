@@ -88,7 +88,6 @@ void usrp_tx_worker(
         
         // if the transmit pulse will arrive within the current sample packet, calculate correct sample index into sample vector
         if(nsamples_to_send >= samples_to_pulse) {
-            //  DEBUG_PRINT("pulse_idx=%i, nacc_samples=%i, nsamples_to_send=%d, samples_to_pulse=%d \n", pulse_idx, nacc_samples, nsamples_to_send, samples_to_pulse);
             if(samples_to_pulse * -1 < samples_per_pulse) {
                 sample_idx = spb - samples_to_pulse + (pulse_idx) * padded_num_samples_per_pulse;
             } else {
@@ -118,15 +117,10 @@ void usrp_tx_worker(
 	send_time=(t3.tv_sec-t2.tv_sec)*1E6 +(t3.tv_usec-t2.tv_usec);
 	
 	int sleeptime = (int)(0.9*1e6*nsamples_to_send/txrate) - send_time;
-	// DEBUG_PRINT("TX_WORKER: samples_sent %d send_time %f sleeptime %d\n",ntx_samples,send_time,sleeptime); 
-	// sleeptime=200;
 	if( sleeptime>0 ) usleep(sleeptime);
 
         md.start_of_burst = false;
         md.has_time_spec = false;
-    //    if(DEBUG) std::cout << boost::format(" nacc: %1%, to pulse: %2% ") % nacc_samples % samples_to_pulse;
-
-    //    if(DEBUG && sample_idx) std::cout << boost::format(" Sent packet:  idx: %i") % sample_idx << std::endl;
         nacc_samples += ntx_samples;
     }
     DEBUG_PRINT("%s: TX_WORKER tx_burst_length_samples=%li\n", get_log_time(), tx_burst_length_samples);
