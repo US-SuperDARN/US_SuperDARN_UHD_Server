@@ -1490,7 +1490,7 @@ class clearFrequencyRawDataManager():
 
 
     def get_raw_data(self,jrad):
-        self.get_raw_data_semaphore.acquire()
+        #self.get_raw_data_semaphore.acquire()
         if self.rawData[jrad] is None: 
            self.record_new_data(jrad)
         else:
@@ -1499,7 +1499,7 @@ class clearFrequencyRawDataManager():
            self.logger.debug("clearFreqDataManager: provide raw data (age {}), setting raw_rec request ".format(time.time() - self.recordTime[jrad]))
            self.outstanding_request[jrad] = True
           
-        self.get_raw_data_semaphore.release()
+        #self.get_raw_data_semaphore.release()
         return self.rawData[jrad], self.metaData[jrad], self.recordTime[jrad]
 
     def add_channel(self, freq, bandwidth):
