@@ -1007,7 +1007,7 @@ void process_beam_clr_freq(
 
     // Mask restricted frequencies
     if (restricted_bands != NULL) mask_restricted_freq(avg_beam_spectra[cur_beam], avg_freq_vector, delta_f_avg, num_avg_samples, restricted_bands, restricted_num);
-    log_trace("------f_start: %f -- f_end: %f", f_start, avg_freq_vector[num_avg_samples - 1]);
+    log_trace("------f_start: %f -- f_end: %f", f_start/1000, avg_freq_vector[num_avg_samples - 1]/1000);
 
     log_trace("     num_avg_samples: %d", num_avg_samples);
     log_trace("     delta_f_avg: %d", delta_f_avg);
@@ -1015,7 +1015,7 @@ void process_beam_clr_freq(
     // Define Clear Freq Range from Hz to sample index
     int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
     int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
-    log_trace("     clear_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
+    log_trace("     clear_range: | %d -- %d |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
     // log_trace("         samples: | %d -- %d |", clear_sample_start, clear_sample_end);
     // if (VERBOSE){ for (int i = clear_sample_start; i < clear_sample_end; i++) {
     //     // if (i < 2 + clear_sample_start || i > clear_sample_end - 3) 
