@@ -125,7 +125,7 @@ float calc_phase_increment(float beam_angle, int center_frequency, double x_spac
     double wavelength = C / center_frequency;
     double phase_shift = (2 * PI * x_spacing * sin(beam_angle)) / wavelength;
     if (VERBOSE) {
-        log_trace("search_center_freq: %d x_spacing: %lf phase_shift: %lf degree", center_frequency, x_spacing, phase_shift * 180 / PI);
+        log_trace("search_center_freq: %d x_spacing: %lf phase_shift: %lf degree", center_frequency/1000, x_spacing, phase_shift * 180 / PI);
     }
     return phase_shift; 
 }
@@ -204,7 +204,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
         if (( mask_end <= freq_vector[num_samples - 1] && mask_end > freq_vector[0] ) ||
             ( mask_start < freq_vector[num_samples - 1] && mask_start >= freq_vector[0])) {
                 // Debug: Show masks applied
-                if (VERBOSE) log_trace("    [MASK] Applying...  | %d -- %d|", mask_start, mask_end);
+                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d |", mask_start/1000, mask_end/1000);
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
                 int mask_sample_start, mask_sample_end;
@@ -367,11 +367,11 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         freq_band curr_band = lowest_clr_bands[i];
         bool cur_band_intersects = false;
 
-        log_trace("    low band[%d]: | %dMHz -- Noise: %f -- %dMHz |", 
-            i, 
-            lowest_clr_bands[i].f_start, 
-            lowest_clr_bands[i].noise, 
-            lowest_clr_bands[i].f_end
+        log_trace("    low band[%d]: | %d kHz -- Noise: %f -- %d kHz |",
+            i,
+            lowest_clr_bands[i].f_start/1000,
+            lowest_clr_bands[i].noise,
+            lowest_clr_bands[i].f_end/1000
         );   
 
         // Success: All Clr Bands Found
@@ -389,11 +389,11 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
                 ) {
                     // Skip to next cur_band if intersection found
                     cur_band_intersects = true;
-                    log_trace("    intersects w/ clr_band[%d]: | %dMHz -- Noise: %f -- %dMHz |", 
-                        j, 
-                        clr_bands[j].f_start, 
-                        clr_bands[j].noise, 
-                        clr_bands[j].f_end
+                    log_trace("    intersects w/ clr_band[%d]: | %d kHz -- Noise: %f -- %d kHz |",
+                        j,
+                        clr_bands[j].f_start/1000,
+                        clr_bands[j].noise,
+                        clr_bands[j].f_end/1000
                     );
 
                     break;
@@ -556,12 +556,12 @@ void calc_clear_freq_on_raw_samples(
     
     // Mask restricted frequencies
     if (restricted_bands != NULL) mask_restricted_freq(avg_spectrum, avg_freq_vector, delta_f_avg, num_avg_samples, restricted_bands, restricted_num);
-    log_trace("------f_start: %f      f_end: %f",avg_freq_vector[0], avg_freq_vector[num_avg_samples - 1]);
+    log_trace("------f_start: %f      f_end: %f",avg_freq_vector[0]/1000, avg_freq_vector[num_avg_samples - 1]/1000);
     
     // Define Clear Freq Range from Hz to sample index
     int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
     int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
-    log_trace("clear_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
+    log_trace("clear_range: | %d -- %d |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
 
 
     // Trasmission separation
@@ -675,7 +675,7 @@ void phasing_and_beamforming(
 ) {
     // Calculate and Apply phasing vector
     float phase_increment = 0;
-    log_trace("clear_freq_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
+    log_trace("clear_freq_range: | %d -- %d kHz |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
     phase_increment = calc_phase_increment(beam_angle, (clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
     if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
 

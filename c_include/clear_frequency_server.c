@@ -394,8 +394,8 @@ void write_clrfreq_shm(freq_band clr_band, int *ptr) {
     ptr[2]  = clr_band.f_end;
 
     log_debug( "Sending the following Clear Frequency: ");
-    log_debug("    Clear Freq Band[%s]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
-        clr_band.is_selected ? "Selected" : "Free", clr_band.f_start, clr_band.noise, clr_band.f_end
+    log_debug("    Clear Freq Band[%s]: | %5d kHz -- Noise: %-9.2f -- %5d kHz |", 
+        clr_band.is_selected ? "Selected" : "Free", clr_band.f_start/1000, clr_band.noise, clr_band.f_end/1000
     );
 }
 
@@ -698,8 +698,8 @@ void flag_reserved_freqs(int radar_id, int channel_id, int radar_num, freq_band 
             // Skip current channel's reservation
             if (c_idx == channel_id && r_idx == radar_id) {
                 log_info("[TCS] Skipping current channel reservation...");
-                log_info("      Clr Freq Band[radar#%d][channel#%d] | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
-                    r_idx, c_idx, channel_data.clr_band.f_start, channel_data.clr_band.noise, channel_data.clr_band.f_end);
+                log_info("      Clr Freq Band[radar#%d][channel#%d] | %5d kHz -- Noise: %-9.2f -- %5d kHz |", 
+                    r_idx, c_idx, channel_data.clr_band.f_start/1000, channel_data.clr_band.noise, channel_data.clr_band.f_end/1000);
                 continue;
             }
             
@@ -1254,7 +1254,7 @@ int main() {
                         def_low_range [i] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2));
                         def_high_range[i] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
                     }
-                    log_info( "Default clr_range set to %d -- %d", clr_range[0][0][0], clr_range[0][0][1]);
+                    log_info( "Default clr_range set to %d -- %d kHz", clr_range[0][0][0]/1000, clr_range[0][0][1]/1000);
                 }
 
                 if (USE_MULTI_RANGE == 1) {
@@ -1462,7 +1462,7 @@ int main() {
                 if (tmp_clr_range[0] < 100000 ||    tmp_clr_range[1] < 100000) {
                     tmp_clr_range[0] =              tmp_clr_range[0] * 1000;
                     tmp_clr_range[1] =              tmp_clr_range[1] * 1000;
-                    log_debug("    new_clr_range: %d -- %d Hz", tmp_clr_range[0], tmp_clr_range[1]);
+                    log_debug("    new_clr_range: %d -- %d kHz", tmp_clr_range[0]/1000, tmp_clr_range[1]/1000);
                 }
 
                 // If Clear Range exists, don't overwrite and set as cur_range
@@ -1476,7 +1476,7 @@ int main() {
                             old_clr_range[1] = clr_range[cur_radar][i][1]; 
                             cur_range = i;
                         }
-                        log_debug("    tmp_clr_range: %d -- %d Hz", tmp_clr_range[0], tmp_clr_range[1]);
+                        log_debug("    tmp_clr_range: %d -- %d kHz", tmp_clr_range[0]/1000, tmp_clr_range[1]/1000);
 
                         // Special: Client wants full usrp range
                         if (def_low_range[cur_radar] == tmp_clr_range[0] && def_high_range[cur_radar] == tmp_clr_range[1]) {
@@ -1494,7 +1494,7 @@ int main() {
                         old_clr_range[0] = clr_range[cur_radar][0][0];
                         old_clr_range[1] = clr_range[cur_radar][0][1]; 
                         cur_range = 0;
-                        log_debug("    matching_range: %d -- %d Hz", clr_range[cur_radar][0][0], clr_range[cur_radar][0][1]);
+                        log_debug("    matching_range: %5d -- %5d kHz", clr_range[cur_radar][0][0]/1000, clr_range[cur_radar][0][1]/1000);
                     }
 
                     // Special: Client wants full usrp range
@@ -1513,7 +1513,7 @@ int main() {
                     // Display that change occured
                     log_info( "Radar#%d's Clear Range changed...", cur_radar);
                     log_info("    old_clr_range: %d -- %d", old_clr_range[0], old_clr_range[1]);
-                    log_info("    clr_range: %d -- %d", clr_range[cur_radar][cur_range][0], clr_range[cur_radar][cur_range][1]);
+                    log_info("    clr_range: %d -- %d", clr_range[cur_radar][cur_range][0]/1000, clr_range[cur_radar][cur_range][1]/1000);
                     
                     // Reset TCS per clr range
                     is_tcs_ready[cur_radar] [cur_range] = false;
@@ -1554,10 +1554,10 @@ int main() {
             }
             
             // Unmask current channel's old reserved frequency
-            log_debug("Unmasking old reserved clr band[%d]: | %dHz -- %dHz |", 
+            log_debug("Unmasking old reserved clr band[%d]: | %5d kHz -- %5d kHz |", 
                 restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel,
-                restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_start, 
-                restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_end
+                restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_start/1000,
+                restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_end/1000
             );
             restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_end = 0;
             restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_start = 0;
@@ -1575,10 +1575,10 @@ int main() {
                     if (radar_table[r_idx][c_idx].last_time == 0) continue;
 
                     if (time(NULL) - radar_table[r_idx][c_idx].last_time > 10) {
-                        log_debug("Unmasking old reserved clr band[%d]: | %dHz -- %dHz |",
+                        log_debug("Unmasking old reserved clr band[%d]: | %5d kHz -- %5d kHz |",
                             restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx,
-                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start,
-                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end
+                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start/1000,
+                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end/1000
                         );
                         restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end = 0;
                         restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start = 0;
@@ -1592,27 +1592,6 @@ int main() {
                 }
             }
 
-            // Check for inactive channels to unmask
-            for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
-                for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
-                    if (radar_table[r_idx][c_idx].last_time == 0) continue;
-
-                    if (time(NULL) - radar_table[r_idx][c_idx].last_time > 10) {
-                        log_debug("Unmasking old reserved clr band[%d]: | %dHz -- %dHz |",
-                            restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx,
-                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start,
-                            restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end
-                        );
-                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_end = 0;
-                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].f_start = 0;
-                        restricted_freq[restricted_num + r_idx * STATIC_CHANNEL_NUM + c_idx].noise = 0;
-                        radar_table[r_idx][c_idx].clr_band.f_start = 0;
-                        radar_table[r_idx][c_idx].clr_band.noise = 0;
-                        radar_table[r_idx][c_idx].clr_band.f_end = 0;
-                        radar_table[r_idx][c_idx].last_time = 0;
-                    }
-                }
-            }
 
 
             log_info( "    avg_ratio: %d", avg_ratio);
@@ -1695,12 +1674,12 @@ int main() {
             bool is_clr_band_found = false;
             if (clr_bands[0].noise != 0 && clr_bands[0].noise != RAND_MAX) {  // if clr_bands filled correctly, proceed to Freq Selection
                 for (int i = 0; i < CLR_BANDS_MAX; i++) {
-                    log_debug("Clear Freq Band[%d][%s]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
+                    log_debug("Clear Freq Band[%d][%s]: | %5d kHz -- Noise: %-9.2f -- %5d kHz |", 
                         i, 
                         clr_bands[i].is_selected ? "Selected" : "Free", 
-                        clr_bands[i].f_start, 
-                        clr_bands[i].noise, 
-                        clr_bands[i].f_end
+                        clr_bands[i].f_start/1000,
+                        clr_bands[i].noise,
+                        clr_bands[i].f_end/1000
                     );
                     
                     // Reserve the best avalible frequency band
@@ -1751,8 +1730,8 @@ int main() {
                     if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                         clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
                         log_error("ERROR: Clear Freq Band[%d] is abnormal", i);
-                        log_error("Clear Freq Band[%d]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", i, 
-                            clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end
+                        log_error("Clear Freq Band[%d]: | %5d kHz -- Noise: %-9.2f -- %5d kHz |", i, 
+                            clr_bands[i].f_start/1000, clr_bands[i].noise, clr_bands[i].f_end/1000
                         );
                         log_error("ERROR: There COULD be an error in CFS order of operations, or too wide of a guardband/narrow clear search range!");
                     }
@@ -1771,8 +1750,8 @@ int main() {
                     selected_clr_band = radar_table[cur_radar][cur_channel].clr_band;
                     restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel] = radar_table[cur_radar][cur_channel].clr_band;
 
-                    log_warn("CFS resorted to old reservation: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", 
-                            selected_clr_band.f_start, selected_clr_band.noise, selected_clr_band.f_end
+                    log_warn("CFS resorted to old reservation: | %5d kHz -- Noise: %-9.2f -- %5d kHz |", 
+                            selected_clr_band.f_start/1000, selected_clr_band.noise, selected_clr_band.f_end/1000
                         );
                 }
             }
@@ -1856,7 +1835,7 @@ int main() {
             for (int r_idx = 0; r_idx < radar_num; r_idx++) {
                 for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
                     if (radar_table[r_idx][c_idx].clr_band.f_start != 0 && radar_table[r_idx][c_idx].clr_band.f_end != 0) {
-                        log_debug( "    Radar[%d] Channel[%d]: | %5dkHz -- Noise: %-9.2f -- %5dkHz | in range: | %5dkHz -- %5dkHz |",
+                        log_debug( "    Radar[%d] Channel[%d]: | %5d kHz -- Noise: %-9.2f -- %5d kHz | in range: | %5d kHz -- %5d kHz |",
                             r_idx, c_idx, 
                             radar_table[r_idx][c_idx].clr_band.f_start      / 1000, 
                             radar_table[r_idx][c_idx].clr_band.noise, 

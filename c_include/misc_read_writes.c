@@ -333,11 +333,11 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
             // log_trace("Storing r1 & r2...\n");
 
             // Check for valid freq
-            if (r1  < r2 && r1 > 0 && r2 > 0) {
+            if (r1 < r2 && r1 > 0 && r2 > 0) {
                 // Store freq band
                 restricted_freq[i].f_start  = r1 * 1000;
                 restricted_freq[i].f_end    = r2 * 1000; 
-                log_trace("Restricted[%d]: %d -- %d", i, restricted_freq[i].f_start, restricted_freq[i].f_end);
+                log_trace("Restricted[%d]: %5d -- %5d", i, restricted_freq[i].f_start/1000, restricted_freq[i].f_end/1000);
                 i++;
             } 
             
