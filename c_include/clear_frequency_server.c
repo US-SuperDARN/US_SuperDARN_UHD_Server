@@ -1750,7 +1750,7 @@ int main() {
                     // Flag abnormal clr_bands in log
                     if (clr_bands[i].f_start == 0 || clr_bands[i].f_end == 0 || clr_bands[i].noise == 0 ||
                         clr_bands[i].f_start == RAND_MAX || clr_bands[i].f_end == RAND_MAX || clr_bands[i].noise == RAND_MAX) {
-                        log_error("ERROR: Clear Freq Band[%d] is abnornal", i);
+                        log_error("ERROR: Clear Freq Band[%d] is abnormal", i);
                         log_error("Clear Freq Band[%d]: | %5dkHz -- Noise: %-9.2f -- %5dkHz |", i, 
                             clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end
                         );
