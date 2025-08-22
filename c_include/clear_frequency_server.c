@@ -922,12 +922,13 @@ int main() {
     int tcs_storage_i[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {0};
     bool is_tcs_ready[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false};
     int clr_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM][2] = {0};
+    time_t clr_range_time[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {0};
     int clr_range_overwrite_idx[STATIC_RADAR_NUM] = {0};                  // Index used to track which clr_range to overwrite (increments to next clr_range idx each overwrite)
     bool using_full_usrp_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false}; 
     freq_band selected_clr_band = {0};
     int def_low_range[STATIC_RADAR_NUM] = {0};
     int def_high_range[STATIC_RADAR_NUM]= {0};
-    
+
     // Failure flags
     bool fl_clr_range_out_bounds = false; // Flag for Clear Search Range being out of bounds
     
@@ -1184,6 +1185,7 @@ int main() {
                     log_info( "Setting default clr_range...");
                     for (int i = 0; i < STATIC_RADAR_NUM; i++) {
                         using_full_usrp_range[i][0] = true;
+                        clr_range_time[i][0] = time(NULL);
                         for (int j = 0; j < STATIC_RANGE_NUM; j++) {
                             clr_range[i][j][0] = (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2));
                             clr_range[i][j][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
@@ -1197,65 +1199,72 @@ int main() {
                 if (USE_MULTI_RANGE == 1) {
                     log_info("Processing samples in Multi Range Mode...");
 
-                    // Process Spectra for current Clear Range (and next Clear Range if 1+ Spectral Processing is enabled) 
+                    // Process Spectra for all active Clear Ranges
                     for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
-                        if (cur_range == range_idx   ||   ((cur_range + 1) % STATIC_RANGE_NUM == range_idx && ONE_PLUS_PROCESSING > 0)) {
-                            
-                            // Special: Skip processing of default clear ranges, unless Client is scanning entire usrp range
-                            if (clr_range[cur_radar][range_idx][0] == def_low_range [cur_radar] && 
-                                clr_range[cur_radar][range_idx][1] == def_high_range[cur_radar] &&
-                                using_full_usrp_range[cur_radar][range_idx] == false
-                            ) {
-                                log_trace("skipping range [%5d -- %5d]...",
-                                    clr_range[cur_radar][range_idx][0] / 1000, 
-                                    clr_range[cur_radar][range_idx][1] / 1000
-                                );
-                                continue;
-                            }
-                            
-                            // Process Spectra 
-                            log_info("Processing samples for #%d[%5d -- %5d]...", 
-                                range_idx, 
+
+                        // Special: Skip processing of default clear ranges, unless Client is scanning entire usrp range
+                        if (clr_range[cur_radar][range_idx][0] == def_low_range [cur_radar] && 
+                            clr_range[cur_radar][range_idx][1] == def_high_range[cur_radar] &&
+                            using_full_usrp_range[cur_radar][range_idx] == false
+                        ) {
+                            log_trace("skipping range [%5d -- %5d]...",
                                 clr_range[cur_radar][range_idx][0] / 1000, 
                                 clr_range[cur_radar][range_idx][1] / 1000
                             );
-                            process_all_beamformed_spectras(
-                                    temp_samples,
-                                    active_antennas[cur_radar],
-                                    clr_range[cur_radar][range_idx], 
-                                    sample_sep, 
-                                    restricted_freq, 
-                                    restricted_num,
-                                    &meta_data,
-                                    array_config,
-                                    &(spectra_storage[
-                                        cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num + 
-                                        range_idx * STORAGE_NUM * beam_total * samples_num +
-                                        tcs_storage_i[cur_radar][range_idx] * beam_total * samples_num
-                                    ])
-                                );
-        
-                            // Display TCS state
-                            log_info( "[TCS] Processed Radar[%d][%5d --  %5d]'s spectra_storage[%d/%d] successfully...", 
-                                cur_radar, 
-                                clr_range[cur_radar][range_idx][0] / 1000,
-                                clr_range[cur_radar][range_idx][1] / 1000,
-                                tcs_storage_i[cur_radar][range_idx] + 1, 
-                                STORAGE_NUM
+                            continue;
+                        }
+
+                        // Skip processing of inactive clear ranges
+                        if (time(NULL) - clr_range_time[cur_radar][range_idx] > 120) {
+                            log_trace("skipping range [%5d -- %5d]...",
+                                clr_range[cur_radar][range_idx][0] / 1000, 
+                                clr_range[cur_radar][range_idx][1] / 1000
                             );
-                            tcs_storage_i[cur_radar][range_idx] += 1;
+                            continue;
+                        }
+
+                        // Process Spectra 
+                        log_info("Processing samples for #%d[%5d -- %5d]...", 
+                            range_idx, 
+                            clr_range[cur_radar][range_idx][0] / 1000, 
+                            clr_range[cur_radar][range_idx][1] / 1000
+                        );
+                        process_all_beamformed_spectras(
+                                temp_samples,
+                                active_antennas[cur_radar],
+                                clr_range[cur_radar][range_idx], 
+                                sample_sep, 
+                                restricted_freq, 
+                                restricted_num,
+                                &meta_data,
+                                array_config,
+                                &(spectra_storage[
+                                    cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num + 
+                                    range_idx * STORAGE_NUM * beam_total * samples_num +
+                                    tcs_storage_i[cur_radar][range_idx] * beam_total * samples_num
+                                ])
+                            );
         
-                            // Reset TCS Storing point at (Storage_Num - 1)
-                            if (tcs_storage_i[cur_radar][range_idx] >= STORAGE_NUM) {
-                                log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
-                                    cur_radar, 
-                                    clr_range[cur_radar][range_idx][0] / 1000, 
-                                    clr_range[cur_radar][range_idx][1] / 1000
-                                );
-                                is_tcs_ready [cur_radar][range_idx] = true;
-                                tcs_storage_i[cur_radar][range_idx] = 0;
-                            } 
-                        }                        
+                        // Display TCS state
+                        log_info( "[TCS] Processed Radar[%d][%5d --  %5d]'s spectra_storage[%d/%d] successfully...", 
+                            cur_radar, 
+                            clr_range[cur_radar][range_idx][0] / 1000,
+                            clr_range[cur_radar][range_idx][1] / 1000,
+                            tcs_storage_i[cur_radar][range_idx] + 1, 
+                            STORAGE_NUM
+                        );
+                        tcs_storage_i[cur_radar][range_idx] += 1;
+        
+                        // Reset TCS Storing point at (Storage_Num - 1)
+                        if (tcs_storage_i[cur_radar][range_idx] >= STORAGE_NUM) {
+                            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
+                                cur_radar, 
+                                clr_range[cur_radar][range_idx][0] / 1000, 
+                                clr_range[cur_radar][range_idx][1] / 1000
+                            );
+                            is_tcs_ready [cur_radar][range_idx] = true;
+                            tcs_storage_i[cur_radar][range_idx] = 0;
+                        } 
                     }
                 }
 
@@ -1438,7 +1447,6 @@ int main() {
                     if (def_low_range[cur_radar] == tmp_clr_range[0] && def_high_range[cur_radar] == tmp_clr_range[1]) using_full_usrp_range[cur_radar][0] = true;
                     else using_full_usrp_range[cur_radar][0] = false;
                 }
-                
 
                 // If a radar's clr_range doesn't exist, set it
                 if (range_exists != true) {
@@ -1459,6 +1467,8 @@ int main() {
                     // Prep for next clear range overwrite
                     clr_range_overwrite_idx[cur_radar]++;
                 }
+
+                clr_range_time[cur_radar][cur_range] = time(NULL);
 
                 // Special: Restrict Clr Range to Usrp Range
                 // Restrict lower bound to lower bound of Usrp Range
