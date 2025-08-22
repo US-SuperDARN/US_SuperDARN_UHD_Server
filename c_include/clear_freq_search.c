@@ -720,7 +720,7 @@ void process_all_beamformed_spectras(
 
     // Scale parameters to Hz and ms
     // smsep = smsep / 1000;
-    log_trace("      clr_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
+    //log_trace("      clr_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
     if (clear_freq_range[0] < 100000 || clear_freq_range[1] < 100000) {
         clear_freq_range[0] = clear_freq_range[0] * 1000; 
         clear_freq_range[1] = clear_freq_range[1] * 1000;
@@ -732,7 +732,7 @@ void process_all_beamformed_spectras(
     memset(beam_angle, 0, sizeof(beam_angle));
     for (int cur_beam = 0; cur_beam < beam_total; cur_beam++) {
         beam_angle[cur_beam] = calc_beam_angle(beam_total, cur_beam, beam_sep);  
-        log_trace("     beam_angle[%d]: %f", cur_beam, beam_angle[cur_beam]);
+        //log_trace("     beam_angle[%d]: %f", cur_beam, beam_angle[cur_beam]);
     }
     log_debug("     Beam angles calculated");
     
