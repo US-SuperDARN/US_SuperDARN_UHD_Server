@@ -230,17 +230,17 @@ void write_clr_freq_bin(
     }
 
     // Write clear search range, then clear band
-    fwrite(&(clr_range[1]), sizeof(int), 1, *file);
     fwrite(&(clr_range[0]), sizeof(int), 1, *file);
+    fwrite(&(clr_range[1]), sizeof(int), 1, *file);
     // int noise = (int) clr_band.noise;
     fwrite(&(clr_band->f_start), sizeof(int), 1, *file);
     fwrite(&(clr_band->noise), sizeof(double), 1, *file);
     fwrite(&(clr_band->f_end), sizeof(int), 1, *file);
 
-    log_trace("    clr band: | %dMHz -- Noise: %f -- %dMHz |", 
-        clr_band->f_start, 
+    log_trace("    clr band: | %d kHz -- Noise: %f -- %d kHz |", 
+        clr_band->f_start/1000,
         clr_band->noise, 
-        clr_band->f_end
+        clr_band->f_end/1000
     );  
     
     fflush(*file);
