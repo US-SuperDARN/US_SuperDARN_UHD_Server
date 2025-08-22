@@ -2,11 +2,8 @@
 #include <fftw3.h>      // FFT transform library
 #include "ini_parser.h"
 
-#ifndef CLR_BANDS_MAX
-#define CLR_BANDS_MAX 6
-#endif
 #ifndef RESTRICT_NUM
-#define RESTRICT_NUM            50                  // Number of restricted freq bands in the restrict.dat.inst
+#define RESTRICT_NUM 50                  // Number of restricted freq bands in the restrict.dat.inst
 #endif
 
 #define VERBOSE 1
@@ -24,7 +21,6 @@ typedef struct freq_band {
     int f_start;
     int f_end;
     double noise;
-    bool is_selected;
 } freq_band;
 
 typedef struct radar_freq_data {

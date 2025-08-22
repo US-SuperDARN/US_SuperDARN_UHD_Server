@@ -169,7 +169,7 @@ void write_spectrum_mag_bin(
 
 void write_clr_freq_csv(
     FILE **file,
-    freq_band *clr_bands, 
+    freq_band *clr_band, 
     int *clr_range
 ) {
     // Timestamp Variables
@@ -196,18 +196,14 @@ void write_clr_freq_csv(
     }
 
     // Write Clear Search Range on first line of each sample set only
-    for (int i = 0; i < CLR_BANDS_MAX; i++) {
-        // Special: Print Clear Freq Range on Line 0
-        if (i == 0) fprintf(*file, "%d,%d,%f,%d,%d\n", clr_bands[i].f_start, clr_bands[i].f_end, clr_bands[i].noise,clr_range[0],clr_range[1]);
-        else fprintf(*file, "%d,%d,%f\n", clr_bands[i].f_start, clr_bands[i].f_end, clr_bands[i].noise);
-    }
+    fprintf(*file, "%d,%d,%f,%d,%d\n", clr_band.f_start, clr_band.f_end, clr_band.noise,clr_range[0],clr_range[1]);
     
     fflush(*file);
 }
 
 void write_clr_freq_bin(
     FILE **file,
-    freq_band *clr_bands, 
+    freq_band *clr_band, 
     int* clr_range
 ) {
     // Timestamp Variables
@@ -233,22 +229,19 @@ void write_clr_freq_bin(
         }
     }
 
-    // Write clear search range, then clear bands
+    // Write clear search range, then clear band
     fwrite(&(clr_range[1]), sizeof(int), 1, *file);
     fwrite(&(clr_range[0]), sizeof(int), 1, *file);
-    for (int i = 0; i < CLR_BANDS_MAX; i ++) {
-        // int noise = (int) clr_bands[i].noise;
-        fwrite(&(clr_bands[i].f_start), sizeof(int), 1, *file);
-        fwrite(&(clr_bands[i].noise), sizeof(double), 1, *file);
-        fwrite(&(clr_bands[i].f_end), sizeof(int), 1, *file);
+    // int noise = (int) clr_band.noise;
+    fwrite(&(clr_band.f_start), sizeof(int), 1, *file);
+    fwrite(&(clr_band.noise), sizeof(double), 1, *file);
+    fwrite(&(clr_band.f_end), sizeof(int), 1, *file);
 
-        log_trace("    clr band[%d]: | %dMHz -- Noise: %f -- %dMHz |", 
-            i, 
-            clr_bands[i].f_start, 
-            clr_bands[i].noise, 
-            clr_bands[i].f_end
-        );  
-    }
+    log_trace("    clr band: | %dMHz -- Noise: %f -- %dMHz |", 
+        clr_band.f_start, 
+        clr_band.noise, 
+        clr_band.f_end
+    );  
     
     fflush(*file);
 }
@@ -296,7 +289,7 @@ void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector
     fclose(file);
 }
 
-void read_clr_freq_bin(char *filename, freq_band *clr_bands, int *clr_start, int *clr_end) {
+void read_clr_freq_bin(char *filename, freq_band *clr_band, int *clr_start, int *clr_end) {
     FILE *file = NULL;
     file = fopen(filename, "rb");
     if (file == NULL) {
@@ -306,7 +299,7 @@ void read_clr_freq_bin(char *filename, freq_band *clr_bands, int *clr_start, int
 
     fread(clr_start, sizeof(clr_start), 1, file);
     fread(clr_end, sizeof(int), 1, file);
-    fread(clr_bands, sizeof(freq_band), 1, file);
+    fread(clr_band, sizeof(freq_band), 1, file);
 
     fclose(file);
 }

@@ -247,11 +247,11 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
  * @param  f_start: Clear Freq Search Boundary start
  * @param  f_end: Clear Freq Search Boundary end
  * @param  clear_bw: Bandwidth of the Clear Frequency Bands
- * @param  *lowest_freq_bands: Passed by reference; Overwritten with an array of the 
- * * lowest noise freq_bands.  
+ * @param  *clr_band: Passed by reference; Overwritten with the
+ * * lowest noise freq_band.
  * @retval None
  */
-void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_delta_f, double f_start, double f_end, int clear_bw, freq_band *clr_bands) {
+void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_delta_f, double f_start, double f_end, int clear_bw, freq_band *clr_band) {
     
     log_debug("Entered find_clear_freqs()...");
     int clear_sample_bw = ceil(clear_bw / avg_delta_f);  // Always round up to avoid any overlapping bands
@@ -308,24 +308,12 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     //     if (i < 10) log_trace("convolve[%d]: %f", i, convolve_result[i]);
     // }
     
-    // Initialize Clear Freq Bands
-    freq_band lowest_clr_bands[CLR_BANDS_MAX * 3] = {0}; // Array to hold clr bands that could be intersecting w/ one another 
-    for (int i = 0; i < CLR_BANDS_MAX * 3; i++) {
-        if (i < CLR_BANDS_MAX) {
-            clr_bands[i].f_start    = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-            clr_bands[i].f_end      = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-            clr_bands[i].noise      = RAND_MAX;
-            clr_bands[i].is_selected= false;
-        }
-
-        lowest_clr_bands[i].f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        lowest_clr_bands[i].f_end   = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-        lowest_clr_bands[i].noise   = RAND_MAX;
-        lowest_clr_bands[i].is_selected = false;
-    };
-    int min_idx[CLR_BANDS_MAX * 3]; // array of clr_bands' index in the convolve_bw 
+    // Initialize Clear Freq Band
+    clr_band.f_start    = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+    clr_band.f_end      = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+    clr_band.noise      = RAND_MAX;
     
-    // Identify lowest noise bands from convolve results...
+    // Identify lowest noise band from convolve results...
     freq_band curr_band;
     for (int i = 0; i < convolve_bw; i++) {
         curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * avg_delta_f;
@@ -333,106 +321,29 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         curr_band.noise = convolve_result[i];
         // log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
-        int insert_idx = -1;
-        int intersect_idx = -1;
-
-        // Find Insertion spot in clr_freq_bands
-        for (int j = (CLR_BANDS_MAX * 3) - 1; j >= 0 ; j--) {
-
-            // Mark best insert index if it has a lower noise
-            if (curr_band.noise < lowest_clr_bands[j].noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
-                insert_idx = j;
-            } else {
-                break;
-            }
-        }
-
-        // If insert_idx present, insert
-        if (insert_idx > -1) {
-            log_trace("[%d] | %d -- %f -- %d|", 
-                i, 
-                curr_band.f_start / 1000, 
-                curr_band.noise, 
-                curr_band.f_end / 1000
-            );
-            log_trace("    inserting...");
-
-            // Keep pre-existing bands by shifting them to right
-            for (int k = (CLR_BANDS_MAX * 3) - 2; k >= insert_idx; k--) {
-                // log_debug("        shifting clr_bands for insert...");
-                if (k + 1 < CLR_BANDS_MAX * 3) {
-                    lowest_clr_bands[k + 1] = lowest_clr_bands[k];
-                    min_idx[k + 1] = min_idx[k];
-                }                    
-            }
-            
-            // Insert curr_band and store its sample index
-            lowest_clr_bands[insert_idx] = curr_band;
-            min_idx[insert_idx] = i;
+        // Select band if it has a lower noise
+        if (curr_band.noise < clr_band.noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
+            clr_band.f_start = curr_band.f_start;
+            clr_band.f_end   = curr_band.f_start;
+            clr_band.noise   = curr_band.f_start;
         }
     }
 
-    // Filter non-intersecting bands to clr_bands
-    int curr_clr_band_idx = 0;
-    for (int i = 0; i < CLR_BANDS_MAX * 3; i++) {       // Start with lowest noise clr_bands
-        freq_band curr_band = lowest_clr_bands[i];
-        bool cur_band_intersects = false;
-
-        log_trace("    low band[%d]: | %d kHz -- Noise: %f -- %d kHz |",
-            i,
-            lowest_clr_bands[i].f_start/1000,
-            lowest_clr_bands[i].noise,
-            lowest_clr_bands[i].f_end/1000
+    // Success: Clr Band Found
+    if (clr_band.f_start > 0 && clr_band.f_end > 0 && clr_band.noise < RAND_MAX) {
+        log_trace("Found Clear Band:");
+        log_trace("    | %d kHz -- Noise: %f -- %d kHz |",
+            clr_band.f_start/1000,
+            clr_band.noise,
+            clr_band.f_end/1000
         );   
-
-        // Success: All Clr Bands Found
-        if (curr_clr_band_idx >= CLR_BANDS_MAX) {
-            log_trace("Found enough Clear Bands; breaking...");
-            break;
-        }
-
-        // General: Check curr_band for intersections with stored clr_bands
-        if (curr_clr_band_idx > 0) {    // First band always has no possible intersections 
-            for (int j = 0; j < curr_clr_band_idx; j++) {
-                // Check freq bound intersection
-                if ( (clr_bands[j].f_start <= curr_band.f_start && curr_band.f_start <  clr_bands[j].f_end) ||
-                     (clr_bands[j].f_start <  curr_band.f_end   && curr_band.f_end   <= clr_bands[j].f_end)
-                ) {
-                    // Skip to next cur_band if intersection found
-                    cur_band_intersects = true;
-                    log_trace("    intersects w/ clr_band[%d]: | %d kHz -- Noise: %f -- %d kHz |",
-                        j,
-                        clr_bands[j].f_start/1000,
-                        clr_bands[j].noise,
-                        clr_bands[j].f_end/1000
-                    );
-
-                    break;
-                }
-            }
-        }
-
-        // If curr band is non-intersecting, insert curr_band into clr_bands
-        if (cur_band_intersects == false) {
-            log_trace("    Inserting as idx#%d...", curr_clr_band_idx);            
-            clr_bands[curr_clr_band_idx].f_start = curr_band.f_start;
-            clr_bands[curr_clr_band_idx].noise = curr_band.noise;
-            clr_bands[curr_clr_band_idx].f_end = curr_band.f_end;
-            clr_bands[curr_clr_band_idx].is_selected = false;
-            curr_clr_band_idx++;
-        }
     }
 
     // Free allocated memory
     free(convolve_result);
 
-    if (clr_search_sample_bw < (CLR_BANDS_MAX * clear_sample_bw) ) {
-        log_error("ERROR: Clear Search Bandwidth can't accomdate >= %d Clear Freq Bands of %d sample bandwidth; expect RAND_MAX in the worst Clear Freqs", 
-            CLR_BANDS_MAX, clear_sample_bw);
-        log_error("    Decrease CFSFREQ_RES or Increase Clear Search Bandwidth in config file to increase number of searchable bands");
-    } 
     if (clr_search_sample_bw < (25 * clear_sample_bw) ) {
-        log_warn("WARN: Clear Search Bandwidth is severly limiting CFS to: %d possible Clr Freqs", clr_search_sample_bw / clear_sample_bw);
+        log_warn("WARN: Clear Search Bandwidth is severely limiting CFS to: %d possible Clr Freqs", clr_search_sample_bw / clear_sample_bw);
     }
 
     log_debug("Exiting find_clear_freqs()...");
@@ -449,7 +360,7 @@ void calc_clear_freq_on_raw_samples(
     double beam_angle, 
     int smsep, 
     int avg_ratio,
-    freq_band *clr_bands
+    freq_band *clr_band
 ) {
     // int **sample_re = NULL;
     // int **sample_im = NULL;
@@ -589,17 +500,16 @@ void calc_clear_freq_on_raw_samples(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    find_clear_freqs(avg_spectrum, *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_bands);
+    find_clear_freqs(avg_spectrum, *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
     t2 = clock();
     if (VERBOSE) log_info("find_clear_freqs (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
     // Debug: Output results
-    // for (int i = 0; i < CLR_BANDS_MAX; i++)
-    //     log_debug("Clear Freq Band[%d][%s]: | %dHz -- Noise: %f -- %dHz |", i, clr_bands[i].is_selected ? "Selected" : "Free", clr_bands[i].f_start, clr_bands[i].noise, clr_bands[i].f_end);
+    // log_debug("Clear Freq Band: | %d kHz -- Noise: %f -- %d kHz |", clr_band.f_start/1000, clr_band.noise, clr_band.f_end/1000);
     
     // // Debug: Print Restricted Freqs
     // for (int i = 0; i < restricted_num; i++) {
-    //     log_trace("Restricted[%d]: %d -- %d", i, restricted_bands[i].f_start, restricted_bands[i].f_end);
+    //     log_trace("Restricted[%d]: %d -- %d", i, restricted_bands[i].f_start/1000, restricted_bands[i].f_end/1000);
     // }      
     
 
@@ -620,7 +530,7 @@ void calc_clear_freq_on_raw_samples(
 
             write_clr_freq_bin(
                 &tmp_file,
-                clr_bands, 
+                clr_band, 
                 clear_freq_range
             );                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
             fclose(tmp_file);
@@ -640,7 +550,7 @@ void calc_clear_freq_on_raw_samples(
 
             write_clr_freq_csv(
                 &tmp_file, 
-                clr_bands, 
+                clr_band, 
                 clear_freq_range
             );
 
@@ -996,7 +906,7 @@ void process_avg_beam_spectra(
  * @param  num_avg_samples: Number of averaged samples.
  * @param  *meta_data: Metadata containing sample information.
  * @param  beam_num: Number of beams to process.
- * @param  **clr_bands: Array to store the found clear frequency bands.
+ * @param  *clr_band: The found clear frequency band.
  * @retval None
  */
 void process_beam_clr_freq(
@@ -1009,7 +919,7 @@ void process_beam_clr_freq(
     double *avg_freq_vector,
     int num_avg_samples,
     sample_meta_data *meta_data,
-    freq_band *clr_bands,
+    freq_band *clr_band,
     FILE *clr_file
 ) {
     log_debug("Entered process_beam_clr_freq()...");
@@ -1043,7 +953,7 @@ void process_beam_clr_freq(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_bands);
+    find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
     t2 = clock();
     log_trace("     find_clear_freqs(s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
@@ -1056,13 +966,13 @@ void process_beam_clr_freq(
         if (BIN_OR_CSV_LOG == 0) {
             write_clr_freq_bin(
                 &clr_file, 
-                clr_bands, 
+                clr_band, 
                 clear_freq_range
             );
         } else {
             write_clr_freq_csv( 
                 &clr_file,
-                clr_bands, 
+                clr_band, 
                 clear_freq_range
             ); // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
         }
@@ -1080,7 +990,7 @@ void process_beam_clr_freq(
  * @param  *restricted_bands: Array of restricted frequency bands.
  * @param  restrict_num: Number of restricted frequency bands.
  * @param  meta_data: Metadata containing sample information.
- * @param  *clr_bands: Array to store the found clear frequency bands.
+ * @param  *clr_band: The found clear frequency band.
  * @retval None
  */
 clear_freq clear_freq_search(
@@ -1094,7 +1004,7 @@ clear_freq clear_freq_search(
         int restrict_num,
         sample_meta_data meta_data,
         Config config,
-        freq_band *clr_bands
+        freq_band *clr_band
     ) {
 
     // Initial Data Variables
@@ -1125,7 +1035,7 @@ clear_freq clear_freq_search(
         beam_angle, 
         smsep, 
         avg_ratio,
-        clr_bands
+        clr_band
     );
     
     // Print processing time; Stopwatch End

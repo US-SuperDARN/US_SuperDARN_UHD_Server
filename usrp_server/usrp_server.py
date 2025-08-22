@@ -585,7 +585,7 @@ class ClearFrequencyService():
     CLR_RANGE_ELEM_NUM  = 2
     RESTRICT_ELEM_NUM   = RESTRICT_NUM * 2
     META_ELEM_NUM       = META_ELEM + ANTENNA_NUM
-    CLR_BANDS_ELEM_NUM  = 1 * 3                         # 3     = start & stop freqs and noise
+    CLR_BAND_ELEM_NUM   = 1 * 3                         # 3     = start & stop freqs and noise
     SITE_ID_ELEM_NUM    = 1 * 3                         # 1 * 3 = one instance of a 3 letter identifier
 
     SAMPLES_SHM_SIZE        = (ANTENNA_NUM * SAMPLES_NUM * 2 * INT_SIZE)
@@ -596,7 +596,7 @@ class ClearFrequencyService():
     RESTRICT_SHM_SIZE       = (RESTRICT_NUM * 2 * INT_SIZE)             # 2 = start and end freqs
     META_DATA_SHM_SIZE      = ((META_ELEM + ANTENNA_NUM) * DOUBLE_SIZE)
     ANTENNA_SHM_SIZE        = (1 * INT_SIZE)
-    CLR_BANDS_SHM_SIZE      = (1 * INT_SIZE * 3)
+    CLR_BAND_SHM_SIZE       = (1 * INT_SIZE * 3)
     SITE_ID_SHM_SIZE        = (3 * CHAR_SIZE)
     RADAR_ID_SHM_SIZE       = (1 * INT_SIZE)
     CHANNEL_ID_SHM_SIZE     = (1 * INT_SIZE)
@@ -688,7 +688,7 @@ class ClearFrequencyService():
                 self.create_shm_obj(self.RESTRICT_SHM_NAME,         self.RESTRICT_SHM_SIZE      , self.RESTRICT_ELEM_NUM),
                 self.create_shm_obj(self.META_DATA_SHM_NAME,        self.META_DATA_SHM_SIZE     , self.META_ELEM_NUM),
                 self.create_shm_obj(self.ANTENNA_SHM_NAME,          self.ANTENNA_SHM_SIZE       , ),
-                self.create_shm_obj(self.CLRFREQ_SHM_NAME,          self.CLR_BANDS_SHM_SIZE     , self.CLR_BANDS_ELEM_NUM),
+                self.create_shm_obj(self.CLRFREQ_SHM_NAME,          self.CLR_BAND_SHM_SIZE      , self.CLR_BAND_ELEM_NUM),
                 self.create_shm_obj(self.SITE_ID_SHM_NAME,          self.SITE_ID_SHM_SIZE       , self.SITE_ID_ELEM_NUM),
                 self.create_shm_obj(self.RADAR_ID_SHM_NAME,         self.RADAR_ID_SHM_SIZE      , ),
                 self.create_shm_obj(self.CHANNEL_ID_SHM_NAME,       self.CHANNEL_ID_SHM_SIZE    , ),

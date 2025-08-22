@@ -3,10 +3,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#ifndef CLR_BANDS_MAX
-#define CLR_BANDS_MAX 6
-#endif
-
 
 // Logging Vars
 #define LOG_TERMINAL_LEVEL  1                           // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
@@ -42,9 +38,6 @@
 #ifndef RESTRICT_NUM
 #define RESTRICT_NUM            50                      // Number of restricted freq bands in the restrict.dat.inst
 #endif
-#ifndef CLR_BANDS_MAX
-#define CLR_BANDS_MAX           6
-#endif
 #define CLR_STORAGE_NUM         10
 #define SITE_ID_ELEM            3                       // 3 = 3-letter identifier 
 
@@ -56,7 +49,7 @@
 #define RESTRICT_SHM_SIZE       (RESTRICT_NUM * 2 * sizeof(int))          // 2 = start and end freqs
 #define META_DATA_SHM_SIZE      ((META_ELEM + ANTENNA_NUM) * sizeof(double))
 #define ANTENNA_SHM_SIZE        (1 * sizeof(int))
-#define CLR_BANDS_SHM_SIZE      (1 * sizeof(int) * 3)    
+#define CLR_BAND_SHM_SIZE       (1 * sizeof(int) * 3)    
 #define SITE_ID_SHM_SIZE        (SITE_ID_ELEM * sizeof(char))
 #define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
 #define CHANNEL_ID_SHM_SIZE     (1 * sizeof(int))
