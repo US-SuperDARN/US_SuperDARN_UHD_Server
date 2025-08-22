@@ -848,6 +848,7 @@ int main() {
     }
 
     freq_band *clr_band = malloc(sizeof(freq_band));
+    memset(clr_band, 0, sizeof(freq_band));
 
     clr_storage_sizes[0] = radar_num;
     clr_band_storage = (freq_band ***)malloc(radar_num * sizeof(freq_band **));
