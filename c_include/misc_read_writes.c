@@ -196,7 +196,7 @@ void write_clr_freq_csv(
     }
 
     // Write Clear Search Range on first line of each sample set only
-    fprintf(*file, "%d,%d,%f,%d,%d\n", clr_band.f_start, clr_band.f_end, clr_band.noise,clr_range[0],clr_range[1]);
+    fprintf(*file, "%d,%d,%f,%d,%d\n", clr_band->f_start, clr_band->f_end, clr_band->noise,clr_range[0],clr_range[1]);
     
     fflush(*file);
 }
@@ -233,14 +233,14 @@ void write_clr_freq_bin(
     fwrite(&(clr_range[1]), sizeof(int), 1, *file);
     fwrite(&(clr_range[0]), sizeof(int), 1, *file);
     // int noise = (int) clr_band.noise;
-    fwrite(&(clr_band.f_start), sizeof(int), 1, *file);
-    fwrite(&(clr_band.noise), sizeof(double), 1, *file);
-    fwrite(&(clr_band.f_end), sizeof(int), 1, *file);
+    fwrite(&(clr_band->f_start), sizeof(int), 1, *file);
+    fwrite(&(clr_band->noise), sizeof(double), 1, *file);
+    fwrite(&(clr_band->f_end), sizeof(int), 1, *file);
 
     log_trace("    clr band: | %dMHz -- Noise: %f -- %dMHz |", 
-        clr_band.f_start, 
-        clr_band.noise, 
-        clr_band.f_end
+        clr_band->f_start, 
+        clr_band->noise, 
+        clr_band->f_end
     );  
     
     fflush(*file);

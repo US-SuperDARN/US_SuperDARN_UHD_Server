@@ -309,9 +309,9 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     // }
     
     // Initialize Clear Freq Band
-    clr_band.f_start    = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-    clr_band.f_end      = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-    clr_band.noise      = RAND_MAX;
+    clr_band->f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+    clr_band->f_end   = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
+    clr_band->noise   = RAND_MAX;
     
     // Identify lowest noise band from convolve results...
     freq_band curr_band;
@@ -322,20 +322,20 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         // log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         // Select band if it has a lower noise
-        if (curr_band.noise < clr_band.noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
-            clr_band.f_start = curr_band.f_start;
-            clr_band.f_end   = curr_band.f_start;
-            clr_band.noise   = curr_band.f_start;
+        if (curr_band.noise < clr_band->noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
+            clr_band->f_start = curr_band.f_start;
+            clr_band->f_end   = curr_band.f_end;
+            clr_band->noise   = curr_band.noise;
         }
     }
 
     // Success: Clr Band Found
-    if (clr_band.f_start > 0 && clr_band.f_end > 0 && clr_band.noise < RAND_MAX) {
+    if (clr_band->f_start > 0 && clr_band->f_end > 0 && clr_band->noise < RAND_MAX) {
         log_trace("Found Clear Band:");
         log_trace("    | %d kHz -- Noise: %f -- %d kHz |",
-            clr_band.f_start/1000,
-            clr_band.noise,
-            clr_band.f_end/1000
+            clr_band->f_start/1000,
+            clr_band->noise,
+            clr_band->f_end/1000
         );   
     }
 
