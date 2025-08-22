@@ -103,10 +103,10 @@ double calc_beam_angle(int n_beams, int cur_beam, double beam_sep) {
 
     // Calculate Beam Azimuth
     double b_azi = ((cur_beam - center_beam) * beam_sep) * PI / 180;
-    if (VERBOSE){
-        log_trace("n_beams: %d, cur_num: %d, beam_sep: %lf", n_beams, cur_beam, beam_sep);
-        log_trace("    beam = %lf degree", (b_azi / PI * 180));
-    }
+    //if (VERBOSE){
+    //    log_trace("n_beams: %d, cur_num: %d, beam_sep: %lf", n_beams, cur_beam, beam_sep);
+    //    log_trace("    beam = %lf degree", (b_azi / PI * 180));
+    //}
     return b_azi;
 }
 
@@ -124,9 +124,9 @@ double calc_beam_angle(int n_beams, int cur_beam, double beam_sep) {
 float calc_phase_increment(float beam_angle, int center_frequency, double x_spacing) {
     double wavelength = C / center_frequency;
     double phase_shift = (2 * PI * x_spacing * sin(beam_angle)) / wavelength;
-    if (VERBOSE) {
-        log_trace("search_center_freq: %d x_spacing: %lf phase_shift: %lf degree", center_frequency/1000, x_spacing, phase_shift * 180 / PI);
-    }
+    //if (VERBOSE) {
+    //    log_trace("search_center_freq: %d x_spacing: %lf phase_shift: %lf degree", center_frequency/1000, x_spacing, phase_shift * 180 / PI);
+    //}
     return phase_shift; 
 }
 
@@ -599,7 +599,7 @@ void phasing_and_beamforming(
     float phase_increment = 0;
     log_trace("clear_freq_range: | %d -- %d kHz |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
     phase_increment = calc_phase_increment(beam_angle, (clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
-    if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
+    //if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
 
     for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
         // log_debug("antenna[%d](%d)", a_idx, meta_data->antenna_list[a_idx]);
@@ -643,10 +643,10 @@ void phasing_and_beamforming(
             // Debug: On last sample, divide for average power
             if (i >= num_samples - 1) {
                 avg_pwr[a_idx] = avg_pwr[a_idx] / num_samples;
-                log_trace("   avg_pwr[%d]    = %f", meta_data->antenna_list[a_idx], avg_pwr[a_idx]);
-                if (avg_pwr[a_idx] > MAX_ANT_PWR) {
-                    log_warn("   ant#%d Pwr is high", meta_data->antenna_list[a_idx]);
-                }
+                //log_trace("   avg_pwr[%d]    = %f", meta_data->antenna_list[a_idx], avg_pwr[a_idx]);
+                //if (avg_pwr[a_idx] > MAX_ANT_PWR) {
+                //    log_warn("   ant#%d Pwr is high", meta_data->antenna_list[a_idx]);
+                //}
             }
         }
         beamformed_samples[i] = real_sum + I * imag_sum;
