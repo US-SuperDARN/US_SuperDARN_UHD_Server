@@ -493,7 +493,7 @@ void handle_sig(int sig) {
     exit(sig);
 }
 
-void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id) {
+void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id, int clr_range[STATIC_RANGE_NUM][2]) {
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
@@ -522,14 +522,22 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id) {
         // Find Start and End of Clear Freq Range
         int clr_start = RAND_MAX;
         int clr_end = 0;
-        if (clr_band->f_start < clr_start && clr_band->noise < RAND_MAX) clr_start = clr_band->f_start;
-        if (clr_band->f_end > clr_end && clr_band->noise < RAND_MAX) clr_end = clr_band->f_end;
+        for (int ridx = 0; ridx < STATIC_RANGE_NUM; ridx++) {
+            if ((clr_band->f_start >= clr_range[ridx][0]) &&
+                (clr_band->f_end <= clr_range[ridx][1]) &&
+                (clr_band->noise < RAND_MAX)) {
+                clr_start = clr_range[ridx][0];
+                clr_end = clr_range[ridx][1];
+                break;
+            }
+        }
 
         // Record Clear Freq
         // Debug: Output results
         // log_trace("Clear Freq Band: | %dHz -- Noise: %f -- %dHz |\n", clr_storage[clr_batch_idx][i].f_start, clr_storage[clr_batch_idx][i].noise, clr_storage[clr_batch_idx][i].f_end);
         
-        fprintf(file, "%d,%d,%f,%d,%d\n", clr_band->f_start, clr_band->f_end, clr_band->noise,clr_start,clr_end);
+        fprintf(file, "%d,%d,%f,%d,%d\n", clr_band->f_start, clr_band->f_end, clr_band->noise,
+                                          clr_start, clr_end);
     }
 
     fclose(file);
@@ -1702,7 +1710,7 @@ int main() {
             clr_storage_i[cur_radar]++;
             log_info( "Clr Freq Log: Radar[%d] @ %d/%d", cur_radar, clr_storage_i[cur_radar], CLR_STORAGE_NUM);
             if (clr_storage_i[cur_radar] >= CLR_STORAGE_NUM) {
-                write_clr_log_csv(clr_band_storage[cur_radar], clr_storage_i[cur_radar], cur_radar);
+                write_clr_log_csv(clr_band_storage[cur_radar], clr_storage_i[cur_radar], cur_radar, clr_range[cur_radar]);
                 clr_storage_i[cur_radar] = 0;
             }
             
