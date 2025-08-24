@@ -494,7 +494,7 @@ void handle_sig(int sig) {
     exit(sig);
 }
 
-void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id, int channel, int clr_range[STATIC_RANGE_NUM][2]) {
+void write_clr_log_csv(freq_band **clr_storage, int clr_num, char *ststr, int channel, int clr_range[STATIC_RANGE_NUM][2]) {
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
@@ -507,7 +507,7 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id, int c
     time(&raw_time);
     time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.r%d.c%d.csv", timestamp, radar_id, channel);
+    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.%s.%c.csv", timestamp, ststr, channel+97);
 
     // Generate clear log file
     FILE *file = fopen(name, "w");
@@ -799,9 +799,11 @@ int main() {
     int cur_radar = 0;
     int *muted_config_ants = array_config.gain_control.mute_antenna_ids;
     int num_muted_config_ants = array_config.gain_control.num_mute_antennas;
-    char ststr[SITE_ID_ELEM + 1];
-    strcpy(ststr, array_config.array_info.radar_stid);
-
+    char ststr[STATIC_RADAR_NUM][SITE_ID_ELEM + 1];
+    strcpy(ststr[0], array_config.array_info.radar_stid);
+    if (radar_num == 2) {
+        strcpy(ststr[1], array_config.array_info.radar_stid_2);
+    }
 
     // Allocate temp mem for shm varibles
     temp_samples = fftw_alloc_complex(ANTENNA_NUM * SAMPLES_NUM);
@@ -962,9 +964,9 @@ int main() {
     int str_f_result = 0; 
     
     // Get site specific restrict file and join with path
-    if (strcmp(ststr,"lab") != 0) {
-        log_info( "Using /site.%s/restrict.dat.%s in ststr\n", ststr, ststr);
-        str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr, ststr);
+    if (strcmp(ststr[0],"lab") != 0) {
+        log_info( "Using /site.%s/restrict.dat.%s in ststr\n", ststr[0], ststr[0]);
+        str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr[0], ststr[0]);
         if (str_f_result < 1) {
             log_error( " site path format failed");
             return 1;
@@ -1398,7 +1400,7 @@ int main() {
             if (*(int*) (channel_id_obj.shm_ptr) >= 0) {
                 log_debug( "Channel ID reading...");
                 read_single_int(&cur_channel, channel_id_obj.shm_ptr);
-                if (strcmp(ststr,"kod") == 0) {
+                if (strcmp(ststr[cur_radar],"kod") == 0) {
                     cur_channel = 4 - cur_channel;
                 } else {
                     cur_channel -= 1;
@@ -1719,7 +1721,7 @@ int main() {
             clr_storage_i[cur_radar][cur_channel]++;
             log_info( "Clr Freq Log: Radar[%d][%d] @ %d/%d", cur_radar, cur_channel, clr_storage_i[cur_radar][cur_channel], CLR_STORAGE_NUM);
             if (clr_storage_i[cur_radar][cur_channel] >= CLR_STORAGE_NUM) {
-                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], cur_radar, cur_channel, clr_range[cur_radar]);
+                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], ststr[cur_radar], cur_channel, clr_range[cur_radar]);
                 clr_storage_i[cur_radar][cur_channel] = 0;
             }
             

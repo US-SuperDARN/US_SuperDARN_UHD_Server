@@ -14,6 +14,9 @@ static int config_ini_handler(void* user, const char* section, const char* name,
         if (strcmp(name, "stid") == 0) {
             strncpy(pconfig->array_info.radar_stid, value, 3);
             pconfig->array_info.radar_stid[3] = '\0';
+        } else if (strcmp(name, "stid_2") == 0) {
+            strncpy(pconfig->array_info.radar_stid_2, value, 3);
+            pconfig->array_info.radar_stid_2[3] = '\0';
         } else if (strcmp(name, "x_spacing") == 0) {
             pconfig->array_info.x_spacing = atof(value);
             // printf("value: %f\nvalue (str): %s", atof(value), value);
