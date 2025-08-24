@@ -360,7 +360,9 @@ void calc_clear_freq_on_raw_samples(
     double beam_angle, 
     int smsep, 
     int avg_ratio,
-    freq_band *clr_band
+    freq_band *clr_band,
+    char *ststr,
+    int channel
 ) {
     // int **sample_re = NULL;
     // int **sample_im = NULL;
@@ -520,6 +522,8 @@ void calc_clear_freq_on_raw_samples(
             FILE *tmp_file = NULL;
             write_spectrum_mag_bin(
                 &tmp_file,
+                ststr,
+                channel,
                 avg_spectrum, 
                 avg_freq_vector, 
                 num_avg_samples
@@ -530,7 +534,9 @@ void calc_clear_freq_on_raw_samples(
 
             write_clr_freq_bin(
                 &tmp_file,
-                clr_band, 
+                ststr,
+                channel,
+                clr_band,
                 clear_freq_range
             );                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
             fclose(tmp_file);
@@ -540,6 +546,8 @@ void calc_clear_freq_on_raw_samples(
             // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);                                                     // Plot w/ sample_plot.py
             write_spectrum_mag_csv(
                 &tmp_file,
+                ststr,
+                channel,
                 avg_spectrum, 
                 avg_freq_vector, 
                 num_avg_samples
@@ -549,8 +557,10 @@ void calc_clear_freq_on_raw_samples(
             tmp_file = NULL;
 
             write_clr_freq_csv(
-                &tmp_file, 
-                clr_band, 
+                &tmp_file,
+                ststr,
+                channel,
+                clr_band,
                 clear_freq_range
             );
 
@@ -808,7 +818,9 @@ void process_avg_beam_spectra(
     sample_meta_data *meta_data,
     double **avg_beam_spectra,
     double *avg_freq_vector,
-    FILE *fft_file
+    FILE *fft_file,
+    char *ststr,
+    int channel
 ) {
     log_debug("Entered process_avg_beam_spectra()...");
 
@@ -873,7 +885,9 @@ void process_avg_beam_spectra(
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
             write_spectrum_mag_bin(
-                &fft_file, 
+                &fft_file,
+                ststr,
+                channel,
                 avg_beam_spectra[cur_beam], 
                 avg_freq_vector, 
                 num_avg_samples
@@ -883,6 +897,8 @@ void process_avg_beam_spectra(
             // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);      // Plot w/ sample_plot.py
             write_spectrum_mag_csv(
                 &fft_file,
+                ststr,
+                channel,
                 avg_beam_spectra[cur_beam], 
                 avg_freq_vector, 
                 num_avg_samples
@@ -920,7 +936,9 @@ void process_beam_clr_freq(
     int num_avg_samples,
     sample_meta_data *meta_data,
     freq_band *clr_band,
-    FILE *clr_file
+    FILE *clr_file,
+    char *ststr,
+    int channel
 ) {
     log_debug("Entered process_beam_clr_freq()...");
 
@@ -965,13 +983,17 @@ void process_beam_clr_freq(
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
             write_clr_freq_bin(
-                &clr_file, 
+                &clr_file,
+                ststr,
+                channel,
                 clr_band, 
                 clear_freq_range
             );
         } else {
             write_clr_freq_csv( 
                 &clr_file,
+                ststr,
+                channel,
                 clr_band, 
                 clear_freq_range
             ); // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
@@ -1004,7 +1026,9 @@ clear_freq clear_freq_search(
         int restrict_num,
         sample_meta_data meta_data,
         Config config,
-        freq_band *clr_band
+        freq_band *clr_band,
+        char *ststr,
+        int channel
     ) {
 
     // Initial Data Variables
@@ -1035,7 +1059,9 @@ clear_freq clear_freq_search(
         beam_angle, 
         smsep, 
         avg_ratio,
-        clr_band
+        clr_band,
+        ststr,
+        channel
     );
     
     // Print processing time; Stopwatch End

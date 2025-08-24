@@ -507,7 +507,7 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num, char *ststr, int ch
     time(&raw_time);
     time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.%s.%c.csv", timestamp, ststr, channel+97);
+    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.%s.%c.csv", timestamp, ststr, channel+96);
 
     // Generate clear log file
     FILE *file = fopen(name, "w");
@@ -910,6 +910,7 @@ int main() {
         memset(radar_table[i], 0, STATIC_CHANNEL_NUM * sizeof(radar_freq_data));
     }
 
+    int channel = 0;
     int cur_range = 0;
     int cur_channel = 0;
     int cur_beam = 0;
@@ -1399,13 +1400,14 @@ int main() {
             // Read Channel ID
             if (*(int*) (channel_id_obj.shm_ptr) >= 0) {
                 log_debug( "Channel ID reading...");
-                read_single_int(&cur_channel, channel_id_obj.shm_ptr);
+                read_single_int(&channel, channel_id_obj.shm_ptr);
+                log_debug("    channel_id: %d", channel);
                 if (strcmp(ststr[cur_radar],"kod") == 0) {
-                    cur_channel = 4 - cur_channel;
+                    cur_channel = 4 - channel;
                 } else {
-                    cur_channel -= 1;
+                    cur_channel = channel - 1;
                 }
-                log_debug("    channel_id: %d", cur_channel);
+                log_debug("    cur_channel: %d", cur_channel);
 
                 if (cur_channel >= STATIC_CHANNEL_NUM || cur_channel < 0) {
                     log_error( "ERROR: Channel ID out of range");
@@ -1595,7 +1597,9 @@ int main() {
                             restricted_num + RESERV_NUM,
                             meta_data,
                             array_config,
-                            clr_band
+                            clr_band,
+                            ststr[cur_radar],
+                            channel
                         );
                     }                
                 } // end of Clear Search (CS) 
@@ -1612,7 +1616,9 @@ int main() {
                         &meta_data,
                         avg_beam_spectrum,
                         avg_freq_vector,
-                        fft_file
+                        fft_file,
+                        ststr[cur_radar],
+                        channel
                     );
                     log_trace( "    Avg Beam Spectrum done...");
 
@@ -1627,7 +1633,9 @@ int main() {
                         (int) (meta_data.number_of_samples / avg_ratio),
                         &meta_data,
                         clr_band,
-                        clr_file
+                        clr_file,
+                        ststr[cur_radar],
+                        channel
                     );
                     log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
                 } // end of TCS 
@@ -1721,7 +1729,7 @@ int main() {
             clr_storage_i[cur_radar][cur_channel]++;
             log_info( "Clr Freq Log: Radar[%d][%d] @ %d/%d", cur_radar, cur_channel, clr_storage_i[cur_radar][cur_channel], CLR_STORAGE_NUM);
             if (clr_storage_i[cur_radar][cur_channel] >= CLR_STORAGE_NUM) {
-                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], ststr[cur_radar], cur_channel, clr_range[cur_radar]);
+                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], ststr[cur_radar], channel, clr_range[cur_radar]);
                 clr_storage_i[cur_radar][cur_channel] = 0;
             }
             

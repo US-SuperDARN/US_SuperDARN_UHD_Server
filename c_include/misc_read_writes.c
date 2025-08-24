@@ -82,6 +82,8 @@ void gen_filename(char *name_template, char *ext, char *name) {
  */
 void write_spectrum_mag_csv(
     FILE **file,
+    char *ststr,
+    int channel,
     double *spectrum, 
     double *freq_vector, 
     int num_samples
@@ -99,7 +101,7 @@ void write_spectrum_mag_csv(
         time(&raw_time);
         time_info = gmtime(&raw_time);
         strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-        snprintf(name, sizeof(name), SPECTRUM_FILE, timestamp, "csv");
+        snprintf(name, sizeof(name), SPECTRUM_FILE, timestamp, ststr, channel+96, "csv");
         
         *file = fopen(name, "w");
         if (*file == NULL) {
@@ -123,6 +125,8 @@ void write_spectrum_mag_csv(
 
 void write_spectrum_mag_bin(
     FILE **file,
+    char *ststr,
+    int channel,
     double *spectrum, 
     double *freq_vector, 
     int num_samples
@@ -143,7 +147,7 @@ void write_spectrum_mag_bin(
         time(&raw_time);
         time_info = gmtime(&raw_time);
         strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-        snprintf(name, sizeof(name), SPECTRUM_FILE, timestamp, "bin");
+        snprintf(name, sizeof(name), SPECTRUM_FILE, timestamp, ststr, channel+96, "bin");
         
         *file = fopen(name, "wb");
         if (*file == NULL) {
@@ -169,6 +173,8 @@ void write_spectrum_mag_bin(
 
 void write_clr_freq_csv(
     FILE **file,
+    char *ststr,
+    int channel,
     freq_band *clr_band, 
     int *clr_range
 ) {
@@ -185,7 +191,7 @@ void write_clr_freq_csv(
         time(&raw_time);
         time_info = gmtime(&raw_time);
         strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-        snprintf(name, sizeof(name), CLR_FREQ_FILE, timestamp, "csv");
+        snprintf(name, sizeof(name), CLR_FREQ_FILE, timestamp, ststr, channel+96, "csv");
         
         *file = fopen(name, "w");
         if (*file == NULL) {
@@ -203,6 +209,8 @@ void write_clr_freq_csv(
 
 void write_clr_freq_bin(
     FILE **file,
+    char *ststr,
+    int channel,
     freq_band *clr_band, 
     int* clr_range
 ) {
@@ -220,7 +228,7 @@ void write_clr_freq_bin(
         time(&raw_time);
         time_info = gmtime(&raw_time);
         strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-        snprintf(name, sizeof(name), CLR_FREQ_FILE, timestamp, "bin");
+        snprintf(name, sizeof(name), CLR_FREQ_FILE, timestamp, ststr, channel+96, "bin");
         
         *file = fopen(name, "wb");
         if (*file == NULL) {
