@@ -104,9 +104,10 @@ int avg_beam_spectrum_sizes[] = {
     SAMPLES_NUM / AVG_RATIO,
 };
 double *avg_freq_vector = NULL;
-freq_band ***clr_band_storage = NULL;
+freq_band ****clr_band_storage = NULL;
 int clr_storage_sizes[] = {
-    1, 
+    1,
+    STATIC_CHANNEL_NUM,
     CLR_STORAGE_NUM,
 };
 sample_meta_data meta_data = {0};
@@ -444,7 +445,7 @@ void cleanup() {
     log_info( "Cleaned all fftw pointers ...");
     
     // Cleanup ptrs
-    free_nested_ptr(clr_band_storage, 2, clr_storage_sizes);
+    free_nested_ptr(clr_band_storage, 3, clr_storage_sizes);
     log_debug( "Cleaned clr_band_storage ...");
     free_nested_ptr(avg_beam_spectrum, 2, avg_beam_spectrum_sizes);
     log_debug( "Cleaned avg_beam_spectrum ...");
@@ -493,7 +494,7 @@ void handle_sig(int sig) {
     exit(sig);
 }
 
-void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id, int clr_range[STATIC_RANGE_NUM][2]) {
+void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id, int channel, int clr_range[STATIC_RANGE_NUM][2]) {
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
@@ -506,7 +507,7 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num, int radar_id, int c
     time(&raw_time);
     time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.r%d.csv", timestamp, radar_id);
+    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.r%d.c%d.csv", timestamp, radar_id, channel);
 
     // Generate clear log file
     FILE *file = fopen(name, "w");
@@ -859,27 +860,35 @@ int main() {
     memset(clr_band, 0, sizeof(freq_band));
 
     clr_storage_sizes[0] = radar_num;
-    clr_band_storage = (freq_band ***)malloc(radar_num * sizeof(freq_band **));
+    clr_band_storage = (freq_band ****)malloc(radar_num * sizeof(freq_band ***));
     if (clr_band_storage == NULL) {
         log_fatal( "Error allocating memory for clr_band_storage radar pointers");
         perror("Error allocating memory for clr_band_storage radar pointers");
         exit(EXIT_FAILURE);
     }
     for (int i = 0; i < radar_num; i++) {
-        clr_band_storage[i] = (freq_band **)malloc(CLR_STORAGE_NUM * sizeof(freq_band *));
+        clr_band_storage[i] = (freq_band ***)malloc(STATIC_RADAR_NUM * sizeof(freq_band **));
         if (clr_band_storage[i] == NULL) {
             log_fatal( "Error allocating memory for clr_band_storage pointers");
             perror("Error allocating memory for clr_band_storage pointers");
             exit(EXIT_FAILURE);
         }
-        for (int j = 0; j < CLR_STORAGE_NUM; j++) {
-            clr_band_storage[i][j] = (freq_band *)malloc(sizeof(freq_band));
+        for (int j = 0; j < STATIC_RADAR_NUM; j++) {
+            clr_band_storage[i][j] = (freq_band **)malloc(CLR_STORAGE_NUM * sizeof(freq_band *));
             if (clr_band_storage[i][j] == NULL) {
                 log_fatal( "Error allocating memory for clr_band_storage elements");
                 perror("Error allocating memory for clr_band_storage elements");
                 exit(EXIT_FAILURE);
             }
-            memset(clr_band_storage[i][j], 0, sizeof(freq_band));
+            for (int k = 0; k < CLR_STORAGE_NUM; k++) {
+                clr_band_storage[i][j][k] = (freq_band *)malloc(sizeof(freq_band));
+                if (clr_band_storage[i][j][k] == NULL) {
+                    log_fatal( "Error allocating memory for clr_band_storage elements");
+                    perror("Error allocating memory for clr_band_storage elements");
+                    exit(EXIT_FAILURE);
+                }
+                memset(clr_band_storage[i][j][k], 0, sizeof(freq_band));
+            }
         }
     }
 
@@ -926,7 +935,7 @@ int main() {
     int active_ant_num = 0;
     int muted_ant_ids[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // Inactive Main Array Antennas to be muted at USRP Server side
     int muted_ant_idx = 0;
-    int clr_storage_i[STATIC_RADAR_NUM] = {0};
+    int clr_storage_i[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {0};
     int tcs_storage_i[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {0};
     bool is_tcs_ready[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false};
     int clr_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM][2] = {0};
@@ -1706,12 +1715,12 @@ int main() {
             write_clrfreq_shm(selected_clr_band, clrfreq_obj.shm_ptr);
 
             // Log clear freq bands
-            memcpy(clr_band_storage[cur_radar][clr_storage_i[cur_radar]], &selected_clr_band, sizeof(freq_band));
-            clr_storage_i[cur_radar]++;
-            log_info( "Clr Freq Log: Radar[%d] @ %d/%d", cur_radar, clr_storage_i[cur_radar], CLR_STORAGE_NUM);
-            if (clr_storage_i[cur_radar] >= CLR_STORAGE_NUM) {
-                write_clr_log_csv(clr_band_storage[cur_radar], clr_storage_i[cur_radar], cur_radar, clr_range[cur_radar]);
-                clr_storage_i[cur_radar] = 0;
+            memcpy(clr_band_storage[cur_radar][cur_channel][clr_storage_i[cur_radar][cur_channel]], &selected_clr_band, sizeof(freq_band));
+            clr_storage_i[cur_radar][cur_channel]++;
+            log_info( "Clr Freq Log: Radar[%d][%d] @ %d/%d", cur_radar, cur_channel, clr_storage_i[cur_radar][cur_channel], CLR_STORAGE_NUM);
+            if (clr_storage_i[cur_radar][cur_channel] >= CLR_STORAGE_NUM) {
+                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], cur_radar, cur_channel, clr_range[cur_radar]);
+                clr_storage_i[cur_radar][cur_channel] = 0;
             }
             
 
