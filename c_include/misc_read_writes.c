@@ -66,7 +66,7 @@ void gen_filename(char *name_template, char *ext, char *name) {
     // Generate timestamp
     time(&raw_time);
     time_info = gmtime(&raw_time);
-    strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
+    strftime(timestamp, buffer_size, "%Y%m%d.%H%M.%S", time_info);
     snprintf(name, buffer_size, name_template, timestamp, ext);
     log_trace("generated filename: %s", name);
 }
@@ -100,8 +100,8 @@ void write_spectrum_mag_csv(
         // Generate timestamp
         time(&raw_time);
         time_info = gmtime(&raw_time);
-        strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-        snprintf(name, sizeof(name), SPECTRUM_FILE, timestamp, ststr, channel+96, "csv");
+        strftime(timestamp, buffer_size, "%Y%m%d.%H%M.%S", time_info);
+        snprintf(name, sizeof(name), SPECTRUM_FILE, timestamp, ststr, channel+96, ".csv");
         
         *file = fopen(name, "w");
         if (*file == NULL) {
@@ -146,7 +146,7 @@ void write_spectrum_mag_bin(
         // Generate timestamp
         time(&raw_time);
         time_info = gmtime(&raw_time);
-        strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
+        strftime(timestamp, buffer_size, "%Y%m%d.%H%M.%S", time_info);
         snprintf(name, sizeof(name), SPECTRUM_FILE, timestamp, ststr, channel+96, "bin");
         
         *file = fopen(name, "wb");
@@ -190,8 +190,8 @@ void write_clr_freq_csv(
         // Generate timestamp
         time(&raw_time);
         time_info = gmtime(&raw_time);
-        strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-        snprintf(name, sizeof(name), CLR_FREQ_FILE, timestamp, ststr, channel+96, "csv");
+        strftime(timestamp, buffer_size, "%Y%m%d.%H%M.%S", time_info);
+        snprintf(name, sizeof(name), CLR_FREQ_FILE, timestamp, ststr, channel+96, ".csv");
         
         *file = fopen(name, "w");
         if (*file == NULL) {
@@ -227,7 +227,7 @@ void write_clr_freq_bin(
         // Generate timestamp
         time(&raw_time);
         time_info = gmtime(&raw_time);
-        strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
+        strftime(timestamp, buffer_size, "%Y%m%d.%H%M.%S", time_info);
         snprintf(name, sizeof(name), CLR_FREQ_FILE, timestamp, ststr, channel+96, "bin");
         
         *file = fopen(name, "wb");

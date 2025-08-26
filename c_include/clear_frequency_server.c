@@ -510,8 +510,8 @@ void write_clr_log_csv(freq_band **clr_storage, int clr_num, char *ststr, int ch
     log_trace("Generating timestamp...");
     time(&raw_time);
     time_info = gmtime(&raw_time);
-    strftime(timestamp, buffer_size, "%Y.%m.%d_%H:%M:%S", time_info);
-    snprintf(name, sizeof(name), "/data/log/clr_freq/clrlog_%s.%s.%c.csv", timestamp, ststr, channel+96);
+    strftime(timestamp, buffer_size, "%Y%m%d.%H%M.%S", time_info);
+    snprintf(name, sizeof(name), "/data/log/clr_freq/%s.%s.%c.clrlog.csv", timestamp, ststr, channel+96);
 
     // Generate clear log file
     FILE *file = fopen(name, "w");
@@ -1548,8 +1548,8 @@ int main() {
                     log_trace("Initializing FFT File");
                     char* tcs_spectra_filename_template[128] = {0};
                     char* tcs_spectra_filename[128] = {0};
-                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+96, "tcs.%s");
-                    char *ext = BIN_OR_CSV_LOG ? "csv" : "bin";
+                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+96, "%s");
+                    char *ext = BIN_OR_CSV_LOG ? ".csv" : "bin";
                     log_trace("extension \"%s\" enabled", ext);
                     gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
                     fft_file[cur_radar][cur_channel] = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
@@ -1561,7 +1561,7 @@ int main() {
                     log_trace("Initializing Clear Freq File");
                     char *tcs_clr_filename_template[128] = {0};
                     char *tcs_clr_filename[128] = {0};
-                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+96, "tcs.%s");
+                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+96, "%s");
                     gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
                     clr_file[cur_radar][cur_channel] = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
                     if (clr_file[cur_radar][cur_channel] == NULL) {
