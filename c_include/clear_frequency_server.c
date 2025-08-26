@@ -119,8 +119,8 @@ int radar_table_sizes[] = {
 
 // FFT, Clear Freq, Logging Files
 FILE *log_file = NULL;
-FILE *fft_file = NULL;
-FILE *clr_file = NULL; 
+FILE *fft_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
+FILE *clr_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
 
 
 void add_ptr(void **ptr) {
@@ -488,8 +488,12 @@ void handle_sig(int sig) {
     
     fclose(log_file);
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
-        fclose(fft_file);
-        fclose(clr_file);
+        for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
+            for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
+                fclose(fft_file[r_idx][c_idx]);
+                fclose(clr_file[r_idx][c_idx]);
+            }
+        }
     }
     exit(sig);
 }
@@ -695,32 +699,6 @@ int main() {
     log_info("Pre-Cleaning all Shared Memory...\n");
     cleanup();
     
-    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
-        log_trace("Initializing FFT File");
-        char* tcs_spectra_filename_template[128] = {0};
-        char* tcs_spectra_filename[128] = {0};
-        sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", "tcs.%s");
-        char *ext = BIN_OR_CSV_LOG ? "csv" : "bin";
-        log_trace("extension \"%s\" enabled", ext);
-        gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
-        fft_file = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
-        if (fft_file == NULL) {
-            file_access_error(tcs_spectra_filename);
-            return;
-        }
-
-        log_trace("Initializing Clear Freq File");
-        char *tcs_clr_filename_template[128] = {0};
-        char *tcs_clr_filename[128] = {0};
-        sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", "tcs.%s");
-        gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
-        clr_file = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
-        if (clr_file == NULL) {
-            file_access_error(tcs_clr_filename);
-            return;
-        }
-}
-
     // Open Shared Memory Object
     log_trace( "Initializing Shared Memory Object...");
     for (int i = 0; i < PARAM_NUM; i++){
@@ -948,6 +926,13 @@ int main() {
     freq_band selected_clr_band = {0};
     int def_low_range[STATIC_RADAR_NUM] = {0};
     int def_high_range[STATIC_RADAR_NUM]= {0};
+
+    bool first_request[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM];
+    for (int ridx = 0; ridx < STATIC_RADAR_NUM; ridx++) {
+      for (int cidx = 0; cidx < STATIC_CHANNEL_NUM; cidx++) {
+        first_request[ridx][cidx] = true;
+      }
+    }
 
     // Failure flags
     bool fl_clr_range_out_bounds = false; // Flag for Clear Search Range being out of bounds
@@ -1558,7 +1543,35 @@ int main() {
                 }
             }
 
+            if (first_request[cur_radar][cur_channel] == true) {
+                if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
+                    log_trace("Initializing FFT File");
+                    char* tcs_spectra_filename_template[128] = {0};
+                    char* tcs_spectra_filename[128] = {0};
+                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+96, "tcs.%s");
+                    char *ext = BIN_OR_CSV_LOG ? "csv" : "bin";
+                    log_trace("extension \"%s\" enabled", ext);
+                    gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
+                    fft_file[cur_radar][cur_channel] = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+                    if (fft_file[cur_radar][cur_channel] == NULL) {
+                        file_access_error(tcs_spectra_filename);
+                        return;
+                    }
 
+                    log_trace("Initializing Clear Freq File");
+                    char *tcs_clr_filename_template[128] = {0};
+                    char *tcs_clr_filename[128] = {0};
+                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+96, "tcs.%s");
+                    gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
+                    clr_file[cur_radar][cur_channel] = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
+                    if (clr_file[cur_radar][cur_channel] == NULL) {
+                        file_access_error(tcs_clr_filename);
+                        return;
+                    }
+                }
+
+                first_request[cur_radar][cur_channel] = false;
+            }
 
             log_info( "    avg_ratio: %d", avg_ratio);
             log_info( "    delta_f: %d", (int) (meta_data.usrp_rf_rate / samples_num) );
@@ -1616,7 +1629,7 @@ int main() {
                         &meta_data,
                         avg_beam_spectrum,
                         avg_freq_vector,
-                        fft_file,
+                        fft_file[cur_radar][cur_channel],
                         ststr[cur_radar],
                         channel
                     );
@@ -1633,7 +1646,7 @@ int main() {
                         (int) (meta_data.number_of_samples / avg_ratio),
                         &meta_data,
                         clr_band,
-                        clr_file,
+                        clr_file[cur_radar][cur_channel],
                         ststr[cur_radar],
                         channel
                     );
