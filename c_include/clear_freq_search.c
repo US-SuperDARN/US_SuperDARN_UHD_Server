@@ -361,8 +361,8 @@ void calc_clear_freq_on_raw_samples(
     int smsep, 
     int avg_ratio,
     freq_band *clr_band,
-    FILE *fft_file,
-    FILE *clr_file,
+    char *fft_file,
+    char *clr_file,
     char *ststr,
     int channel
 ) {
@@ -522,7 +522,7 @@ void calc_clear_freq_on_raw_samples(
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
             write_spectrum_mag_bin(
-                &fft_file,
+                fft_file,
                 ststr,
                 channel,
                 avg_spectrum, 
@@ -531,7 +531,7 @@ void calc_clear_freq_on_raw_samples(
             );
 
             write_clr_freq_bin(
-                &clr_file,
+                clr_file,
                 ststr,
                 channel,
                 clr_band,
@@ -540,17 +540,18 @@ void calc_clear_freq_on_raw_samples(
         } else {
             // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);                                                     // Used to check complex Samples after Beamforming; ...
             // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);                                                     // Plot w/ sample_plot.py
+
             write_spectrum_mag_csv(
-                &fft_file,
+                NULL,
                 ststr,
                 channel,
                 avg_spectrum, 
                 avg_freq_vector, 
                 num_avg_samples
-            );  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
+            );  // Spectrum after FFT averaging; plot w/ spectrum_plot.py
 
             write_clr_freq_csv(
-                &clr_file,
+                NULL,
                 ststr,
                 channel,
                 clr_band,
@@ -810,7 +811,7 @@ void process_avg_beam_spectra(
     sample_meta_data *meta_data,
     double **avg_beam_spectra,
     double *avg_freq_vector,
-    FILE *fft_file,
+    char *fft_file,
     char *ststr,
     int channel
 ) {
@@ -877,7 +878,7 @@ void process_avg_beam_spectra(
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
             write_spectrum_mag_bin(
-                &fft_file,
+                fft_file,
                 ststr,
                 channel,
                 avg_beam_spectra[cur_beam], 
@@ -888,7 +889,7 @@ void process_avg_beam_spectra(
             // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);      // Used to check complex Samples after Beamforming; ...
             // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);      // Plot w/ sample_plot.py
             write_spectrum_mag_csv(
-                &fft_file,
+                fft_file,
                 ststr,
                 channel,
                 avg_beam_spectra[cur_beam], 
@@ -928,7 +929,7 @@ void process_beam_clr_freq(
     int num_avg_samples,
     sample_meta_data *meta_data,
     freq_band *clr_band,
-    FILE *clr_file,
+    char *clr_file,
     char *ststr,
     int channel
 ) {
@@ -968,15 +969,12 @@ void process_beam_clr_freq(
     log_trace("     find_clear_freqs(s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
     // Save data to csv
-    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
-        char* avg_clr_freq_filename[256] = {0};
-        sprintf(avg_clr_freq_filename, CLR_FREQ_FILE, "%s", "tcs.%s"); 
-        log_trace("     avg_clr_freq_filename: %s", avg_clr_freq_filename);
+    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
 
         // Write logs if its folder accessible
         if (BIN_OR_CSV_LOG == 0) {
             write_clr_freq_bin(
-                &clr_file,
+                clr_file,
                 ststr,
                 channel,
                 clr_band, 
@@ -984,7 +982,7 @@ void process_beam_clr_freq(
             );
         } else {
             write_clr_freq_csv(
-                &clr_file,
+                clr_file,
                 ststr,
                 channel,
                 clr_band, 
@@ -1020,8 +1018,8 @@ clear_freq clear_freq_search(
         sample_meta_data meta_data,
         Config config,
         freq_band *clr_band,
-        FILE *fft_file,
-        FILE *clr_file,
+        char *fft_file,
+        char *clr_file,
         char *ststr,
         int channel
     ) {

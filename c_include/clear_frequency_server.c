@@ -119,8 +119,8 @@ int radar_table_sizes[] = {
 
 // FFT, Clear Freq, Logging Files
 FILE *log_file = NULL;
-FILE *fft_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
-FILE *clr_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
+char *fft_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
+char *clr_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
 
 
 void add_ptr(void **ptr) {
@@ -487,14 +487,6 @@ void handle_sig(int sig) {
     log_warn( "Main processes and communication terminated. Goodbye.\n");
     
     fclose(log_file);
-    if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
-        for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
-            for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
-                if (fft_file[r_idx][c_idx] != NULL) fclose(fft_file[r_idx][c_idx]);
-                if (clr_file[r_idx][c_idx] != NULL) fclose(clr_file[r_idx][c_idx]);
-            }
-        }
-    }
     exit(sig);
 }
 
@@ -511,7 +503,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
     time(&raw_time);
     time_info = gmtime(&raw_time);
     strftime(timestamp, buffer_size, "%Y%m%d.%H%M.%S", time_info);
-    snprintf(name, sizeof(name), "/data/log/clr_freq/%s.%s.%c.clrlog.csv", timestamp, ststr, channel+96);
+    snprintf(name, sizeof(name), CLR_STOR_FILE, timestamp, ststr, channel+96);
 
     // Generate clear log file
     FILE *file = fopen(name, "w");
@@ -907,12 +899,8 @@ int main() {
     int def_low_range[STATIC_RADAR_NUM] = {0};
     int def_high_range[STATIC_RADAR_NUM]= {0};
 
-    bool first_request[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM];
-    for (int ridx = 0; ridx < STATIC_RADAR_NUM; ridx++) {
-      for (int cidx = 0; cidx < STATIC_CHANNEL_NUM; cidx++) {
-        first_request[ridx][cidx] = true;
-      }
-    }
+    time_t log_age[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM];
+    memset(log_age, 0, sizeof(log_age));
 
     // Failure flags
     bool fl_clr_range_out_bounds = false; // Flag for Clear Search Range being out of bounds
@@ -1523,34 +1511,32 @@ int main() {
                 }
             }
 
-            if (first_request[cur_radar][cur_channel] == true) {
-                if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
+            // If Log age is 0 (first time), or Log Age has been reached next hr, initialize new log files
+            if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
+                if (log_age[cur_radar][cur_channel] == 0 || log_age[cur_radar][cur_channel] != (time(NULL) - (time(NULL) % 3600))) {
+                    char *ext = BIN_OR_CSV_LOG ? ".csv" : ".bin";
+                    log_trace("extension \"%s\" enabled", ext);
+                    
                     log_trace("Initializing FFT File");
                     char* tcs_spectra_filename_template[128] = {0};
                     char* tcs_spectra_filename[128] = {0};
-                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+96, "%s");
-                    char *ext = BIN_OR_CSV_LOG ? ".csv" : "bin";
-                    log_trace("extension \"%s\" enabled", ext);
-                    gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
-                    fft_file[cur_radar][cur_channel] = fopen(tcs_spectra_filename, BIN_OR_CSV_LOG ? "w" : "wb");
-                    if (fft_file[cur_radar][cur_channel] == NULL) {
-                        file_access_error(tcs_spectra_filename);
-                        return;
-                    }
+                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+96, ".tcs%s");
+                    gen_filename_to_hour(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
+                    fft_file[cur_radar][cur_channel] = tcs_spectra_filename;
+                    log_trace("FFT File: %s", fft_file[cur_radar][cur_channel]);
 
                     log_trace("Initializing Clear Freq File");
                     char *tcs_clr_filename_template[128] = {0};
                     char *tcs_clr_filename[128] = {0};
-                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+96, "%s");
-                    gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
-                    clr_file[cur_radar][cur_channel] = fopen(tcs_clr_filename, BIN_OR_CSV_LOG ? "w" : "wb");
-                    if (clr_file[cur_radar][cur_channel] == NULL) {
-                        file_access_error(tcs_clr_filename);
-                        return;
-                    }
+                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+96, ".tcs%s");
+                    gen_filename_to_hour(&tcs_clr_filename_template, ext, &tcs_clr_filename);
+                    clr_file[cur_radar][cur_channel] = tcs_clr_filename;
+                    log_trace("Clr File: %s", clr_file[cur_radar][cur_channel]);
+
+                    // Set log age to current gmt hour
+                    log_age[cur_radar][cur_channel] = time(NULL) - (time(NULL) % 3600);
                 }
 
-                first_request[cur_radar][cur_channel] = false;
             }
 
             log_info( "    avg_ratio: %d", avg_ratio);

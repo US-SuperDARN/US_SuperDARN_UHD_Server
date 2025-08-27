@@ -70,5 +70,6 @@ int ini_parse(const char* filename, ini_handler handler, void* user);
 #define LOG_PATH            "/data/log/"
 #define SPECTRUM_FILE       "/data/log/fft_spectrum/%s.%s.%c.fft%s"
 #define CLR_FREQ_FILE       "/data/log/clr_freq/%s.%s.%c.clr%s"
+#define CLR_STOR_FILE       "/data/log/clr_freq/%s.%s.%c.clrlog.csv"
 #define SAMPLE_RE_FILE      "/data/log/sample_re.csv"
 #define SAMPLE_IM_FILE      "/data/log/sample_im.csv"
