@@ -1611,6 +1611,8 @@ int main() {
                             meta_data,
                             array_config,
                             clr_band,
+                            fft_file[cur_radar][cur_channel],
+                            clr_file[cur_radar][cur_channel],
                             ststr[cur_radar],
                             channel
                         );

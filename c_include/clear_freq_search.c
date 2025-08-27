@@ -361,6 +361,8 @@ void calc_clear_freq_on_raw_samples(
     int smsep, 
     int avg_ratio,
     freq_band *clr_band,
+    FILE *fft_file,
+    FILE *clr_file,
     char *ststr,
     int channel
 ) {
@@ -519,9 +521,8 @@ void calc_clear_freq_on_raw_samples(
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
-            FILE *tmp_file = NULL;
             write_spectrum_mag_bin(
-                &tmp_file,
+                &fft_file,
                 ststr,
                 channel,
                 avg_spectrum, 
@@ -529,23 +530,18 @@ void calc_clear_freq_on_raw_samples(
                 num_avg_samples
             );
 
-            fclose(tmp_file);
-            tmp_file = NULL;
-
             write_clr_freq_bin(
-                &tmp_file,
+                &clr_file,
                 ststr,
                 channel,
                 clr_band,
                 clear_freq_range
             );                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
-            fclose(tmp_file);
         } else {
-            FILE *tmp_file = NULL;
             // write_sample_mag_csv(sample_im_file, sample_im, freq_vector, meta_data);                                                     // Used to check complex Samples after Beamforming; ...
             // write_sample_mag_csv(sample_re_file, sample_re, freq_vector, meta_data);                                                     // Plot w/ sample_plot.py
             write_spectrum_mag_csv(
-                &tmp_file,
+                &fft_file,
                 ststr,
                 channel,
                 avg_spectrum, 
@@ -553,18 +549,14 @@ void calc_clear_freq_on_raw_samples(
                 num_avg_samples
             );  // Spectrum after Spectrum FFT averaging; plot w/ spectrum_plot.py
 
-            fclose(tmp_file);
-            tmp_file = NULL;
-
             write_clr_freq_csv(
-                &tmp_file,
+                &clr_file,
                 ststr,
                 channel,
                 clr_band,
                 clear_freq_range
             );
 
-            fclose(tmp_file);
         }
         log_warn("\'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
     } else log_warn("\'save_spectra\' not found. Not logging spectra nor clr_frequency.");
@@ -1024,6 +1016,8 @@ clear_freq clear_freq_search(
         sample_meta_data meta_data,
         Config config,
         freq_band *clr_band,
+        FILE *fft_file,
+        FILE *clr_file,
         char *ststr,
         int channel
     ) {
@@ -1057,6 +1051,8 @@ clear_freq clear_freq_search(
         smsep, 
         avg_ratio,
         clr_band,
+        fft_file,
+        clr_file,
         ststr,
         channel
     );
