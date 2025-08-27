@@ -1520,23 +1520,20 @@ int main() {
                     log_trace("Initializing FFT File");
                     char* tcs_spectra_filename_template[128] = {0};
                     char* tcs_spectra_filename[128] = {0};
-                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+96, ".tcs%s");
+                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
                     gen_filename_to_hour(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
                     fft_file[cur_radar][cur_channel] = tcs_spectra_filename;
-                    log_trace("FFT File: %s", fft_file[cur_radar][cur_channel]);
 
                     log_trace("Initializing Clear Freq File");
                     char *tcs_clr_filename_template[128] = {0};
                     char *tcs_clr_filename[128] = {0};
-                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+96, ".tcs%s");
+                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
                     gen_filename_to_hour(&tcs_clr_filename_template, ext, &tcs_clr_filename);
                     clr_file[cur_radar][cur_channel] = tcs_clr_filename;
-                    log_trace("Clr File: %s", clr_file[cur_radar][cur_channel]);
 
                     // Set log age to current gmt hour
                     log_age[cur_radar][cur_channel] = time(NULL) - (time(NULL) % 3600);
                 }
-
             }
 
             log_info( "    avg_ratio: %d", avg_ratio);
