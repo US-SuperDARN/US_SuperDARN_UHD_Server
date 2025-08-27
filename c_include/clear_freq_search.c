@@ -969,7 +969,11 @@ void process_beam_clr_freq(
 
     // Save data to csv
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {        
-        // Write logs if its folder accessable
+        char* avg_clr_freq_filename[256] = {0};
+        sprintf(avg_clr_freq_filename, CLR_FREQ_FILE, "%s", "tcs.%s"); 
+        log_trace("     avg_clr_freq_filename: %s", avg_clr_freq_filename);
+
+        // Write logs if its folder accessible
         if (BIN_OR_CSV_LOG == 0) {
             write_clr_freq_bin(
                 &clr_file,
@@ -979,7 +983,7 @@ void process_beam_clr_freq(
                 clear_freq_range
             );
         } else {
-            write_clr_freq_csv( 
+            write_clr_freq_csv(
                 &clr_file,
                 ststr,
                 channel,
