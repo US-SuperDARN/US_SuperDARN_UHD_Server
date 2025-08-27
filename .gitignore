@@ -7,3 +7,5 @@ dist/*
 
 cf_server
 usrp_driver/usrp_driver
+
+save_spectra
