@@ -119,8 +119,8 @@ int radar_table_sizes[] = {
 
 // FFT, Clear Freq, Logging Files
 FILE *log_file = NULL;
-char *fft_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
-char *clr_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {NULL};
+char *fft_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM][128] = {0};
+char *clr_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM][128] = {0};
 
 
 void add_ptr(void **ptr) {
@@ -1522,14 +1522,14 @@ int main() {
                     char* tcs_spectra_filename[128] = {0};
                     sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
                     gen_filename_to_hour(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
-                    fft_file[cur_radar][cur_channel] = tcs_spectra_filename;
+                    strcpy(fft_file[cur_radar][cur_channel], tcs_spectra_filename);
 
                     log_trace("Initializing Clear Freq File");
                     char *tcs_clr_filename_template[128] = {0};
                     char *tcs_clr_filename[128] = {0};
                     sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
                     gen_filename_to_hour(&tcs_clr_filename_template, ext, &tcs_clr_filename);
-                    clr_file[cur_radar][cur_channel] = tcs_clr_filename;
+                    strcpy(clr_file[cur_radar][cur_channel], tcs_clr_filename);
 
                     // Set log age to current gmt hour
                     log_age[cur_radar][cur_channel] = time(NULL) - (time(NULL) % 3600);
