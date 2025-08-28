@@ -755,7 +755,6 @@ void process_all_beamformed_spectras(
             active_antennas,
             current_beam_samples
         );
-        // for (int i = 0; i < num_samples; i++) if (i < 5 || i > 2495) log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[cur_beam * num_samples + i]), cimag(beamformed_samples[cur_beam * num_samples + i]));
     }
     log_debug("     Beamforming done");
 
@@ -881,8 +880,9 @@ void process_avg_beam_spectra(
                 fft_file,
                 ststr,
                 channel,
-                avg_beam_spectra[cur_beam], 
-                avg_freq_vector, 
+                cur_beam,
+                avg_beam_spectra[cur_beam],
+                avg_freq_vector,
                 num_avg_samples
             );
         } else {
@@ -892,6 +892,7 @@ void process_avg_beam_spectra(
                 fft_file,
                 ststr,
                 channel,
+                cur_beam,
                 avg_beam_spectra[cur_beam], 
                 avg_freq_vector, 
                 num_avg_samples
