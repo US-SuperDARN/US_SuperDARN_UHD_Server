@@ -98,6 +98,7 @@ void write_spectrum_mag_csv(
     char *filename,
     char *ststr,
     int channel,
+    int beam_num,
     double *spectrum, 
     double *freq_vector, 
     int num_samples
@@ -138,7 +139,7 @@ void write_spectrum_mag_csv(
     __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes 
     
     for (int i = 0; i < num_samples; i++) {
-        if (i == 0) fprintf(file, "%f,%f,%" PRId64 "\n", freq_vector[i], spectrum[i], t);
+        if (i == 0) fprintf(file, "%f,%f,%d,%" PRId64 "\n", freq_vector[i], spectrum[i], beam_num, t);
         fprintf(file, "%f,%f\n", freq_vector[i], spectrum[i]);
     }
 
@@ -149,6 +150,7 @@ void write_spectrum_mag_bin(
     char *filename,
     char *ststr,
     int channel,
+    int beam_num,
     double *spectrum, 
     double *freq_vector, 
     int num_samples
@@ -186,12 +188,32 @@ void write_spectrum_mag_bin(
 
     __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes 
 
+    // log_trace("  ********************************************   Writing to file: %s\n", filename == NULL ? name : filename);
+    // log_trace("  ********************************************   Number of samples: %d\n", num_samples);
+
+    // Print the timestamp in human-readable format
+    // char time_str[32];
+    // strftime(time_str, sizeof(time_str), "%Y%m%d.%H%M.%S", gmtime(&t));
+    // log_trace("  ********************************************   Timestamp (raw): %" PRId64 "\n", t);
+    // log_trace("  ********************************************   Timestamp: %s\n", time_str);    
+
+    // log_trace("  ********************************************   First Frequency: %f\n", freq_vector[0]);
+    // log_trace("  ********************************************   First Power: %f\n", spectrum[0]);
+
     fwrite(&num_samples, sizeof(int), 1, file);
+    if (beam_num != -1) fwrite(&beam_num, sizeof(int), 1, file);
     fwrite(&t, sizeof(__uint64_t), 1, file);
     fwrite(freq_vector, sizeof(double), num_samples, file);
     fwrite(spectrum, sizeof(double), num_samples, file);
 
-    log_trace("  ********************************************   Bytes of spectrum_mag: %ld, %ld, %ld\n", sizeof(num_samples), sizeof(freq_vector), sizeof(spectrum));
+
+    log_trace("  ********************************************   Bytes of spectrum_mag: %ld, %ld, %ld, %ld, %ld\n", 
+        sizeof(num_samples), 
+        sizeof(beam_num), 
+        sizeof(t), 
+        sizeof(freq_vector), 
+        sizeof(spectrum)
+    );
     fclose(file);
 }
 

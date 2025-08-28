@@ -525,8 +525,9 @@ void calc_clear_freq_on_raw_samples(
                 fft_file,
                 ststr,
                 channel,
-                avg_spectrum, 
-                avg_freq_vector, 
+                -1,   // beam_num not used
+                avg_spectrum,
+                avg_freq_vector,
                 num_avg_samples
             );
 
