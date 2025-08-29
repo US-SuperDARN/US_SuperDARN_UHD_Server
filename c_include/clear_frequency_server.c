@@ -1492,7 +1492,6 @@ int main() {
             radar_table[cur_radar][cur_channel].clr_band.noise = 0;
             radar_table[cur_radar][cur_channel].clr_band.f_end = 0;
             radar_table[cur_radar][cur_channel].last_time = 0;
-            radar_table[cur_radar][cur_channel].last_time = 0;
 
             // Check for inactive channels to unmask
             for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
