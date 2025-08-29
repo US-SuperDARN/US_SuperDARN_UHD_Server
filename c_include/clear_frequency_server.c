@@ -119,8 +119,8 @@ int radar_table_sizes[] = {
 
 // FFT, Clear Freq, Logging Files
 FILE *log_file = NULL;
-char *fft_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM][128] = {0};
-char *clr_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM][128] = {0};
+char fft_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM][128];
+char clr_file[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM][128];
 
 
 void add_ptr(void **ptr) {
@@ -663,6 +663,11 @@ int main() {
     signal(SIGTERM, handle_sig);
     signal(SIGINT, handle_sig);
     signal(SIGSEGV, handle_sig);
+
+    char tcs_spectra_filename_template[128] = {0};
+    char tcs_spectra_filename[128] = {0};
+    char tcs_clr_filename_template[128] = {0};
+    char tcs_clr_filename[128] = {0};
 
     // Initialize Logging
     log_file = init_log(LOG_TERMINAL_LEVEL, LOG_FILE_LEVEL, LOG_FILEPATH);
@@ -1518,15 +1523,11 @@ int main() {
                     log_trace("extension \"%s\" enabled", ext);
                     
                     log_trace("Initializing FFT File");
-                    char* tcs_spectra_filename_template[128] = {0};
-                    char* tcs_spectra_filename[128] = {0};
                     sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
                     gen_filename_to_hour(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
                     strcpy(fft_file[cur_radar][cur_channel], tcs_spectra_filename);
 
                     log_trace("Initializing Clear Freq File");
-                    char *tcs_clr_filename_template[128] = {0};
-                    char *tcs_clr_filename[128] = {0};
                     sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
                     gen_filename_to_hour(&tcs_clr_filename_template, ext, &tcs_clr_filename);
                     strcpy(clr_file[cur_radar][cur_channel], tcs_clr_filename);
