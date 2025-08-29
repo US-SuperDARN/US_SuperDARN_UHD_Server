@@ -490,7 +490,7 @@ void handle_sig(int sig) {
     exit(sig);
 }
 
-void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int channel, int clr_range[STATIC_RANGE_NUM][2]) {
+void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int channel, int clr_range[]) {
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
@@ -520,7 +520,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
         log_trace("Clear Freq Band: | %dHz -- Noise: %f -- %dHz |\n", clr_band.f_start, clr_band.noise, clr_band.f_end);
         
         // Record Clear Freq
-        fprintf(file, "%d,%d,%f\n", clr_band.f_start, clr_band.f_end, clr_band.noise);
+        fprintf(file, "%d,%d,%f,%d,%d\n", clr_band.f_start, clr_band.f_end, clr_band.noise, clr_range[0], clr_range[1]);
     }
 
     fclose(file);
