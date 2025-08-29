@@ -190,6 +190,7 @@ void write_spectrum_mag_bin(
 
     // log_trace("  ********************************************   Writing to file: %s\n", filename == NULL ? name : filename);
     // log_trace("  ********************************************   Number of samples: %d\n", num_samples);
+    // log_trace("  ********************************************   Beam number: %d\n", beam_num);
 
     // Print the timestamp in human-readable format
     // char time_str[32];

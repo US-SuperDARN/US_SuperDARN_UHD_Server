@@ -1374,6 +1374,7 @@ int main() {
                     log_error( "ERROR: Channel ID out of range");
                     log_error( "ERROR: There is likely an error on the CFS client-side, please close and restart all related processes.");
                     perror("ERROR: Channel ID out of range");
+                    if (radar_num >= 1) log_error( "Ensure that stid_%d is set correctly: \"%s\"", cur_radar + 1, ststr[cur_radar]);
                     exit(EXIT_FAILURE);
                 }
             }

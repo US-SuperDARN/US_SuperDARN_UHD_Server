@@ -522,7 +522,7 @@ void calc_clear_freq_on_raw_samples(
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
             write_spectrum_mag_bin(
-                fft_file,
+                NULL,
                 ststr,
                 channel,
                 -1,   // beam_num not used
@@ -532,7 +532,7 @@ void calc_clear_freq_on_raw_samples(
             );
 
             write_clr_freq_bin(
-                clr_file,
+                NULL,
                 ststr,
                 channel,
                 clr_band,
@@ -546,8 +546,9 @@ void calc_clear_freq_on_raw_samples(
                 NULL,
                 ststr,
                 channel,
-                avg_spectrum, 
-                avg_freq_vector, 
+                -1,
+                avg_spectrum,
+                avg_freq_vector,
                 num_avg_samples
             );  // Spectrum after FFT averaging; plot w/ spectrum_plot.py
 
