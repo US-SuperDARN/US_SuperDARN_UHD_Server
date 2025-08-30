@@ -15,6 +15,7 @@
 #define FFTW_THREADS            2                       // Number of threads to use for FFTW
 #define USE_ACTIVE_MUTE         1                       // 0 to only use muted antennas in Array Config, 1 to use Array Config + let CFS detect low-power antennas to mute
 #define USE_MULTI_RANGE         1                       // 1 to use CFS' multiple clear ranges optimization, 0 to optimize for single clear range
+#define SAVE_CLR_LOG            0                       // 1 to store selected frequencies in CSV log files, 0 to skip
 
 // Filepaths Vars
 #define ARRAY_CONFIG_FILEPATH           "array_config.ini"

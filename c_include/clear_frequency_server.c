@@ -1714,14 +1714,15 @@ int main() {
             write_clrfreq_shm(selected_clr_band, clrfreq_obj.shm_ptr);
 
             // Log clear freq bands
-            clr_band_storage[cur_radar][cur_channel][clr_storage_i[cur_radar][cur_channel]] = selected_clr_band;
-            clr_storage_i[cur_radar][cur_channel]++;
-            log_info( "Clr Freq Log: Radar[%d][%d] @ %d/%d", cur_radar, cur_channel, clr_storage_i[cur_radar][cur_channel], CLR_STORAGE_NUM);
-            if (clr_storage_i[cur_radar][cur_channel] >= CLR_STORAGE_NUM) {
-                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], ststr[cur_radar], channel);
-                clr_storage_i[cur_radar][cur_channel] = 0;
+            if (SAVE_CLR_LOG == 1) {
+                clr_band_storage[cur_radar][cur_channel][clr_storage_i[cur_radar][cur_channel]] = selected_clr_band;
+                clr_storage_i[cur_radar][cur_channel]++;
+                log_info( "Clr Freq Log: Radar[%d][%d] @ %d/%d", cur_radar, cur_channel, clr_storage_i[cur_radar][cur_channel], CLR_STORAGE_NUM);
+                if (clr_storage_i[cur_radar][cur_channel] >= CLR_STORAGE_NUM) {
+                    write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], ststr[cur_radar], channel);
+                    clr_storage_i[cur_radar][cur_channel] = 0;
+                }
             }
-            
 
             // Display TCS Storage Information
             log_info( "[TCS] Radar[%d][%5d -- %5d] Storage [%d/%d]", 
