@@ -490,7 +490,7 @@ void handle_sig(int sig) {
     exit(sig);
 }
 
-void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int channel, int clr_range[]) {
+void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int channel) {
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
@@ -512,7 +512,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
         perror("Error opening file for writing");
         exit(EXIT_FAILURE);
     }
-    fprintf(file, "Start Frequency,End Frequency,Noise,Clear Freq Start,Clear Freq End\n");
+    fprintf(file, "Start Frequency,End Frequency,Noise\n");
     for (int clr_band_idx = 0; clr_band_idx < clr_num; clr_band_idx++) {
         freq_band clr_band = clr_storage[clr_band_idx];
 
@@ -520,7 +520,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
         log_trace("Clear Freq Band: | %dHz -- Noise: %f -- %dHz |\n", clr_band.f_start, clr_band.noise, clr_band.f_end);
         
         // Record Clear Freq
-        fprintf(file, "%d,%d,%f,%d,%d\n", clr_band.f_start, clr_band.f_end, clr_band.noise, clr_range[0], clr_range[1]);
+        fprintf(file, "%d,%d,%f\n", clr_band.f_start, clr_band.f_end, clr_band.noise);
     }
 
     fclose(file);
@@ -1718,7 +1718,7 @@ int main() {
             clr_storage_i[cur_radar][cur_channel]++;
             log_info( "Clr Freq Log: Radar[%d][%d] @ %d/%d", cur_radar, cur_channel, clr_storage_i[cur_radar][cur_channel], CLR_STORAGE_NUM);
             if (clr_storage_i[cur_radar][cur_channel] >= CLR_STORAGE_NUM) {
-                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], ststr[cur_radar], channel, tmp_clr_range);
+                write_clr_log_csv(clr_band_storage[cur_radar][cur_channel], clr_storage_i[cur_radar][cur_channel], ststr[cur_radar], channel);
                 clr_storage_i[cur_radar][cur_channel] = 0;
             }
             
