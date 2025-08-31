@@ -136,7 +136,7 @@ void write_spectrum_mag_csv(
         }
     }
 
-    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes 
+    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
     
     for (int i = 0; i < num_samples; i++) {
         if (i == 0) fprintf(file, "%f,%f,%d,%" PRId64 "\n", freq_vector[i], spectrum[i], beam_num, t);
@@ -186,35 +186,14 @@ void write_spectrum_mag_bin(
         }
     }
 
-    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes 
+    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
 
-    // log_trace("  ********************************************   Writing to file: %s\n", filename == NULL ? name : filename);
-    // log_trace("  ********************************************   Number of samples: %d\n", num_samples);
-    // log_trace("  ********************************************   Beam number: %d\n", beam_num);
-
-    // Print the timestamp in human-readable format
-    // char time_str[32];
-    // strftime(time_str, sizeof(time_str), "%Y%m%d.%H%M.%S", gmtime(&t));
-    // log_trace("  ********************************************   Timestamp (raw): %" PRId64 "\n", t);
-    // log_trace("  ********************************************   Timestamp: %s\n", time_str);    
-
-    // log_trace("  ********************************************   First Frequency: %f\n", freq_vector[0]);
-    // log_trace("  ********************************************   First Power: %f\n", spectrum[0]);
-
-    fwrite(&num_samples, sizeof(int), 1, file);
-    fwrite(&beam_num, sizeof(int), 1, file);
     fwrite(&t, sizeof(__uint64_t), 1, file);
+    fwrite(&beam_num, sizeof(int), 1, file);
+    fwrite(&num_samples, sizeof(int), 1, file);
     fwrite(freq_vector, sizeof(double), num_samples, file);
     fwrite(spectrum, sizeof(double), num_samples, file);
 
-
-    log_trace("  ********************************************   Bytes of spectrum_mag: %ld, %ld, %ld, %ld, %ld\n", 
-        sizeof(num_samples), 
-        sizeof(beam_num), 
-        sizeof(t), 
-        sizeof(freq_vector), 
-        sizeof(spectrum)
-    );
     fclose(file);
 }
 
@@ -223,6 +202,7 @@ void write_clr_freq_csv(
     char *filename,
     char *ststr,
     int channel,
+    int beam_num,
     freq_band *clr_band, 
     int *clr_range
 ) {
@@ -257,15 +237,9 @@ void write_clr_freq_csv(
         }
     }
     
-    // Write Clear Search Range on first line of each sample set only
-    // fprintf(file, "Start Frequency,End Frequency,Noise,Clear Freq Start,Clear Freq End\n");
-    fprintf(file, "%d,%d,%f,%d,%d\n", clr_band->f_start, clr_band->f_end, clr_band->noise,clr_range[0],clr_range[1]);
+    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
 
-    log_trace("    clr band: | %d kHz -- Noise: %f -- %d kHz |", 
-        clr_band->f_start/1000,
-        clr_band->noise, 
-        clr_band->f_end/1000
-    ); 
+    fprintf(file, "%" PRId64 ",%d,%d,%d,%f,%d,%d\n", t, beam_num, clr_band->f_start, clr_band->f_end, clr_band->noise,clr_range[0],clr_range[1]);
 
     fclose(file);
 }
@@ -274,6 +248,7 @@ void write_clr_freq_bin(
     char *filename,
     char *ststr,
     int channel,
+    int beam_num,
     freq_band *clr_band, 
     int* clr_range
 ) {
@@ -309,18 +284,16 @@ void write_clr_freq_bin(
         }
     }
 
-    // Write clear search range, then clear band
+    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
+
+    // Write time, beam number, clear search range, then clear band
+    fwrite(&t, sizeof(__uint64_t), 1, file);
+    fwrite(&beam_num, sizeof(int), 1, file);
     fwrite(&(clr_range[0]), sizeof(int), 1, file);
     fwrite(&(clr_range[1]), sizeof(int), 1, file);
     fwrite(&(clr_band->f_start), sizeof(int), 1, file);
     fwrite(&(clr_band->noise), sizeof(double), 1, file);
     fwrite(&(clr_band->f_end), sizeof(int), 1, file);
-
-    log_trace("    clr band: | %d kHz -- Noise: %f -- %d kHz |", 
-        clr_band->f_start/1000,
-        clr_band->noise, 
-        clr_band->f_end/1000
-    );  
 
     fclose(file);
 }

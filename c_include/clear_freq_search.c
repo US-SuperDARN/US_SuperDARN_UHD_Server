@@ -541,6 +541,7 @@ void calc_clear_freq_on_raw_samples(
                 NULL,
                 ststr,
                 channel,
+                -1,   // beam_num not used
                 clr_band,
                 clear_freq_range
             );                                           // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py
@@ -562,6 +563,7 @@ void calc_clear_freq_on_raw_samples(
                 NULL,
                 ststr,
                 channel,
+                -1,
                 clr_band,
                 clear_freq_range
             );
@@ -986,6 +988,7 @@ void process_beam_clr_freq(
                 clr_file,
                 ststr,
                 channel,
+                cur_beam,
                 clr_band, 
                 clear_freq_range
             );
@@ -994,6 +997,7 @@ void process_beam_clr_freq(
                 clr_file,
                 ststr,
                 channel,
+                cur_beam,
                 clr_band, 
                 clear_freq_range
             ); // Used to plot Clear Freq Bands w/ spectrum_plot.clr_freq.py

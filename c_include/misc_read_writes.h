@@ -20,8 +20,8 @@ void write_spectrum_mag_csv(char *filename, char *ststr, int channel, int beam_n
 void write_spectrum_mag_bin(char *filename, char *ststr, int channel, int beam_num, double *spectrum, double *freq_vector, int num_samples);
 
 // Clear frequency writing
-void write_clr_freq_csv(char *filename, char *ststr, int channel, freq_band *clr_band, int *clr_range);
-void write_clr_freq_bin(char *filename, char *ststr, int channel, freq_band *clr_band, int *clr_range);
+void write_clr_freq_csv(char *filename, char *ststr, int channel, int beam_num, freq_band *clr_band, int *clr_range);
+void write_clr_freq_bin(char *filename, char *ststr, int channel, int beam_num, freq_band *clr_band, int *clr_range);
 
 // Sample writing
 void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_vector, sample_meta_data *meta_data);
