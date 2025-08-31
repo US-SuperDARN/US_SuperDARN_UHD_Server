@@ -1526,9 +1526,9 @@ int main() {
                 }
             }
 
-            // If Log age is 0 (first time), or Log Age has been reached next hr, initialize new log files
+            // If Log age is 0 (first time), or Log Age has reached next 2 hr interval, initialize new log files
             if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
-                if (log_age[cur_radar][cur_channel] == 0 || log_age[cur_radar][cur_channel] != (time(NULL) - (time(NULL) % 3600))) {
+                if (log_age[cur_radar][cur_channel] == 0 || log_age[cur_radar][cur_channel] != (time(NULL) - (time(NULL) % 7200))) {
                     char *ext = BIN_OR_CSV_LOG ? ".csv" : ".bin";
                     log_trace("extension \"%s\" enabled", ext);
                     
@@ -1543,7 +1543,7 @@ int main() {
                     strcpy(clr_file[cur_radar][cur_channel], tcs_clr_filename);
 
                     // Set log age to current gmt hour
-                    log_age[cur_radar][cur_channel] = time(NULL) - (time(NULL) % 3600);
+                    log_age[cur_radar][cur_channel] = time(NULL) - (time(NULL) % 7200);
                 }
             }
 
