@@ -10,7 +10,7 @@
 #include "clear_freq_search.h"
 #include "clear_frequency_server.h"
 #include "log.h"
-
+#include "misc_read_writes.h"
 
 
 
@@ -30,6 +30,12 @@
 
 // Global or static variable for the FFT plan
 fftw_plan storage_fft_plan = NULL;
+
+void phasing_and_beamforming(double beam_angle, int *clear_freq_range,
+                             sample_meta_data *meta_data, fftw_complex *phasing_vector,
+                             int *antennas, int num_samples, fftw_complex *raw_samples,
+                             int *active_antennas, fftw_complex *beamformed_samples);
+
 
 // Initialization function to create the plan
 void init_storage_fft(int num_samples, int beam_total) {

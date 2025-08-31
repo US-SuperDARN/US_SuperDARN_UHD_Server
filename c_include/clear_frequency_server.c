@@ -1534,12 +1534,12 @@ int main() {
                     
                     log_trace("Initializing FFT File");
                     sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
-                    gen_filename_to_hour(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
+                    gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
                     strcpy(fft_file[cur_radar][cur_channel], tcs_spectra_filename);
 
                     log_trace("Initializing Clear Freq File");
                     sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
-                    gen_filename_to_hour(&tcs_clr_filename_template, ext, &tcs_clr_filename);
+                    gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
                     strcpy(clr_file[cur_radar][cur_channel], tcs_clr_filename);
 
                     // Set log age to current gmt hour

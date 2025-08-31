@@ -16,8 +16,8 @@ void update_ptr_no_global(void *old_ptr, void *new_ptr, void **temp_ptrs, int te
 
 // Spectrum writing
 void write_spectrum_csv(char *filename, fftw_complex *spectrum, double *freq_vector, int num_samples);
-void write_spectrum_mag_csv(char *filename, char *ststr, int channel, double *spectrum, double *freq_vector, int num_samples);
-void write_spectrum_mag_bin(char *filename, char *ststr, int channel, double *spectrum, double *freq_vector, int num_samples);
+void write_spectrum_mag_csv(char *filename, char *ststr, int channel, int beam_num, double *spectrum, double *freq_vector, int num_samples);
+void write_spectrum_mag_bin(char *filename, char *ststr, int channel, int beam_num, double *spectrum, double *freq_vector, int num_samples);
 
 // Clear frequency writing
 void write_clr_freq_csv(char *filename, char *ststr, int channel, freq_band *clr_band, int *clr_range);
@@ -39,6 +39,8 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
 void read_radar_config(char *filepath, int *clr_freq_res);
 
 // Timestamp and file utilities
+void gen_filename(char *name_template, char *ext, char *name);
+void gen_filename_to_hour(char *name_template, char *ext, char *name);
 void get_timestamp(char *buffer);
 void get_file_name(char *filename, char *filepath);
 FILE* get_log_file(char *filepath);

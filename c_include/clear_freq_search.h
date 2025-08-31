@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <fftw3.h>      // FFT transform library
+#include "clear_frequency_server.h"
 #include "ini_parser.h"
 
 #ifndef RESTRICT_NUM
@@ -39,8 +40,39 @@ typedef struct clear_freq {
 
 #pragma once
 
+clear_freq clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
+                             int clear_freq_range[], int cur_beam, int smsep,
+                             int avg_ratio, freq_band *restricted_bands,
+                             int restrict_num, sample_meta_data meta_data,
+                             Config config, freq_band *clr_band,
+                             char *fft_file, char *clr_file,
+                             char *ststr, int channel);
+
+
 int ini_parse(const char* filename, ini_handler handler, void* user);
 
+void process_avg_ant_pwr(fftw_complex *raw_samples, int num_samples,
+                         sample_meta_data *meta_data, int *muted_config_ants,
+                         int num_muted_config_ants, int *ant_active_ct,
+                         int *active_antennas, long *acculated_pwrs);
+
+void process_avg_beam_spectra(fftw_complex *beamformed_spectra, int avg_ratio,
+                              int num_samples, int cur_beam, int beam_num,
+                              int spectra_num, sample_meta_data *meta_data,
+                              double **avg_beam_spectra, double *avg_freq_vector,
+                              char *fft_file, char *ststr, int channel);
+
+void process_all_beamformed_spectras(fftw_complex *raw_samples, int *active_antennas,
+                                     int clear_freq_range[], int smsep,
+                                     freq_band *restricted_bands, int restrict_num,
+                                     sample_meta_data *meta_data, Config config,
+                                     fftw_complex *beamformed_spectra);
+
+void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_freq_range[],
+                           int smsep, freq_band *restricted_bands, int restricted_num,
+                           double *avg_freq_vector, int num_avg_samples,
+                           sample_meta_data *meta_data, freq_band *clr_band,
+                           char *clr_file, char *ststr, int channel);
 
 // Define Constants
 #define CLR_NOISE_THRESHOLD 250000  // Noise Threshold for a clear band to be considered a valid usable band
