@@ -353,6 +353,7 @@ void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_ve
 
 void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector) {
     int num_samples = 0;
+    int status = 0;
     
     FILE *file = NULL;
     file = fopen(filename, "rb");
@@ -361,14 +362,19 @@ void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector
         return;
     }
 
-    fread(&num_samples, sizeof(num_samples), 1, file);
-    fread(spectrum, sizeof(double), num_samples, file);
-    fread(freq_vector, sizeof(double), num_samples, file);
+    status = fread(&num_samples, sizeof(num_samples), 1, file);
+    status = fread(spectrum, sizeof(double), num_samples, file);
+    status = fread(freq_vector, sizeof(double), num_samples, file);
+    if (status != 1) {
+        file_access_error(filename);
+        return;
+    }
 
     fclose(file);
 }
 
 void read_clr_freq_bin(char *filename, freq_band *clr_band, int *clr_start, int *clr_end) {
+    int status = 0;
     FILE *file = NULL;
     file = fopen(filename, "rb");
     if (file == NULL) {
@@ -376,9 +382,13 @@ void read_clr_freq_bin(char *filename, freq_band *clr_band, int *clr_start, int 
         return;
     }
 
-    fread(clr_start, sizeof(clr_start), 1, file);
-    fread(clr_end, sizeof(int), 1, file);
-    fread(clr_band, sizeof(freq_band), 1, file);
+    status = fread(clr_start, sizeof(clr_start), 1, file);
+    status = fread(clr_end, sizeof(int), 1, file);
+    status = fread(clr_band, sizeof(freq_band), 1, file);
+    if (status != 1) {
+        file_access_error(filename);
+        return;
+    }
 
     fclose(file);
 }
