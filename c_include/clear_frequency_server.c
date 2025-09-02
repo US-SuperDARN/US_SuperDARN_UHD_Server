@@ -244,24 +244,19 @@ void read_sample_shm(fftw_complex *temp_samples, void *samples_shm_ptr, int ante
     int *s_ptr = (int *) samples_shm_ptr;
     
     // Store sample data into complex form
-    for (int i = 0; i < antenna_num; i++)
-    {
-        for (int j = 0; j < samples_num; j++) {
-            temp_samples[i * samples_num + j] = s_ptr[i * samples_num + j * 2] + I * s_ptr[i * samples_num + j * 2 + 1];
+    for (unsigned long i = 0; i < antenna_num; i++) {
+
+        for (unsigned long j = 0; j < samples_num; j++) {
+            temp_samples[i * samples_num + j] = s_ptr[(i * samples_num + j) * 2] + I * s_ptr[(i * samples_num + j) * 2 + 1];
 
             // Debug: Print 5 complex of each antenna batch
             // if (j < 4 || j > samples_num - 4 || j == 2499) {
-            //     log_trace("shm[%d]      =   %d + i%d", i * samples_num + j, ((int*) samples_shm_ptr)[i * samples_num + j * 2], ((int*) samples_shm_ptr)[i * samples_num + j * 2 + 1]);
+            //     log_trace("shm[%d]      =   %d + i%d", (i * samples_num + j)*2, ((int*) samples_shm_ptr)[(i * samples_num + j) * 2], ((int*) samples_shm_ptr)[(i * samples_num + j * 2) + 1]);
             //     log_trace("vs");
-            //     log_trace("temp_samples[%d][%d] =  %f + i%f", i, j, creal(temp_samples[i][j]), cimag(temp_samples[i][j]));
+            //     log_trace("temp_samples[%d] =  %f + i%f", i * samples_num + j, creal(temp_samples[i*samples_num+j]), cimag(temp_samples[i*samples_num+j]));
             // }
         }
 
-
-        // for (int j = 0; j < samples_num; j += 2)
-        // {
-        //     temp_samples[i][j] = s_ptr[i * samples_num + j] + I * s_ptr[i * samples_num + j + 1];
-        // }
     }
 }
 

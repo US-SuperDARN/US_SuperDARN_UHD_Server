@@ -632,11 +632,11 @@ void phasing_and_beamforming(
 
     // Apply beamforming
     double avg_pwr[meta_data->num_antennas];
-    for (int i = 0; i < num_samples; i++) {
+    for (unsigned long i = 0; i < num_samples; i++) {
         double real_sum = 0.0;
         double imag_sum = 0.0;
 
-        for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
+        for (unsigned long a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
             double real_sample = creal(raw_samples[a_idx * num_samples + i]);
             double imag_sample = cimag(raw_samples[a_idx * num_samples + i]);
             double real_phase = creal(phasing_vector[a_idx]);
@@ -1093,11 +1093,11 @@ void process_avg_ant_pwr (
     log_trace("Entered process_avg_ant_pwr()...");
     // Average antenna powers from all samples
     int s_idx = 0;
-    for (int ant_idx = 0; ant_idx < meta_data->num_antennas; ant_idx++) {     
+    for (unsigned long ant_idx = 0; ant_idx < meta_data->num_antennas; ant_idx++) {
         avg_pwrs[ant_idx] = 0;
 
         // Average Power of antenna's sample set
-        for (int cur_sample = 0; cur_sample < num_samples; cur_sample++) {
+        for (unsigned long cur_sample = 0; cur_sample < num_samples; cur_sample++) {
 
             // Index samples using the following array format: [cur_ant][cur_sample]
             s_idx = ant_idx * num_samples + cur_sample;
