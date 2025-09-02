@@ -758,12 +758,31 @@ int main() {
     }
     int beam_total = array_config.array_info.nbeams;
     int cur_radar = 0;
-    int *muted_config_ants = array_config.gain_control.mute_antenna_ids;
-    int num_muted_config_ants = array_config.gain_control.num_mute_antennas;
+    int muted_config_ants[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};
+    int num_muted_config_ants[STATIC_RADAR_NUM] = {0};
+    num_muted_config_ants[0] = array_config.gain_control.num_mute_antennas;
+    for (int ant_idx=0; ant_idx < num_muted_config_ants[0]; ant_idx++) {
+        muted_config_ants[0][ant_idx] = array_config.gain_control.mute_antenna_ids[ant_idx];
+    }
+
     char ststr[STATIC_RADAR_NUM][SITE_ID_ELEM + 1];
     strcpy(ststr[0], array_config.array_info.radar_stid);
+
     if (radar_num == 2) {
         strcpy(ststr[1], array_config.array_info.radar_stid_2);
+        char array_name_2[128];
+        snprintf(array_name_2, sizeof(array_name_2), "config/%s/array_config__%s.ini", ststr[1], ststr[1]);
+        Config array_config_2 = {0};
+        ini_check = ini_parse(array_name_2, config_ini_handler, &array_config_2);
+        if (ini_check < 0) {
+            log_fatal( "Error reading second array configuration file");
+            perror("Error reading second array configuration file");
+            exit(EXIT_FAILURE);
+        }
+        num_muted_config_ants[1] = array_config_2.gain_control.num_mute_antennas;
+        for (int ant_idx=0; ant_idx < num_muted_config_ants[1]; ant_idx++) {
+            muted_config_ants[1][ant_idx] = array_config_2.gain_control.mute_antenna_ids[ant_idx];
+        }
     }
 
     // Allocate temp mem for shm varibles
@@ -1118,8 +1137,8 @@ int main() {
                 temp_samples,
                 samples_num,
                 &meta_data,
-                muted_config_ants,
-                num_muted_config_ants,
+                muted_config_ants[cur_radar],
+                num_muted_config_ants[cur_radar],
                 ant_active_ct[cur_radar],
                 active_antennas[cur_radar],
                 accu_avg_ant_pwr[cur_radar]
@@ -1155,7 +1174,7 @@ int main() {
 
             // Send back Muted Antennas 
             if (USE_ACTIVE_MUTE == 1) write_int(muted_ant_ids[cur_radar], muted_ant_obj.shm_ptr, muted_ant_idx, STATIC_ANTENNA_NUM);
-            else write_int(muted_config_ants, muted_ant_obj.shm_ptr, num_muted_config_ants, STATIC_ANTENNA_NUM);
+            else write_int(muted_config_ants[cur_radar], muted_ant_obj.shm_ptr, num_muted_config_ants[cur_radar], STATIC_ANTENNA_NUM);
 
             // Process and Store Spectra Data
             if (tcs_storage_i[cur_radar][cur_range] < STORAGE_NUM && active_ant_num > 0) { // Ignore empty sample sets
@@ -1750,8 +1769,8 @@ int main() {
 
                 // Check if muted in Array Config
                 bool is_muted = false;
-                for (int config_i = 0; config_i < num_muted_config_ants; config_i++) {
-                    if (muted_config_ants[config_i] == ant_idx) {
+                for (int config_i = 0; config_i < num_muted_config_ants[cur_radar]; config_i++) {
+                    if (muted_config_ants[cur_radar][config_i] == ant_idx) {
                         is_muted = true;
                         break;
                     }
