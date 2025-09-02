@@ -1133,7 +1133,7 @@ void process_avg_ant_pwr (
         // Check if muted in Array Config
         bool is_muted = false;
         for (int config_i = 0; config_i < num_muted_config_ants; config_i++) {
-            if (muted_config_ants[config_i] == ant_idx) {
+            if (muted_config_ants[config_i] == meta_data->antenna_list[ant_idx]) {
                 log_debug("         Antenna[%2d]   muted: pwr = %f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
                 is_muted = true;
                 break;
