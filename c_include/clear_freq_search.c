@@ -738,7 +738,7 @@ void process_all_beamformed_spectras(
         clear_freq_range[0] = clear_freq_range[0] * 1000; 
         clear_freq_range[1] = clear_freq_range[1] * 1000;
     }
-    log_trace("      clr_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
+    log_trace("      clr_range: | %d -- %d |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
 
     // Beam Angle Calculation
     double beam_angle[beam_total];

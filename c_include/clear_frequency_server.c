@@ -1153,15 +1153,15 @@ int main() {
                 // Ignore inferrometer array
                 if (active_antennas[cur_radar][i] > 0 && (i <= IDX_LAST_MA || i > IDX_LAST_IA) ) {
                     active_ant_num++;
-                    log_debug("checking ant#%d: active", i);
+                    log_debug("checking ant#%2d: active", i);
                 }
                 else if (i <= IDX_LAST_MA || i > IDX_LAST_IA) {
                     muted_ant_ids[cur_radar][muted_ant_idx] = i;
                     muted_ant_idx++;
-                    log_trace("checking ant#%d: inactive", i);
+                    log_trace("checking ant#%2d: inactive", i);
                 }
                 else {
-                    log_trace("checking ant#%d: inferro (ignored)", i);
+                    log_trace("checking ant#%2d: inferro (ignored)", i);
                 }
             }
             log_info("Active Main Array Antennas: %d", active_ant_num);
