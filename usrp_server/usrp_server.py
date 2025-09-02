@@ -1452,7 +1452,7 @@ class clearFrequencyRawDataManager():
         self.logger.debug("Updated clear freq raw data with auto_clear_freq data")
 
         # Update Muted Antenna List
-        #RadarHardwareManager.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
+        #self.usrpManager.RHM.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
 
 
     def record_new_data(self, jrad):
@@ -1480,7 +1480,7 @@ class clearFrequencyRawDataManager():
             self.recordTime[jrad] = time.time()
 
             # Update Muted Antenna List
-            #RadarHardwareManager.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
+            #self.usrpManager.RHM.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
 
             self.logger.debug("clrfreq record time: {}".format(self.recordTime[jrad]))
         else:
@@ -1763,7 +1763,6 @@ class scanManager():
 # merge information from multiple control programs, handle disparate settings
 # e.g, ready flags and whatnot
 class RadarHardwareManager:
-    #mute_antenna_list = []
 
     def __init__(self, port):
         self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
