@@ -1143,20 +1143,17 @@ int main() {
             active_ant_num = 0;
             muted_ant_idx = 0;
             for (int i = 0; i < STATIC_ANTENNA_NUM; i++) {
-                // log_debug("checking ant#%d", i);
-
-                // Ignore interferometer array
-                if (active_antennas[cur_radar][i] > 0 && (i <= IDX_LAST_MA || i > IDX_LAST_IA) ) {
-                    active_ant_num++;
-                    log_debug("checking ant#%2d: active", i);
-                }
-                else if (i <= IDX_LAST_MA || i > IDX_LAST_IA) {
+                if (active_antennas[cur_radar][i] > 0) {
+                    if (i <= IDX_LAST_MA || i > IDX_LAST_IA) {
+                        active_ant_num++;
+                        log_debug("checking ant#%2d: active", i);
+                    } else {
+                        log_trace("checking ant#%2d: interfer (ignored)", i);
+                    }
+                } else {
                     muted_ant_ids[cur_radar][muted_ant_idx] = i;
                     muted_ant_idx++;
                     log_trace("checking ant#%2d: inactive", i);
-                }
-                else {
-                    log_trace("checking ant#%2d: interfer (ignored)", i);
                 }
             }
             log_info("Active Main Array Antennas: %d", active_ant_num);
