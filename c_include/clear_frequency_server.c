@@ -512,7 +512,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
         freq_band clr_band = clr_storage[clr_band_idx];
 
         // Debug: Output results
-        log_trace("Clear Freq Band: | %dHz -- Noise: %f -- %dHz |\n", clr_band.f_start, clr_band.noise, clr_band.f_end);
+        log_trace("Clear Freq Band: | %dHz -- Noise: %.2f -- %dHz |\n", clr_band.f_start, clr_band.noise, clr_band.f_end);
         
         // Record Clear Freq
         fprintf(file, "%d,%d,%f\n", clr_band.f_start, clr_band.f_end, clr_band.noise);
