@@ -905,7 +905,7 @@ int main() {
     int active_antennas[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};    // active antennas for each radar
     int ant_active_ct[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // num of times antenna was active
     int active_ant_num = 0;
-    int muted_ant_ids[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // Inactive Main Array Antennas to be muted at USRP Server side
+    int muted_ant_ids[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};      // Inactive antennas to be muted at USRP Server side
     int muted_ant_idx = 0;
     int clr_storage_i[STATIC_RADAR_NUM][STATIC_CHANNEL_NUM] = {0};
     int tcs_storage_i[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {0};
@@ -1770,6 +1770,8 @@ int main() {
                 if (is_muted == true) ant_status = "   muted";
                 else if (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) {
                     ant_status = "  active";
+                } else if (active_antennas[cur_radar][ant_idx] > 0 ) {
+                    ant_status = "interfer";
                 } else {
                     ant_status = "inactive";
                 }
