@@ -1452,7 +1452,7 @@ class clearFrequencyRawDataManager():
         self.logger.debug("Updated clear freq raw data with auto_clear_freq data")
 
         # Update Muted Antenna List
-        #self.usrpManager.RHM.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
+        self.usrpManager.RHM.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
 
 
     def record_new_data(self, jrad):
@@ -1480,7 +1480,7 @@ class clearFrequencyRawDataManager():
             self.recordTime[jrad] = time.time()
 
             # Update Muted Antenna List
-            #self.usrpManager.RHM.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
+            self.usrpManager.RHM.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
 
             self.logger.debug("clrfreq record time: {}".format(self.recordTime[jrad]))
         else:
@@ -3112,7 +3112,7 @@ class RadarHardwareManager:
                             RHM.logger.info("not scaling antenna {} because of small variance: {} (< threshold)".format(RHM.antenna_idx_list_main[jrad][iAntenna], var_list[iAntenna]))
                             scale_factor = 1
                     else:
-                        RHM.logger.info("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_main[jrad][iAntenna], var_list[iAntenna]))
+                        RHM.logger.info("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_main[jrad][iAntenna]))
 
                     if debugPlot and iAntenna < 8:
                         plt.subplot(8,2,iAntenna*2+2)
