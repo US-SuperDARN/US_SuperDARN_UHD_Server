@@ -35,7 +35,7 @@ from socket_utils import *
 from rosmsg import *
 from drivermsg_library import *
 from radar_config_constants import * 
-from clear_frequency_search import read_restrict_file, record_clrfreq_raw_samples, calc_clear_freq_on_raw_samples
+from clear_frequency_search import record_clrfreq_raw_samples
 from profiling_tools import *
 import logging_usrp
 import utils
@@ -1532,7 +1532,7 @@ class scanManager():
         created for each RadarChannelHandler """
         
 
-    def __init__(self, restricted_frequency_list, channel):
+    def __init__(self, channel):
         self.scan_beam_list        = []
         self.clear_freq_range_list = []
         self.fixFreq = None
@@ -1552,10 +1552,8 @@ class scanManager():
         self.isPostLast = False # to handle last trigger_next_swing() call
         self.logger = logging.getLogger('scanManager')
 
- ###       self.get_clr_freq_raw_data  = None # handle to RHM:ClearFrequencyRawDatamanager.get_raw_data()
         self.logger.debug("in scanManager __init__. Setting isInitSetParameter true")
         self.isInitSetParameter = True
-        self.restricted_frequency_list = restricted_frequency_list
 
         self.syncBeams  = False
         self.beam_times = None
@@ -1632,8 +1630,6 @@ class scanManager():
         return nSec_left
 
 
-    # XXX store current frequencies in clrfreq manager,
-    # add to restricted
     def period_finished(self):
       #  print("swing manager period finished... ")
         if self.next_clrFreq_result is not None:
@@ -1709,7 +1705,6 @@ class scanManager():
         beam_angle = calc_beam_azm_rad(self.numBeams, beamNo, self.beamSep)
         self.logger.debug("clear_freq_range: {} on radar {} beam {} angle {}".format(self.clear_freq_range_list[iPeriod], jrad, beamNo, beam_angle))
 
-        all_restricted_freq = self.restricted_frequency_list + RHM.clearFreqRawDataManager.freq_occupied_by_other_channels
         self.logger.debug('start calc_clear_freq_on_raw_samples')
 
         clear_freq_range = []
@@ -3258,8 +3253,6 @@ class RadarChannelHandler:
         self.cnum = 'unknown'
         self.resultDict_list = []
 
-  ###      self.scanManager  = scanManager(read_restrict_file(RESTRICT_FILE), self)
-  ###      self.scanManager.get_clr_freq_raw_data = self.parent_RadarHardwareManager.clearFreqRawDataManager.get_raw_data
         self.swingManager = parent_RadarHardwareManager.swingManager # reference to global swingManager of RadarHardwareManager
         self.triggered_swing_list = []
 
@@ -4131,8 +4124,7 @@ class RadarChannelHandler:
         self.ctrlprm_struct.set_data('channel', self.cnum)
         self.ctrlprm_struct.set_data('radar',  self.rnum)
 
-        restrict_file = '{}/site.{}/restrict.dat.{}'.format(os.environ['SD_SITE_PATH'], self.ststr, self.ststr)
-        self.scanManager = scanManager(read_restrict_file(restrict_file), self)
+        self.scanManager = scanManager(self)
 
         # TODO: how to handle channel contention?
         # self.logger.name = "ChManager {}".format(self.cnum)
