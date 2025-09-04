@@ -1,7 +1,5 @@
 # TODO: all of these should be moved to a config file at some point..
 
-USRP_MASTER_CLOCK_FREQ = 200e6 # not all values are supported by the ettus UHD driver, changing this will require changing downconversion ratios
-
 # seconds of delay in usrp clock time at the start of an integration period before the first pulse
 # to allow for the usrp_drivers receive a command..
 INTEGRATION_PERIOD_SYNC_TIME_ONESEC = .2
