@@ -940,27 +940,28 @@ int main() {
     int str_f_result = 0; 
     
     // Get site specific restrict file and join with path
-    if (strcmp(ststr[0],"lab") != 0) {
-        log_info( "Using /site.%s/restrict.dat.%s in ststr\n", ststr[0], ststr[0]);
-        str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr[0], ststr[0]);
-        if (str_f_result < 1) {
-            log_error( " site path format failed");
-            return 1;
-        }
-    }
-
-    // Default: Get lab testing restrict file
-    else {
-        log_warn("WARNING: Parameter \'ststr\' not passed from usrp_server or set to the \"lab\" setting!");
-        str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, DEFAULT_SITE_STSTR, DEFAULT_SITE_STSTR);
-        if (str_f_result < 1) {
-            log_error( " site path format failed");
-            return 1;
-        }
+    log_info( "Using /site.%s/restrict.dat.%s from array_config\n", ststr[0], ststr[0]);
+    str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr[0], ststr[0]);
+    if (str_f_result < 1) {
+        log_error( " site path format failed");
+        return 1;
     }
 
     log_info("Using restrict file path: %s\n", restrict_file);
-    read_restrict(restrict_file, restricted_freq, &restricted_num);
+
+    if (read_restrict(restrict_file, restricted_freq, &restricted_num) < 0) {
+        log_warn( "Using default /site.%s/restrict.dat.%s", DEFAULT_SITE_STSTR, DEFAULT_SITE_STSTR);
+        str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, DEFAULT_SITE_STSTR, DEFAULT_SITE_STSTR);
+        if (str_f_result < 1) {
+            log_error( " site path format failed");
+        }
+
+        log_warn("Using default restrict file path: %s\n", restrict_file);
+        if (read_restrict(restrict_file, restricted_freq, &restricted_num) < 0) {
+            return 1;
+        }
+    }
+
 
     // Continuously process clients via shared memory
     while (1) {

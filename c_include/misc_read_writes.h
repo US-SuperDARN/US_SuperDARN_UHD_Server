@@ -33,7 +33,7 @@ void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector
 void read_clr_freq_bin(char *filename, freq_band *clr_band, int *clr_start, int *clr_end);
 
 // Restriction reading
-void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num);
+int read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num);
 
 // Radar configuration reading
 void read_radar_config(char *filepath, int *clr_freq_res);

@@ -367,11 +367,11 @@ void read_clr_freq_bin(char *filename, freq_band *clr_band, int *clr_start, int 
 }
 
 
-void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num) {
+int read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num) {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
-        file_access_error(filepath);
-        exit(EXIT_FAILURE);
+        log_error("ERROR: accessing filepath: %s\n", filepath);
+        return -1;
     }
 
     char line[256];
@@ -407,6 +407,8 @@ void read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_n
     log_trace("Number of restricted bands: %d", *restricted_num);
     
     fclose(file);
+
+    return 0;
 }
 
 void read_radar_config(char *filepath, int *avg_ratio) {
