@@ -395,15 +395,15 @@ class usrp_get_auto_clear_freq_command(driver_command):
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
 
+            if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
+                time.sleep(0.003)
+
             antenna_no_side = recv_dtype(sock, np.int32)
             if antenna_no_side == -1:
                 sample_buf_side = []
             else:
                 nSamples = recv_dtype(sock, np.int32)
                 self.logger.debug("clear search return number of samples:{}".format(nSamples))
-
-                if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
-                    time.sleep(0.003)
 
                 time.sleep(0.001)
                 try:
@@ -442,11 +442,53 @@ class usrp_sync_time_command(driver_command):
 class usrp_clrfreq_command(driver_command):
     def __init__(self, usrps, num_clrfreq_samples, clrfreq_uhd_time, clrfreq_freq, clrfreq_rate):
         driver_command.__init__(self, usrps, UHD_CLRFREQ)
+        self.logger.debug("num_clrfreq_samples: {}".format(num_clrfreq_samples))
         self.queue(num_clrfreq_samples, np.int32, 'num_clrfreq_samples')
         self.queue(np.int32(np.int32(clrfreq_uhd_time)), np.int32, 'clrfreq_uhd_time_int')
         self.queue(np.float64(np.mod(clrfreq_uhd_time,1)), np.float64, 'clrfreq_uhd_time_frac')
         self.queue(clrfreq_freq, np.float64, 'clrfreq_freq')
         self.queue(clrfreq_rate, np.float64, 'clrfreq_rate')
+
+    def recv_samples_from_one_usrp(self, sock, nSamples):
+
+        antenna_no = []
+        sample_buf = []
+        nSides = recv_dtype(sock, np.int32)
+        for jside in range(nSides):
+
+            if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
+                time.sleep(0.003)
+
+            antenna_no_side = recv_dtype(sock, np.int32)
+            if antenna_no_side == -1:
+                sample_buf_side = []
+            else:
+                clrfreq_rate_actual = recv_dtype(sock, np.float64)
+
+                time.sleep(0.001)
+                try:
+                    sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
+                except:
+                    return nSides, -1, sample_buf
+
+                sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
+
+            antenna_no.append(antenna_no_side)
+            sample_buf.append(sample_buf_side)
+
+        return nSides, antenna_no, sample_buf
+
+    def recv_all(self, nSamples):
+        antenna_list = []
+        all_samples = []
+        for sock in self.clients:
+            nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock, nSamples)
+            if tmp_ant != -1:
+                for jside in range(nSides):
+                    antenna_list.append(tmp_ant[jside])
+                    all_samples.append(tmp_samples[jside])
+
+        return antenna_list, all_samples
 
 
 # prompt the usrp driver to cleanly shut down, useful for testing
