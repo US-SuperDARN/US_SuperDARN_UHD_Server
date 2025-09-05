@@ -1541,16 +1541,16 @@ int main() {
             // If Log age is 0 (first time), or Log Age has reached next 2 hr interval, initialize new log files
             if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
                 if (log_age[cur_radar][cur_channel] == 0 || log_age[cur_radar][cur_channel] != (time(NULL) - (time(NULL) % 7200))) {
-                    char *ext = BIN_OR_CSV_LOG ? ".csv" : ".bin";
+                    char *ext = BIN_OR_CSV_LOG ? ".csv" : "bin";
                     log_trace("extension \"%s\" enabled", ext);
                     
                     log_trace("Initializing FFT File");
-                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
+                    sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+'`', "%s");
                     gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
                     strcpy(fft_file[cur_radar][cur_channel], tcs_spectra_filename);
 
                     log_trace("Initializing Clear Freq File");
-                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+'`', ".tcs%s");
+                    sprintf(tcs_clr_filename_template, CLR_FREQ_FILE, "%s", ststr[cur_radar], channel+'`', "%s");
                     gen_filename(&tcs_clr_filename_template, ext, &tcs_clr_filename);
                     strcpy(clr_file[cur_radar][cur_channel], tcs_clr_filename);
 
