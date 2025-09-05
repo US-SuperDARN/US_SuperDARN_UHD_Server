@@ -286,7 +286,7 @@ class usrpSockManager():
                else:
                   index=iSock-offset
                   
-               self.logger.error("Connection lost to usrp {}:{}. Removing it from sock list. ".format(self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
+               self.logger.error("Connection lost to usrp {} ({}:{}). Removing it from sock list.".format(self.hostnameList_active[jrad][index], self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
                   
                self.remove_sock(jrad,self.socks[jrad][index])
                offset += 1 
@@ -381,11 +381,11 @@ class usrpSockManager():
                self.antennaList_active[jrad].append(tmp_antenna_list[jrad][iUSRP])
                self.hostnameList_active[jrad].append(tmp_hostname_list[jrad][iUSRP])
                self.driverHostnameList_active[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
-               self.logger.info('reconnection to usrp  {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
+               self.logger.info('reconnection to usrp {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
                do_resync = True
 
             except ConnectionRefusedError:
-               self.logger.warning('reconnection to usrp {} failed'.format(tmp_driverHostname_list[jrad][iUSRP]))
+               self.logger.warning('reconnection to usrp {} failed'.format(tmp_hostname_list[jrad][iUSRP]))
                self.addressList_inactive[jrad].append(usrp)
                self.antennaList_inactive[jrad].append(tmp_antenna_list[jrad][iUSRP]) 
                self.hostnameList_inactive[jrad].append(tmp_hostname_list[jrad][iUSRP])
