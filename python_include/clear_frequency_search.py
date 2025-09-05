@@ -10,11 +10,9 @@
 # ros/server/reciever_handler.c receiver_assign_frequency
 # ros/server/main.c:273, reading restrict file
 # based on gc316_tcp_driver/main.c, fetching samples and signal processing
-import numpy as np
 import time
 from drivermsg_library import *
 from rosmsg import *
-from radar_config_constants import *
 
 
 DEBUG = 1
@@ -23,7 +21,7 @@ def dbPrint(msg):
      print("clear_frequency_search.py : " + msg)
 
 
-def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, clrfreq_rate_requested):
+def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, clrfreq_rate_requested, min_clrfreq_delay):
     dbPrint("enter record_clrfreq_raw_samples")
     num_clrfreq_samples = int(num_clrfreq_samples)
     output_samples_list     = []
@@ -49,7 +47,7 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
     # schedule clear frequency search in MIN_CLRFREQ_DELAY seconds
     dbPrint(" send clrfreq_command")
 
-    clrfreq_time = usrptime + MIN_CLRFREQ_DELAY
+    clrfreq_time = usrptime + min_clrfreq_delay
 
     dbPrint("current UHD time: {}, scheduling clrfreq for: {}".format(usrptime, clrfreq_time))
 

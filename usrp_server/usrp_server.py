@@ -1464,12 +1464,12 @@ class clearFrequencyRawDataManager():
             rec_new_samples = True
         else:
             data_age =  time.time() - self.recordTime[jrad] 
-            rec_new_samples = data_age > MAX_AGE_OF_AUTO_CLEAR_FREQ
+            rec_new_samples = data_age > self.usrpManager.RHM.auto_max_age
 
         if rec_new_samples:
             self.logger.debug("clearFreqRawData: age of data is {:2.2f} s. Recording new data ".format(data_age))
             self.logger.debug('start record_clrfreq_raw_samples on radar {}'.format(jrad))
-            self.rawData[jrad], self.antennaList[jrad] = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(jrad), self.number_of_samples, self.center_freq[jrad], self.sampling_rate)
+            self.rawData[jrad], self.antennaList[jrad] = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(jrad), self.number_of_samples, self.center_freq[jrad], self.sampling_rate, self.usrpManager.RHM.min_clrfreq_delay)
             self.logger.debug('end record_clrfreq_raw_samples')
 
             self.metaData[jrad]['antenna_list'] = self.antennaList[jrad]
@@ -2007,9 +2007,14 @@ class RadarHardwareManager:
         driver_config = configparser.ConfigParser()
         driver_config.read('../driver_config.ini')
         self.ini_log_settings     = driver_config['log_settings']
+        self.ini_clr_settings     = driver_config['clr_settings']
         self.ini_shm_settings     = driver_config['shm_settings']
         self.ini_cuda_settings    = driver_config['cuda_settings']
         self.ini_network_settings = driver_config['network_settings']
+
+        self.min_clrfreq_delay = float(self.ini_clr_settings['min_clrfreq_delay'])
+        self.auto_max_age      =   int(self.ini_clr_settings['auto_max_age'])
+        self.auto_pause_time   = float(self.ini_clr_settings['auto_pause_time'])
 
         # READ usrp_config.ini
         usrp_config = configparser.ConfigParser()
@@ -2528,7 +2533,7 @@ class RadarHardwareManager:
                  self.logger.debug("start USRP_SETUP")
                  if self.auto_collect_clrfrq_after_rx:
                     nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples 
-                    nSamples_pause_before_autoclearfreq = int(PAUSE_TIME_BEFORE_AUTO_CLEAR_FREQ * self.usrp_rf_rx_rate)
+                    nSamples_pause_before_autoclearfreq = int(self.auto_pause_time * self.usrp_rf_rx_rate)
                     collect_auto_clear_freq_samples = True
                     auto_clear_freq_meta_data = dict(sampling_rate=self.usrp_rf_rx_rate, center_freq=self.mixingFreqManager.current_mixing_freq[jrad]*1000)
                  else:
