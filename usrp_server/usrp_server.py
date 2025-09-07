@@ -2808,7 +2808,7 @@ class RadarHardwareManager:
 
                  # save IF raw data
                  for channel in self.channels[jrad]:
-                    if channel.processing_state == CS_PROCESSING and  os.path.isfile("/collect.if.{:c}".format(97+channel.cnum)):
+                    if channel.processing_state == CS_PROCESSING and os.path.isfile("/collect.if.{:c}".format(96+channel.cnum)):
                        channel.logger.warning("Channel {} saving raw IF samples.".format(channel.cnum))
                        channel.get_if_data()
                        channel.write_if_data()
