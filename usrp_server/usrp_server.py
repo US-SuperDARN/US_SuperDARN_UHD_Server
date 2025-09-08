@@ -1799,6 +1799,7 @@ class RadarHardwareManager:
            self.send_usrp_setup_command(jrad)
            
            
+        self.last_period         = [[] for jrad in range(self.N_RADARs)]
         self.active_channels     = [[] for jrad in range(self.N_RADARs)]
         self.channels            = [[] for jrad in range(self.N_RADARs)]   # all channels that are really transmitting
         self.newChannelList      = []   # waiting list for channels to be added at the right time (between two trigger_next() calls)
@@ -2842,10 +2843,11 @@ class RadarHardwareManager:
               channel.logger.debug("Switching processing state (swing {}) state of radar {} cnum {} from CS_PROCESSING to CS_SAMPLES_READY".format(self.swingManager.processingSwing, channel.rnum, channel.cnum )) 
               channel.processing_state = CS_SAMPLES_READY
  
-        # CUDA_ADD & CUDA_GENGERATE for processingSwing 
+        # CUDA_ADD & CUDA_GENERATE for processingSwing
         for channel in np.concatenate(self.channels).tolist():
            self.logger.debug("Checking radar {} channel {} to see if it should be added".format(channel.rnum,channel.cnum))
            if channel.scanManager.isLastPeriod: # or channel.scanManager.isForelastPeriod:
+               self.last_period[channel.rnum] = True
                self.logger.debug("start CUDA_REMOVE_CHANNEL")
                cmd = cuda_remove_channel_command(self.cudasocks[channel.rnum], sequence=channel.get_current_sequence(remove_channel=True), swing = self.swingManager.processingSwing) 
                self.logger.debug('send CUDA_REMOVE_CHANNEL (rnum {} cnum {}, swing {})'.format(channel.rnum, channel.cnum, self.swingManager.processingSwing))
@@ -2861,6 +2863,7 @@ class RadarHardwareManager:
                      self.active_channels[channel.rnum].remove(channel)
 
            else:
+               self.last_period[channel.rnum] = False
                if channel.active:
                   self.logger.debug("start CUDA_ADD_CHANNEL")
                   seq=channel.get_next_sequence()
@@ -2882,7 +2885,9 @@ class RadarHardwareManager:
         # CUDA_GENERATE for next period
         self.logger.debug('start CUDA_GENERATE_PULSE')
         for jrad in range(self.N_RADARs):
-           if radar_active[jrad]:
+           if self.last_period[jrad]:
+              self.logger.debug('skipping CUDA_GENERATE_PULSE jrad {} (is last period)'.format(jrad))
+           elif radar_active[jrad]:
               self.logger.debug('start CUDA_GENERATE_PULSE jrad {}  socket {}'.format(jrad,self.cudasocks[jrad]))
               cmd = cuda_generate_pulse_command(self.cudasocks[jrad], self.swingManager.processingSwing, self.mixingFreqManager.current_mixing_freq[jrad]*1000)
               cmd.transmit()
