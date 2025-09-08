@@ -2869,7 +2869,7 @@ class RadarHardwareManager:
                   seq=channel.get_next_sequence()
                   self.logger.debug("socket info {}".format(self.cudasocks[channel.rnum]))
                   cmd = cuda_add_channel_command(self.cudasocks[channel.rnum], sequence=seq, swing = self.swingManager.processingSwing) 
-                  self.logger.debug('send CUDA_ADD_CHANNEL (rnum {}, cnum {}, swing {}, beam {})'.format(channel.rnum, channel.cnum, self.swingManager.processingSwing, channel.scanManager.current_beam))
+                  self.logger.debug('send CUDA_ADD_CHANNEL (rnum {}, cnum {}, swing {}, beam {})'.format(channel.rnum, channel.cnum, self.swingManager.processingSwing, channel.scanManager.next_beam))
                   cmd.transmit()
                   cmd.client_return()      
                   self.logger.debug("end CUDA_ADD_CHANNEL")
@@ -3164,7 +3164,7 @@ class RadarHardwareManager:
                 cur_freq=channel.ctrlprm_struct.payload['rfreq']
                 
                 bmazm         = calc_beam_azm_rad(RHM.array_nBeams[channel.rnum], cur_beam, RHM.array_beam_sep[channel.rnum])    # calculate beam azimuth from transmit beam number          
-                channel.logger.debug("rx beamforming: radar {} ch {}, beam {}".format(channel.rnum, channel.cnum, channel.scanManager.current_beam))
+                channel.logger.debug("rx beamforming: radar {} ch {}, beam {}".format(channel.rnum, channel.cnum, cur_beam))#, channel.scanManager.current_beam
                 pshift        = calc_phase_increment(bmazm, cur_freq * 1000., RHM.array_x_spacing[channel.rnum])       # calculate antenna-to-antenna phase shift for steering at a frequency        
                 channel.logger.debug("rx beamforming: radar {} ch {}, frequency {}".format(channel.rnum, channel.cnum, cur_freq))#, clrFreqResult[0]))
 
