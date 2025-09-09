@@ -2889,7 +2889,8 @@ class RadarHardwareManager:
               self.logger.debug('skipping CUDA_GENERATE_PULSE jrad {} (is last period)'.format(jrad))
            elif radar_active[jrad]:
               self.logger.debug('start CUDA_GENERATE_PULSE jrad {}  socket {}'.format(jrad,self.cudasocks[jrad]))
-              cmd = cuda_generate_pulse_command(self.cudasocks[jrad], self.swingManager.processingSwing, self.mixingFreqManager.current_mixing_freq[jrad]*1000)
+              cmd = cuda_generate_pulse_command(self.cudasocks[jrad], self.swingManager.processingSwing,
+                                                self.mixingFreqManager.current_mixing_freq[jrad]*1000)
               cmd.transmit()
               cmd.client_return()
         self.logger.debug('end CUDA_GENERATE_PULSE')
@@ -2927,8 +2928,10 @@ class RadarHardwareManager:
                  else: 
                     rx_status                = ready_return['status']
                     if rx_status < 0:
-                       rx_error_codes = dict(ERROR_CODE_NONE = 0x0 , ERROR_CODE_TIMEOUT = 0x1, ERROR_CODE_LATE_COMMAND = 0x2, ERROR_CODE_BROKEN_CHAIN = 0x4,\
-                                             ERROR_CODE_OVERFLOW = 0x8, ERROR_CODE_ALIGNMENT = 0xc, ERROR_CODE_BAD_PACKET = 0xf, WRONG_NUMBER_OF_SAMPLES = 100)
+                       rx_error_codes = dict(ERROR_CODE_NONE = 0x0, ERROR_CODE_TIMEOUT = 0x1,
+                                             ERROR_CODE_LATE_COMMAND = 0x2, ERROR_CODE_BROKEN_CHAIN = 0x4,
+                                             ERROR_CODE_OVERFLOW = 0x8, ERROR_CODE_ALIGNMENT = 0xc,
+                                             ERROR_CODE_BAD_PACKET = 0xf, WRONG_NUMBER_OF_SAMPLES = 100)
                      
                        error_code = - rx_status
                        print_name = 'unknown'
@@ -2940,7 +2943,7 @@ class RadarHardwareManager:
                              # out of sequence flag adds (-) 1000 to error code
                        if error_code >= 1000:  
                           print_name += " and out_of_sequence=1"
-                       self.logger.error("Error: {}  (code {}) occurred in rx_worker for antennas {}. ".format(print_name, rx_status, self.usrpManager.antennaList_active[jrad][iUSRP-antenna_list_offset]))
+                       self.logger.error("Error: {} (code {}) occurred in rx_worker for radar {} antennas {}.".format(print_name, rx_status, jrad, self.usrpManager.antennaList_active[jrad][iUSRP-antenna_list_offset]))
 
                     else:
                        all_usrps_report_failure = False
