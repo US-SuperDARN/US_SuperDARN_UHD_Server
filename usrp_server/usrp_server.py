@@ -3160,50 +3160,56 @@ class RadarHardwareManager:
 
         maxInt16value = np.iinfo(np.int16).max # +32767
         minInt16value = np.iinfo(np.int16).min # -32768
-    
+
         for iChannel, channel in enumerate(RHM.channels[jrad]):
             if channel.processing_state is CS_PROCESSING:
                 cur_beam=channel.ctrlprm_struct.payload['rbeam']
                 cur_freq=channel.ctrlprm_struct.payload['rfreq']
-                
-                bmazm         = calc_beam_azm_rad(RHM.array_nBeams[channel.rnum], cur_beam, RHM.array_beam_sep[channel.rnum])    # calculate beam azimuth from transmit beam number          
-                channel.logger.debug("rx beamforming: radar {} ch {}, beam {}".format(channel.rnum, channel.cnum, cur_beam))#, channel.scanManager.current_beam
-                pshift        = calc_phase_increment(bmazm, cur_freq * 1000., RHM.array_x_spacing[channel.rnum])       # calculate antenna-to-antenna phase shift for steering at a frequency        
-                channel.logger.debug("rx beamforming: radar {} ch {}, frequency {}".format(channel.rnum, channel.cnum, cur_freq))#, clrFreqResult[0]))
 
+                # calculate beam azimuth from transmit beam number
+                bmazm = calc_beam_azm_rad(RHM.array_nBeams[channel.rnum], cur_beam, RHM.array_beam_sep[channel.rnum])
+                channel.logger.debug("rx beamforming: radar {} ch {}, beam {}".format(channel.rnum, channel.cnum, cur_beam))
 
-                
+                # calculate antenna-to-antenna phase shift for steering at a frequency
+                pshift = calc_phase_increment(bmazm, cur_freq * 1000., RHM.array_x_spacing[channel.rnum])
+                channel.logger.debug("rx beamforming: radar {} ch {}, frequency {}".format(channel.rnum, channel.cnum, cur_freq))
+
                 # MAIN ARRAY
                 first_pol_ant_idx = [ant_idx for ant_idx in RHM.antenna_idx_list_main[jrad] if ant_idx < 20]
-                first_pol_matrix_idx = [RHM.antenna_idx_list_main[jrad].index(ant_idx) for ant_idx in first_pol_ant_idx] 
-                phasing_matrix = np.matrix([rad_to_rect(ant_idx * pshift)*antenna_scale_factors[iChannel][ant_idx] for ant_idx in first_pol_ant_idx])  # calculate a complex number representing the phase shift for each antenna
+                first_pol_matrix_idx = [RHM.antenna_idx_list_main[jrad].index(ant_idx) for ant_idx in first_pol_ant_idx]
+
+                # calculate a complex number representing the phase shift for each antenna
+                phasing_matrix = np.matrix([rad_to_rect(ant_idx * pshift)*antenna_scale_factors[iChannel][ant_idx] for ant_idx in first_pol_ant_idx])
                 print("main")
                 print(phasing_matrix)
-                s_matrix = np.matrix([antenna_scale_factors[iChannel][ant_idx] for ant_idx in first_pol_ant_idx])  # calculate a complex number representing the phase shift for each antenna
-                print(s_matrix)
+
+                # # create a matrix of the antenna scale factors (debug only)
+                # s_matrix = np.matrix([antenna_scale_factors[iChannel][ant_idx] for ant_idx in first_pol_ant_idx])
+                # print(s_matrix)
+
                 complex_float_samples = phasing_matrix * np.matrix(main_samples[iChannel])[first_pol_matrix_idx,:] 
                 real_mat = np.real(complex_float_samples)
                 imag_mat = np.imag(complex_float_samples)
-                abs_max_value = max(abs(real_mat).max(),  abs(imag_mat).max())
-                RHM.logger.info("Abs max_value is {} (int16_max= {}, max_value / int16_max = {} ) ".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value ))                
+                abs_max_value = max(abs(real_mat).max(), abs(imag_mat).max())
+                RHM.logger.info("Main array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
 
                 real_mx = np.max(np.abs(real_mat))
                 imag_mx = np.max(np.abs(imag_mat))
-                if (real_mx > maxInt16value) or (imag_mx > maxInt16value ):
-                   OverflowError("calc_beamforming: overflow error in casting data to complex int")
+                if (real_mx > maxInt16value) or (imag_mx > maxInt16value):
+                   RHM.logger.warning("Overflow error while casting main array beamformed rx samples to complex int16s.")
+                   OverflowError("calc_beamforming: overflow error in casting main array data to complex int")
                    scale_value = maxInt16value/np.max([real_mx,imag_mx])
                    real_mat = scale_value*real_mat
                    imag_mat = scale_value*imag_mat
 
                 # # check for clipping
                 # if (real_mat > maxInt16value).any() or (real_mat < minInt16value).any() or (imag_mat > maxInt16value).any() or (imag_mat < minInt16value).any():
-                #    RHM.logger.info("Overflow error while casting beamformed rx samples to complex int16s.")
-        
+                #    RHM.logger.warning("Overflow error while casting main array beamformed rx samples to complex int16s.")
                 #    OverflowError("calc_beamforming: overflow error in casting data to complex int")
                 #    real_mat = np.clip(real_mat, minInt16value, maxInt16value)
                 #    imag_mat = np.clip(imag_mat, minInt16value, maxInt16value)
 
-                complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.uint16(imag_mat) 
+                complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.uint16(imag_mat)
                 beamformed_main_samples[iChannel] = complexInt32_pack_mat.tolist()[0]
 
                 if debugPlot:
@@ -3218,22 +3224,40 @@ class RadarHardwareManager:
                    plt.title("Main array")
 
                 # BACK ARRAY (same as middle of main array, ant 16 = ant 6, ...)
-                phasing_matrix = np.matrix([rad_to_rect((ant_idx-10) * pshift)* antenna_scale_factors[iChannel][ant_idx] for ant_idx in RHM.antenna_idx_list_back[jrad]])  # calculate a complex number representing the phase shift for each antenna
-                s_matrix = np.matrix([antenna_scale_factors[iChannel][ant_idx] for ant_idx in RHM.antenna_idx_list_back[jrad]])  # calculate a complex number representing the phase shift for each antenna
+                # calculate a complex number representing the phase shift for each antenna
+                phasing_matrix = np.matrix([rad_to_rect((ant_idx-10) * pshift)* antenna_scale_factors[iChannel][ant_idx] for ant_idx in RHM.antenna_idx_list_back[jrad]])
                 print("back")
                 print(phasing_matrix)
-                print(s_matrix)
 
-                complex_float_samples = phasing_matrix * np.matrix(back_samples[iChannel]) 
+                # # create a matrix of the antenna scale factors (debug only)
+                # s_matrix = np.matrix([antenna_scale_factors[iChannel][ant_idx] for ant_idx in RHM.antenna_idx_list_back[jrad]])
+                # print(s_matrix)
+
+                complex_float_samples = phasing_matrix * np.matrix(back_samples[iChannel])
                 real_mat = np.real(complex_float_samples)
                 imag_mat = np.imag(complex_float_samples)
-                if (real_mat > maxInt16value).any() or (real_mat < minInt16value).any() or (imag_mat > maxInt16value).any() or (imag_mat < minInt16value).any():
-                   RHM.logger.error("Overflow error while casting beamformed rx samples to complex int16s.")
-                   OverflowError("calc_beamforming: overflow error in casting data to complex int")
-                   real_mat = np.clip(real_mat, minInt16value, maxInt16value)
-                   imag_mat = np.clip(imag_mat, minInt16value, maxInt16value)
-                complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.int16(imag_mat) 
+                abs_max_value = max(abs(real_mat).max(), abs(imag_mat).max())
+                RHM.logger.info("Back array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
+
+                real_mx = np.max(np.abs(real_mat))
+                imag_mx = np.max(np.abs(imag_mat))
+                if (real_mx > maxInt16value) or (imag_mx > maxInt16value):
+                   RHM.logger.warning("Overflow error while casting back array beamformed rx samples to complex int16s.")
+                   OverflowError("calc_beamforming: overflow error in casting back array data to complex int")
+                   scale_value = maxInt16value/np.max([real_mx,imag_mx])
+                   real_mat = scale_value*real_mat
+                   imag_mat = scale_value*imag_mat
+
+                # # check for clipping
+                # if (real_mat > maxInt16value).any() or (real_mat < minInt16value).any() or (imag_mat > maxInt16value).any() or (imag_mat < minInt16value).any():
+                #    RHM.logger.warning("Overflow error while casting back array beamformed rx samples to complex int16s.")
+                #    OverflowError("calc_beamforming: overflow error in casting data to complex int")
+                #    real_mat = np.clip(real_mat, minInt16value, maxInt16value)
+                #    imag_mat = np.clip(imag_mat, minInt16value, maxInt16value)
+
+                complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.int16(imag_mat)
                 beamformed_back_samples[iChannel] = complexInt32_pack_mat.tolist()[0]
+
                 if debugPlot:
                    import matplotlib.pyplot as plt
                    plt.subplot(2,1,2)
@@ -3241,7 +3265,6 @@ class RadarHardwareManager:
                    plt.plot(imag_mat.tolist()[0])
                    plt.title("Back array")
                    plt.show()
-
 
         return beamformed_main_samples, beamformed_back_samples
 
