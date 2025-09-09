@@ -4113,7 +4113,7 @@ class RadarChannelHandler:
             sample_send_status = recv_dtype(self.conn, np.int32)
             assert sample_send_status == iSequence 
 
-        self.logger.warning('GET_DATA: sending back array samples, but not sure if this is correct!')
+        self.logger.debug('GET_DATA: finished returning samples')
 
 
     
