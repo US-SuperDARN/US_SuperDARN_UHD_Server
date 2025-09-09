@@ -2270,7 +2270,7 @@ class RadarHardwareManager:
 
             # CUDA_ADD_CHANNEL in first period
             RHM.logger.debug('RADAR number: {}'.format(channel.rnum))
-            seq=channel.get_current_sequence()
+            seq = channel.get_current_sequence()
             RHM.logger.debug('SEQUENCE: {}'.format(seq))
             cmd = cuda_add_channel_command(RHM.cudasocks[channel.rnum], sequence=seq, swing = channel.swingManager.activeSwing)
             RHM.logger.debug('calling CUDA_ADD_CHANNEL at initialize_channel() (rnum {} cnum {}, swing {}, beam {})'.format(channel.rnum, channel.cnum, channel.swingManager.activeSwing, channel.scanManager.current_beam))
@@ -2866,7 +2866,7 @@ class RadarHardwareManager:
                self.last_period[channel.rnum] = False
                if channel.active:
                   self.logger.debug("start CUDA_ADD_CHANNEL")
-                  seq=channel.get_next_sequence()
+                  seq = channel.get_next_sequence()
                   self.logger.debug("socket info {}".format(self.cudasocks[channel.rnum]))
                   cmd = cuda_add_channel_command(self.cudasocks[channel.rnum], sequence=seq, swing = self.swingManager.processingSwing) 
                   self.logger.debug('send CUDA_ADD_CHANNEL (rnum {}, cnum {}, swing {}, beam {})'.format(channel.rnum, channel.cnum, self.swingManager.processingSwing, channel.scanManager.next_beam))
@@ -3426,7 +3426,7 @@ class RadarChannelHandler:
 
     def get_next_sequence(self):
         self.update_ctrlprm_class('next')
-        seq = sequence(self.npulses_per_sequence,  self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor,  self.ctrlprm_struct.payload )
+        seq = copy.deepcopy( sequence(self.npulses_per_sequence,self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload) )
         return seq
 
     def DefaultHandler(self, rmsg):
