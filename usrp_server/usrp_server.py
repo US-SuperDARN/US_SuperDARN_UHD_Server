@@ -2571,7 +2571,7 @@ class RadarHardwareManager:
                  rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
                  cmd.client_return()
 
-                 self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate{} txfreq{}".format(rxrate,rxfreq,txrate,txfreq))
+                 self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate {} txfreq {}".format(rxrate,rxfreq,txrate,txfreq))
 
                  # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
 
@@ -2941,7 +2941,9 @@ class RadarHardwareManager:
                              if err_value == (error_code % 1000):
                                 print_name = "UHD::" + err_name
                                 break
-                             # out of sequence flag adds (-) 1000 to error code
+                       if error_code == 10:
+                          print_name = "RX_WORKER_STREAM_TIME_ERROR"
+                       # out of sequence flag adds (-) 1000 to error code
                        if error_code >= 1000:
                           print_name += " and out_of_sequence=1"
                        self.logger.error("Error: {} (code {}) occurred in rx_worker for radar {} antennas {}.".format(print_name, rx_status, jrad, self.usrpManager.antennaList_active[jrad][iUSRP-antenna_list_offset]))
