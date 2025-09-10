@@ -2359,7 +2359,7 @@ class RadarHardwareManager:
 
             self.nRegisteredChannels -= 1
             if self.nRegisteredChannels <= 0:
-                self.nRegisteredChnnels = 0
+                self.nRegisteredChannels = 0
                 self.commonChannelParameter = {}
 
         else:
