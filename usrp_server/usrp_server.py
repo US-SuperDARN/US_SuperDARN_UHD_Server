@@ -2071,8 +2071,11 @@ class RadarHardwareManager:
     def send_usrp_setup_command(self,jrad):
        self.logger.debug("Call to USRP_SETUP to set initial parameters")
        self.usrp_setup_semaphore.acquire()
-       cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
-                                self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, 1, 0, 0, 0, 0, [0], 0)
+       cmd = usrp_setup_command(self.usrpManager.socks[jrad], \
+                                self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
+                                self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
+                                self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, \
+                                1, 0, 0, 0, 0, [0], 0)
        cmd.transmit()
        time.sleep(0.001)
 
@@ -2551,9 +2554,15 @@ class RadarHardwareManager:
 
                  self.usrp_setup_semaphore.acquire()
 
-                 cmd = usrp_setup_command(self.usrpManager.socks[jrad], self.mixingFreqManager.current_mixing_freq[jrad]*1000, self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
-                                          self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, self.nPulses_per_integration_period,  channel.nrf_rx_samples_per_integration_period, \
-                                          nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse, channel.integration_period_pulse_sample_offsets, \
+                 cmd = usrp_setup_command(self.usrpManager.socks[jrad], \
+                                          self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
+                                          self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
+                                          self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, \
+                                          self.nPulses_per_integration_period, \
+                                          channel.nrf_rx_samples_per_integration_period, \
+                                          nSamples_pause_before_autoclearfreq, nSamples_clear_freq, \
+                                          nSamples_per_pulse, \
+                                          channel.integration_period_pulse_sample_offsets, \
                                           self.swingManager.activeSwing)
                  cmd.transmit()
                  time.sleep(0.001)
