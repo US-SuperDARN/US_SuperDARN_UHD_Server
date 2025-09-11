@@ -2087,7 +2087,8 @@ class RadarHardwareManager:
        self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate {} txfreq {}".format(rxrate,rxfreq,txrate,txfreq))
 
        try:
-          if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
+          # give non-local usrps some extra time to respond
+          if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
              time.sleep(0.002)
        except:
           self.logger.debug("No USRPs for radar {}".format(jrad))
@@ -2578,7 +2579,8 @@ class RadarHardwareManager:
                  # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
 
                  try:
-                    if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
+                    # give non-local usrps some extra time to respond
+                    if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
                        time.sleep(0.002)
                  except:
                     self.logger.debug("No USRPs for radar {}".format(jrad))
@@ -2916,7 +2918,8 @@ class RadarHardwareManager:
               cmd = usrp_ready_data_command(self.usrpManager.socks[jrad], self.swingManager.activeSwing)
               cmd.transmit()
 
-              if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
+              # give non-local usrps some extra time to respond
+              if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
                  time.sleep(0.002)
               else:
                  time.sleep(0.004)
@@ -3014,7 +3017,9 @@ class RadarHardwareManager:
               self.logger.debug("Getting auto clear freq data for radar {}. nSamples_clear_freq: {}".format(jrad,nSamples_clear_freq))
               cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],int(nSamples_clear_freq))
               cmd.transmit()
-              if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1': #give non-local usrps some extra time to respond
+
+              # give non-local usrps some extra time to respond
+              if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
                  time.sleep(0.001)
               else:
                  time.sleep(0.0025)
