@@ -2361,6 +2361,7 @@ class RadarHardwareManager:
             if self.nRegisteredChannels <= 0:
                 self.nRegisteredChannels = 0
                 self.commonChannelParameter = {}
+                radar_active[:] = False
 
         else:
             self.logger.warning('unregister_channel_from_HardwareManager() channel already deleted')
@@ -2861,6 +2862,10 @@ class RadarHardwareManager:
                   if channel in self.channels[channel.rnum]:
                      self.channels[channel.rnum].remove(channel)
                      self.nRegisteredChannels -= 1
+                     if self.nRegisteredChannels <= 0:
+                        self.nRegisteredChannels = 0
+                        self.commonChannelParameter = {}
+                        radar_active[:] = False
                   if channel in self.active_channels[channel.rnum]:
                      self.active_channels[channel.rnum].remove(channel)
 
@@ -4216,7 +4221,6 @@ class RadarChannelHandler:
 
     def SetActiveHandler(self, rmsg):
         # called by site library at the start of a scan
-        # radar_active[:]=False
         self.active = True
         if self not in self.parent_RadarHardwareManager.active_channels[self.rnum]:
            self.parent_RadarHardwareManager.active_channels[self.rnum].append(self)
@@ -4267,6 +4271,7 @@ class RadarChannelHandler:
             assert(fixFreq == self.scanManager.fixFreq)
             assert(scan_beam_list == self.scanManager.scan_beam_list)
             self.logger.info("SetActiveHandler: Skipping reset of scanManager and swingManager because nothing changed with camping beam.")
+            radar_active[self.rnum] = True
             return RMSG_SUCCESS
 
         if self.parent_RadarHardwareManager.trigger_next_function_running:
@@ -4281,7 +4286,7 @@ class RadarChannelHandler:
         self.scanManager.init_new_scan(freq_range_list, scan_beam_list, fixFreq, scan_times_list, scan_time, integration_time, start_period)
         self.triggered_swing_list = []
 
-        radar_active[self.rnum]=True
+        radar_active[self.rnum] = True
 
         addFreqResult = self.parent_RadarHardwareManager.mixingFreqManager.add_new_freq_band(self)
 
@@ -4290,7 +4295,7 @@ class RadarChannelHandler:
             #self.logger.debug("Resetting swing manager (active={}, processing={})".format(self.swingManager.activeSwing, self.swingManager.processingSwing))
             return RMSG_SUCCESS
         elif addFreqResult == False:
-            self.logger.error("Freq range of new channel (rnum {} cnum {}) is not in USRP bandwidth. (freq_range_list[0][0] = {}".format(self.rnum, self.cnum, freq_range_list[0][0]))
+            self.logger.error("Freq range of new channel (rnum {} cnum {}) is not in USRP bandwidth. (freq_range_list[0][0] = {})".format(self.rnum, self.cnum, freq_range_list[0][0]))
             self.scanManager.clear_freq_range_list = None
             self.scan_beam_list = None
             self.fixFreq = None
@@ -4333,7 +4338,7 @@ class RadarChannelHandler:
                 RHM.logger.debug("radar {} ch {}: No channels left, removing commonChannelParameter".format(channelObject.rnum,channelObject.cnum))
                 RHM.commonChannelParameter = {}
                 RHM.nRegisteredChannels = 0
-                radar_active[channelObject.rnum]=False
+                radar_active[:] = False
         else:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from HardwareManager'.format(channelObject.rnum,channelObject.cnum))
 
