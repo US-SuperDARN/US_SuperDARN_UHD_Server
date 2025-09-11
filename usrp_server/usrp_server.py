@@ -3012,7 +3012,7 @@ class RadarHardwareManager:
 
            # GET AUTO CLEAR FREQ DATA
            if transmittingChannelAvailable[jrad] and trigger_next_period and self.auto_collect_clrfrq_after_rx:
-              self.clear_search_data_semaphore.acquire()
+              #self.clear_search_data_semaphore.acquire()
               nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
               self.logger.debug("Getting auto clear freq data for radar {}. nSamples_clear_freq: {}".format(jrad,nSamples_clear_freq))
               cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],int(nSamples_clear_freq))
@@ -3023,13 +3023,17 @@ class RadarHardwareManager:
                  time.sleep(0.001)
               else:
                  time.sleep(0.0025)
-              # time.sleep(0.01) # Added sleep to allow for data transfer across network connection
 
               antenna_list, clr_samples = cmd.recv_all()
-              self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples[0])))
-              auto_clear_freq_meta_data['record_time'] = time.time()
-              self.clearFreqRawDataManager.update_auto_clear_freq_data(jrad, antenna_list, clr_samples, auto_clear_freq_meta_data)
               cmd.client_return()
+
+              self.clear_search_data_semaphore.acquire()
+              try:
+                 self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples[0])))
+                 auto_clear_freq_meta_data['record_time'] = time.time()
+                 self.clearFreqRawDataManager.update_auto_clear_freq_data(jrad, antenna_list, clr_samples, auto_clear_freq_meta_data)
+              except:
+                 self.logger.error("radar {}: auto clear freq error".format(jrad))
               self.clear_search_data_semaphore.release()
 
         if not trigger_next_period:
