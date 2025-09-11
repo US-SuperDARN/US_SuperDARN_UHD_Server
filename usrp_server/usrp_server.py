@@ -1887,11 +1887,12 @@ class RadarHardwareManager:
                 # set start time of integration period (will be overwriten if not triggered)
                 self.starttime_period = time.time() # TODO change this to reference clock and scan times
 
-                # check if there are any disconnected URSPs
-
-                for jrad in range(self.N_RADARs):
-                   if len(self.usrpManager.addressList_inactive[jrad]):
-                      self.usrpManager.restore_lost_connections()
+                # check if there are any disconnected USRPs
+                # (only if no radars are active, to avoid resync interrupting scan)
+                if not radar_active.any():
+                   for jrad in range(self.N_RADARs):
+                      if len(self.usrpManager.addressList_inactive[jrad]):
+                         self.usrpManager.restore_lost_connections()
 
                 # CLEAR FREQ SEARCH: recoring when ever requested (independent of swing, state or channel)
                 for jrad in range(self.N_RADARs):
