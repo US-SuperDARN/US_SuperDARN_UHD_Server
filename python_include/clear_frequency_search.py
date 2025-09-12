@@ -2,9 +2,9 @@
 # timeline of clear frequency search:
 # control program sends RequestClearFreqSearch command to a channel
 #   channel enters CLR_FREQ state, waits for hardware manager to start a clear frequency search
-#   
+#
 # control program sends RequestAssignedFreq command, channel responds with tfreq in kHz and noise
-#   channel uses self.tfreq and snsmitelf.noise 
+#   channel uses self.tfreq and snsmitelf.noise
 
 # this replaces the following legacy qnx code:
 # ros/server/reciever_handler.c receiver_assign_frequency
@@ -32,7 +32,7 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
     dbPrint("send usrp_get_time")
     gettime_cmd = usrp_get_time_command(usrp_sockets)
     gettime_cmd.transmit()
-    
+
     usrp_times = []
     for sock in usrp_sockets:
         try:
@@ -69,6 +69,4 @@ def record_clrfreq_raw_samples(usrp_sockets, num_clrfreq_samples, center_freq, c
 
 if __name__ == '__main__':
     pass
-
-    
 

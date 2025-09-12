@@ -20,7 +20,7 @@ def initLogging(logFileName):
     logging.basicConfig(level=logfileOutputLevel,
                         format='%(asctime)s.%(msecs)03d %(name)-14s %(levelname)-8s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
-                        filename=logFileName, 
+                        filename=logFileName,
                         filemode='w')    # new file for every start
     # handler for console output
     console = logging.StreamHandler()
@@ -48,7 +48,6 @@ RED = '\033[91m'
 WHITE = '\033[37m'
 RESET = '\033[0m'
 
-
 colorCoding = {
     'WARNING': YELLOW,
     'INFO': WHITE,
@@ -57,8 +56,8 @@ colorCoding = {
     'ERROR': RED
 }
 
-class ColorFilter(logging.Filter):
 
+class ColorFilter(logging.Filter):
 
     def filter(self, record):
         levelName = record.levelname
