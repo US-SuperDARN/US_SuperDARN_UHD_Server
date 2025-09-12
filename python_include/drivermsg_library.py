@@ -267,6 +267,7 @@ class cuda_add_channel_command(driver_command):
     def transmit(self):
         if self.sequence == None:
             print('cannot send undefined sequence to channel')
+            self.logger.error("Cannot send undefined sequence to channel (CUDA_ADD_CHANNEL)")
             pdb.set_trace()
         super().transmit()
         for sock in self.clients:
@@ -290,6 +291,7 @@ class cuda_remove_channel_command(driver_command):
     def transmit(self):
         if self.sequence == None:
             print('cannot send undefined sequence to channel')
+            self.logger.error("Cannot send undefined sequence to channel (CUDA_REMOVE_CHANNEL)")
             pdb.set_trace()
         super().transmit()
         for sock in self.clients:
@@ -372,7 +374,7 @@ class usrp_ready_data_command(driver_command):
               print("usrp_ready_data_command: ",payload)
            except:
               payloadList.append(CONNECTION_ERROR)
-              self.logger.error("Connection error.")
+              self.logger.error("Error receiving metadata for {}".format(sock))
        return payloadList
 
 
