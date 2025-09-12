@@ -85,7 +85,7 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 #define IDX_LAST_IA 19              // Last Interferrometer Array
 #define IDX_LAST_MA 15              // Last Main Array
 #define PI 3.14159265358979323846
-#define C  3e8
+#define C  299792458.0
 #ifndef CLK_TCK
 #define CLK_TCK 60
 #endif
