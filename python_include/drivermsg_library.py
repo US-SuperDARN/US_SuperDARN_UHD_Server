@@ -108,7 +108,7 @@ class driver_command(object):
             except:
 #               self.logger.error("Error transmitting command {} to cient {}:{} (from {};{})".format(self.command, clientsock.getpeername()[0], clientsock.getpeername()[1], clientsock.getsockname()[0], clientsock.getsockname()[1] ))
 #               self.logger.error("Error transmitting command {}  (from {};{})".format(self.command,  clientsock.getsockname()[0], clientsock.getsockname()[1] ))
-               self.logger.error("Error transmitting command {} ".format(self.command ))
+               self.logger.error("Error transmitting command '{}'({})".format(chr(self.command), self.command))
 
     # ask all clients for a return value, compare against command
     # normally, client will indicate success by sending the command byte back to the server 
@@ -122,7 +122,7 @@ class driver_command(object):
 
                returns.append(r)
             except:
-               self.logger.error("Error receiving client_return for command '{}'({}) from  client {}:{}".format(chr(self.command), self.command, client.getsockname()[0], client.getsockname()[1] ))
+               self.logger.error("Error receiving client_return for command '{}'({}) from client {}:{}".format(chr(self.command), self.command, client.getsockname()[0], client.getsockname()[1]))
               # pdb.set_trace()
                returns.append(CONNECTION_ERROR)
 
