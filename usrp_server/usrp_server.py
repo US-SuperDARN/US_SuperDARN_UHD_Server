@@ -37,7 +37,6 @@ from radar_config_constants import *
 from clear_frequency_search import record_clrfreq_raw_samples
 from profiling_tools import *
 import logging_usrp
-import utils
 
 radar_active=np.zeros(2,dtype=bool)
 
