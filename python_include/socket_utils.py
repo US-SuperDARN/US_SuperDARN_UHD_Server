@@ -20,6 +20,7 @@ def recv_dtype(sock, dtype, nitems = 1):
     #    pdb.set_trace()
     if nitems == 1:
         return data[0]
+    return data
 
 
 def transmit_dtype(sock, data, dtype = None):
@@ -30,7 +31,6 @@ def transmit_dtype(sock, data, dtype = None):
     dstr = sock.sendall(data.tobytes())
     if verbose:
         print(' => {}  transmitted {} as {} ({} bytes): {}'.format(__file__, data, dtype, len(data.tobytes()), data.tobytes()))
-    return data
 
 
 # pickle send/recv for sending arbitrary objects over the network between python processes
