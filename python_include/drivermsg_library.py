@@ -10,7 +10,6 @@ from termcolor import cprint
 
 checkSwing  = True # check if transmitted swing is declared
 
-
 UHD_SETUP = ord('s')
 UHD_RXFE_SET = ord('r')
 UHD_READY_DATA = ord('d')
@@ -42,8 +41,6 @@ USRP_DRIVER_ERROR = -1
 TRIGGER_BUSY = 'b'
 
 
-
-
 # parent class for driver socket messages
 class driver_command(object):
     # class to help manage sending data
@@ -55,15 +52,18 @@ class driver_command(object):
             self.dtype = dtype
             self.data = dtype(data)
 
+
         def transmit(self, sock):
             # print('\t driverMSG transmitting: {}, value: {}, type {}'.format(self.name, self.data, self.dtype))
             # logger.debug("transmitting to sock: {}".format(sock))
             return transmit_dtype(sock, self.data, self.dtype)
 
+
         def receive(self, sock):
             self.data = recv_dtype(sock, self.dtype, self.nitems)
             #print('\treceiving: {}, value: {}, type {}'.format(self.name, self.data, self.dtype))
             return self.data
+
 
     def __init__(self, clients, command):
         if not hasattr(clients, '__iter__'):
@@ -75,9 +75,11 @@ class driver_command(object):
         self.command = np.uint8(command)
         self.logger = logging.getLogger('socket_data')
 
+
     def queue(self, data, dtype, name = '', nitems = 1):
         # pdb.set_trace()
         self.dataqueue.append(self.socket_data(data, dtype, name, nitems = nitems))
+
 
     # command to set variables by name in the dataqueue
     def set_data(self, name, data):
@@ -86,11 +88,13 @@ class driver_command(object):
                 var.data = data
                 break
 
+
     def get_data(self, name):
         for var in self.dataqueue:
             if var.name == name:
                 return var.data
         return None
+
 
     def transmit(self):
         for clientsock in self.clients:
@@ -109,6 +113,7 @@ class driver_command(object):
 #               self.logger.error("Error transmitting command {} to cient {}:{} (from {};{})".format(self.command, clientsock.getpeername()[0], clientsock.getpeername()[1], clientsock.getsockname()[0], clientsock.getsockname()[1]))
 #               self.logger.error("Error transmitting command {}  (from {};{})".format(self.command, clientsock.getsockname()[0], clientsock.getsockname()[1]))
                self.logger.error("Error transmitting command '{}'({})".format(chr(self.command), self.command))
+
 
     # ask all clients for a return value, compare against command
     # normally, client will indicate success by sending the command byte back to the server
@@ -129,6 +134,7 @@ class driver_command(object):
             time.sleep(0.001)
 
         return returns
+
 
     def receive(self, sock):
         for item in self.dataqueue:
@@ -210,25 +216,30 @@ class cuda_get_if_data_command(driver_command):
         driver_command.__init__(self, cudas, CUDA_GET_IF_DATA)
         self.queue(swing, np.uint32, 'swing')
 
+
 class cuda_get_data_command(driver_command):
     def __init__(self, cudas, swing = -1):
         driver_command.__init__(self, cudas, CUDA_GET_DATA)
         self.queue(swing, np.uint32, 'swing')
 
+
 class cuda_exit_command(driver_command):
     def __init__(self, cudas):
         driver_command.__init__(self, cudas, CUDA_EXIT)
+
 
 class cuda_pulse_init_command(driver_command):
     def __init__(self, cudas, swing = -1):
         driver_command.__init__(self, cudas, CUDA_PULSE_INIT)
         self.queue(swing, np.uint32, 'swing')
 
+
 class cuda_process_command(driver_command):
     def __init__(self, cudas, swing = -1, nSamples = -1):
         driver_command.__init__(self, cudas, CUDA_PROCESS)
         self.queue(swing, np.uint32, 'swing')
         self.queue(nSamples, np.uint64, 'nSamples')
+
 
 class cuda_setup_command(driver_command):
     def __init__(self, cudas, upsampleRate = 0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0):
@@ -238,6 +249,7 @@ class cuda_setup_command(driver_command):
         self.queue(downsampleRate_if2bb, np.uint32, 'downsampleRate_if2bb')
         self.queue(usrp_mixing_freq, np.uint32, 'usrp_mixing_freq')
 
+
 # add a pulse sequence/channel
 class cuda_add_channel_command(driver_command):
     def __init__(self, cudas, sequence = None, swing = -1):
@@ -246,9 +258,11 @@ class cuda_add_channel_command(driver_command):
         time.sleep(0.001)
         self.sequence = sequence
 
+
     def receive(self, sock):
         super().receive(sock)
         self.sequence = pickle_recv(sock)
+
 
     def transmit(self):
         if self.sequence == None:
@@ -257,6 +271,7 @@ class cuda_add_channel_command(driver_command):
         super().transmit()
         for sock in self.clients:
             pickle_send(sock, self.sequence)
+
 
 # clear one channels from gpu
 # TODO: just transmit channel number to save time?
@@ -266,9 +281,11 @@ class cuda_remove_channel_command(driver_command):
         self.queue(swing, np.uint32, 'swing')
         self.sequence = sequence
 
+
     def receive(self, sock):
         super().receive(sock)
         self.sequence = pickle_recv(sock)
+
 
     def transmit(self):
         if self.sequence == None:
@@ -277,6 +294,7 @@ class cuda_remove_channel_command(driver_command):
         super().transmit()
         for sock in self.clients:
             pickle_send(sock, self.sequence)
+
 
 # generate rf samples for a pulse sequence
 class cuda_generate_pulse_command(driver_command):
@@ -303,6 +321,7 @@ class usrp_setup_command(driver_command):
         self.queue(num_requested_tx_samples, np.uint64, 'num_requested_tx_samples')
         self.queue(pulse_offsets_vector, np.uint64, 'pulse_offsets_vector')
 
+
     def receive_settings(self):
         for sock in self.clients:
             rxrate = recv_dtype(sock, np.float64)
@@ -310,7 +329,7 @@ class usrp_setup_command(driver_command):
             txrate = recv_dtype(sock, np.float64)
             txfreq = recv_dtype(sock, np.float64)
 
-        return rxrate,rxfreq,txrate,txfreq
+        return rxrate, rxfreq, txrate, txfreq
 
 
 # set rxfe (amplifier and attenuator) settings
@@ -338,6 +357,7 @@ class usrp_ready_data_command(driver_command):
         driver_command.__init__(self, usrps, UHD_READY_DATA)
         self.queue(swing, np.int16, 'swing')
 
+
     def receive_all_metadata(self):
        payloadList = []
        for sock in self.clients:
@@ -355,6 +375,7 @@ class usrp_ready_data_command(driver_command):
               self.logger.error("Connection error.")
        return payloadList
 
+
     def recv_metadata(self, sock):
         payload = {}
         payload['status']   = recv_dtype(sock, np.int32)
@@ -362,6 +383,7 @@ class usrp_ready_data_command(driver_command):
         payload['nsamples'] = recv_dtype(sock, np.int32)
         payload['fault']    = recv_dtype(sock, np.bool_)
         return payload
+
 
     def recv_samples(self, sock, sock_samples = False):
         super().receive(sock)
@@ -374,6 +396,7 @@ class usrp_ready_data_command(driver_command):
 class usrp_get_time_command(driver_command):
     def __init__(self, usrps):
         driver_command.__init__(self, usrps, UHD_GETTIME)
+
 
     def recv_time(self, sock):
         self.full_sec = recv_dtype(sock, np.uint32)
@@ -388,14 +411,15 @@ class usrp_get_auto_clear_freq_command(driver_command):
         self.logger.debug("num_clrfreq_samples: {}".format(num_clrfreq_samples))
         self.queue(np.int32(num_clrfreq_samples), np.int32, 'num_clrfreq_samples')
 
-    def recv_samples_from_one_usrp(self, sock):
 
+    def recv_samples_from_one_usrp(self, sock):
         antenna_no = []
         sample_buf = []
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
 
-            if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
+            # give non-local usrps some extra timem to respond
+            if sock.getpeername()[0] != '127.0.0.1':
                 time.sleep(0.003)
 
             antenna_no_side = recv_dtype(sock, np.int32)
@@ -409,7 +433,7 @@ class usrp_get_auto_clear_freq_command(driver_command):
                 try:
                     sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 except:
-                    return nSides,-1, sample_buf
+                    return nSides, -1, sample_buf
                     # sample_buf_side = [np.int16(0) for j in range(2*nSamples)]
 
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
@@ -417,7 +441,8 @@ class usrp_get_auto_clear_freq_command(driver_command):
             antenna_no.append(antenna_no_side)
             sample_buf.append(sample_buf_side)
 
-        return nSides,antenna_no, sample_buf
+        return nSides, antenna_no, sample_buf
+
 
     def recv_all(self):
         antenna_list = []
@@ -449,14 +474,15 @@ class usrp_clrfreq_command(driver_command):
         self.queue(clrfreq_freq, np.float64, 'clrfreq_freq')
         self.queue(clrfreq_rate, np.float64, 'clrfreq_rate')
 
-    def recv_samples_from_one_usrp(self, sock, nSamples):
 
+    def recv_samples_from_one_usrp(self, sock, nSamples):
         antenna_no = []
         sample_buf = []
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
 
-            if sock.getpeername()[0] != '127.0.0.1': #give non-local usrps some extra time to respond
+            # give non-local usrps some extra time to respond
+            if sock.getpeername()[0] != '127.0.0.1':
                 time.sleep(0.003)
 
             antenna_no_side = recv_dtype(sock, np.int32)
@@ -477,6 +503,7 @@ class usrp_clrfreq_command(driver_command):
             sample_buf.append(sample_buf_side)
 
         return nSides, antenna_no, sample_buf
+
 
     def recv_all(self, nSamples):
         antenna_list = []
