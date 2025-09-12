@@ -46,7 +46,7 @@ TRIGGER_BUSY = 'b'
 
 # parent class for driver socket messages
 class driver_command(object):
-    # class to help manage sending data 
+    # class to help manage sending data
     class socket_data(object):
         def __init__(self, data, dtype, name, nitems = 1):
             self.name = name
@@ -106,12 +106,12 @@ class driver_command(object):
 
                   # cprint('transmitting {}: {}'.format(item.name, item.data), 'yellow')
             except:
-#               self.logger.error("Error transmitting command {} to cient {}:{} (from {};{})".format(self.command, clientsock.getpeername()[0], clientsock.getpeername()[1], clientsock.getsockname()[0], clientsock.getsockname()[1] ))
-#               self.logger.error("Error transmitting command {}  (from {};{})".format(self.command,  clientsock.getsockname()[0], clientsock.getsockname()[1] ))
+#               self.logger.error("Error transmitting command {} to cient {}:{} (from {};{})".format(self.command, clientsock.getpeername()[0], clientsock.getpeername()[1], clientsock.getsockname()[0], clientsock.getsockname()[1]))
+#               self.logger.error("Error transmitting command {}  (from {};{})".format(self.command, clientsock.getsockname()[0], clientsock.getsockname()[1]))
                self.logger.error("Error transmitting command '{}'({})".format(chr(self.command), self.command))
 
     # ask all clients for a return value, compare against command
-    # normally, client will indicate success by sending the command byte back to the server 
+    # normally, client will indicate success by sending the command byte back to the server
     def client_return(self, dtype = np.uint8, check_return = True):
         returns = []
         for client in self.clients:
@@ -197,7 +197,7 @@ class server_ctrlprm(driver_command):
 
         self.queue(ctrlprm_dict['status'], np.int32, 'status')
 
-        # TODO: set these properly 
+        # TODO: set these properly
         name_arr = np.uint8(np.zeros(80))
         self.queue(name_arr, np.uint8, name='name_arr', nitems=80)
 
@@ -233,7 +233,7 @@ class cuda_process_command(driver_command):
 class cuda_setup_command(driver_command):
     def __init__(self, cudas, upsampleRate = 0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0):
         driver_command.__init__(self, cudas, CUDA_SETUP)
-        self.queue(upsampleRate, np.uint32, 'upsampleRate') 
+        self.queue(upsampleRate, np.uint32, 'upsampleRate')
         self.queue(downsampleRate_rf2if, np.uint32, 'downsampleRate_rf2if')
         self.queue(downsampleRate_if2bb, np.uint32, 'downsampleRate_if2bb')
         self.queue(usrp_mixing_freq, np.uint32, 'usrp_mixing_freq')
@@ -264,7 +264,7 @@ class cuda_remove_channel_command(driver_command):
     def __init__(self, cudas, sequence = None, swing = -1):
         driver_command.__init__(self, cudas, CUDA_REMOVE_CHANNEL)
         self.queue(swing, np.uint32, 'swing')
-        self.sequence = sequence 
+        self.sequence = sequence
 
     def receive(self, sock):
         super().receive(sock)
@@ -280,7 +280,7 @@ class cuda_remove_channel_command(driver_command):
 
 # generate rf samples for a pulse sequence
 class cuda_generate_pulse_command(driver_command):
-    def __init__(self, cudas, swing=-1, mixing_freq=-1 ):
+    def __init__(self, cudas, swing=-1, mixing_freq=-1):
         driver_command.__init__(self, cudas, CUDA_GENERATE_PULSE)
         self.queue(swing, np.uint32, 'swing')
         self.queue(mixing_freq, np.float32, 'mixing_freq')
@@ -291,7 +291,7 @@ class usrp_setup_command(driver_command):
     def __init__(self, usrps, txfreq, rxfreq, txrate, rxrate, npulses, num_requested_rx_samples, num_pause_samples, num_auto_clear_freq, num_requested_tx_samples, pulse_offsets_vector, swing):
         driver_command.__init__(self, usrps, UHD_SETUP)
 
-        self.queue(swing , np.int16,   'swing' )
+        self.queue(swing,  np.int16,   'swing')
         self.queue(txfreq, np.float64, 'txfreq')
         self.queue(rxfreq, np.float64, 'rxfreq')
         self.queue(txrate, np.float64, 'txrate')
@@ -313,7 +313,7 @@ class usrp_setup_command(driver_command):
         return rxrate,rxfreq,txrate,txfreq
 
 
-# set rxfe (amplifier and attenuator) settings 
+# set rxfe (amplifier and attenuator) settings
 class usrp_rxfe_setup_command(driver_command):
     def __init__(self, usrps, amp0 = 0, amp1 = 0, att = 0):
         driver_command.__init__(self, usrps, UHD_RXFE_SET)
@@ -326,7 +326,7 @@ class usrp_rxfe_setup_command(driver_command):
 class usrp_trigger_pulse_command(driver_command):
     def __init__(self, usrps, trigger_time, tr_to_pulse_delay, swing):
         driver_command.__init__(self, usrps, UHD_TRIGGER_PULSE)
-        self.queue(swing , np.int16,   'swing' )
+        self.queue(swing, np.int16, 'swing')
         self.queue(np.uint32(np.int_(trigger_time)), np.uint32, 'uhd_time_int')
         self.queue(np.float64(np.mod(trigger_time,1)), np.float64, 'uhd_time_frac')
         self.queue(np.float64(tr_to_pulse_delay), np.float64, 'tr_to_pulse_delay')
@@ -336,7 +336,7 @@ class usrp_trigger_pulse_command(driver_command):
 class usrp_ready_data_command(driver_command):
     def __init__(self, usrps, swing):
         driver_command.__init__(self, usrps, UHD_READY_DATA)
-        self.queue(swing , np.int16,   'swing' )
+        self.queue(swing, np.int16, 'swing')
 
     def receive_all_metadata(self):
        payloadList = []
