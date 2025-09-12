@@ -51,7 +51,6 @@ TXDIR = 'tx'
 DEBUG = True
 verbose = 1
 
-C = 3e8
 nAntennas_per_polarization = 20 # used to reset (modulo) the tx phasing input antenna number 
 
 
