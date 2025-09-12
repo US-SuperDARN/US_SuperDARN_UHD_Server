@@ -44,14 +44,13 @@ RMSG_COMMAND_NAMES = {'SET_RADAR_CHAN' : 'R', 'SET_INACTIVE' : 'a', 'SET_ACTIVE'
         'PING' : '=', 'OKAY' : '^', 'NOOP' : '~', 'QUIT' : '.', 'ExitServer' : ExitServer, 'REGISTER_SEQ' : '+', 'REMOVE_SEQ' : '-', \
         'REQUEST_ASSIGNED_FREQ' : '>', 'REQUEST_CLEAR_FREQ_SEARCH' : '<', 'LINK_RADAR_CHAN' : 'L', 'SET_READY_FLAG' : '1',\
         'UNSET_READY_FLAG' : '!', 'SET_PROCESSING_FLAG' : '2', 'UNSET_PROCESSING_FLAG' : '@', 'GET_DATA' : 'd'}
-RMSG_COMMAND_NAMES = {v: k for k, v in RMSG_COMMAND_NAMES.items()} 
-
+RMSG_COMMAND_NAMES = {v: k for k, v in RMSG_COMMAND_NAMES.items()}
 
 
 class rosmsg_command(driver_command):
     def __init__(self, client):
         driver_command.__init__(self, [client], NO_COMMAND)
-        
+
         rosmsg_dict = {}
 
         rosmsg_dict['status'] = 0
@@ -64,7 +63,7 @@ class rosmsg_command(driver_command):
 class rprm_struct(driver_command):
     def __init__(self, socket):
         driver_command.__init__(self, [socket], NO_COMMAND)
-        
+
         prm_dict = {}
 
         prm_dict['site'] = 0
@@ -75,6 +74,7 @@ class rprm_struct(driver_command):
         self.queue(prm_dict['radar'], np.int32, 'radar')
         self.queue(prm_dict['channel'], np.int32, 'channel')
 
+
 class clrfreqprm_struct(driver_command):
     def __init__(self, socket):
         driver_command.__init__(self, [socket], NO_COMMAND)
@@ -84,7 +84,7 @@ class clrfreqprm_struct(driver_command):
         prm_dict['start'] = 0               # start frequency of search, units of kHz
         prm_dict['end'] = 0                 # end frequency of search, units of kHz
         prm_dict['filter_bandwidth'] = 0    # bandwidth of search, units of kHz
-        prm_dict['pwr_threshold'] = 0       # seems to be unused? 
+        prm_dict['pwr_threshold'] = 0       # seems to be unused?
         prm_dict['nave'] = 0                # number of averages (capped at 10 by gc316 driver..?)
 
         self.queue(prm_dict['start'], np.int32, 'start')
@@ -92,6 +92,7 @@ class clrfreqprm_struct(driver_command):
         self.queue(prm_dict['filter_bandwidth'], np.float32, 'filter_bandwidth')
         self.queue(prm_dict['pwr_threshold'], np.float32, 'pwr_threshold')
         self.queue(prm_dict['nave'], np.int32, 'nave')
+
 
 class seqprm_struct(driver_command):
     def __init__(self, socket):
@@ -111,20 +112,21 @@ class seqprm_struct(driver_command):
         self.queue(prm_dict['samples'], np.uint32, 'samples')
         self.queue(prm_dict['smdelay'], np.uint32, 'smdelay')
 
+
 class dataprm_struct(driver_command):
     def __init__(self, socket):
         driver_command.__init__(self, [socket], NO_COMMAND)
 
         prm_dict = {}
-        
+
         # todo: populate event_secs and event_usecs from GPS time (or USRP time?)
         prm_dict['event_secs'] = 0      # uint32, start of pulse sequence, seconds, filled by site library if zero
         prm_dict['event_usecs'] = 0     # uint32, start of pulse sequence, microseconds (used only for seqlog?)
-        prm_dict['event_capture'] = 0   # flag used for seqlog 
+        prm_dict['event_capture'] = 0   # flag used for seqlog
         prm_dict['samples'] = 0         # number of baseband rx samples
-        prm_dict['shm_memory'] = 0      # ? 
+        prm_dict['shm_memory'] = 0      # ?
         prm_dict['status'] = 0          # status, 0 is good
-        prm_dict['frame_header'] = 0    # ? 
+        prm_dict['frame_header'] = 0    # ?
         prm_dict['bufnum'] = 0          # ?
 
         self.queue(prm_dict['event_secs'], np.uint32, 'event_secs')
@@ -135,6 +137,7 @@ class dataprm_struct(driver_command):
         self.queue(prm_dict['status'], np.int32, 'status')
         self.queue(prm_dict['frame_header'], np.int32, 'frame_header')
         self.queue(prm_dict['bufnum'], np.int32, 'bufnum')
+
 
 class ctrlprm_struct(driver_command):
     def __init__(self, servers = None, ctrlprm_dict = None):
@@ -197,7 +200,7 @@ class ctrlprm_struct(driver_command):
 
         self.queue(ctrlprm_dict['status'], np.int32, 'status')
 
-        # TODO: set these properly 
+        # TODO: set these properly
         name_arr = np.uint8(np.zeros(80))
         self.queue(name_arr, np.uint8, nitems = 80)
 

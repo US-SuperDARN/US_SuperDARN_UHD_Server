@@ -1,4 +1,4 @@
-# all filters for RX downsampling and smooting TX pulses
+# all filters for RX downsampling and smoothing TX pulses
 import numpy as np
 import scipy.ndimage
 from scipy import signal
@@ -16,6 +16,7 @@ def gaussian_pulse(samples, trise, rate):
     filt_imag = scipy.ndimage.filters.gaussian_filter1d(np.imag(samples), gauss_sigma)
 
     return filt_real + 1j * filt_imag
+
 
 # filter also includes mixing frequencies
 def kaiser_filter_s0(nTaps, channelFreqVec, normalize = True, beta = 5.25, gain = 3.73):
@@ -38,6 +39,7 @@ def kaiser_filter_s0(nTaps, channelFreqVec, normalize = True, beta = 5.25, gain 
         filterData /= nTaps * 2
 
     return filterData
+
 
 #TODO: test this filter
 def rect_filter_s0(nTaps, channelFreqVec, samplingRate):
@@ -76,10 +78,7 @@ def kaiser_filter_r0(nTaps, channelFreqVec, normalize = True, beta=5, gain=3.73)
     return filterData
 
 
-
-
 def raisedCosine_filter(nTaps, nChannels, normalize = True):
-
     alpha = 0.22
     filterData = np.zeros((nChannels, nTaps, 2), dtype=np.float32)
     for iTap in range(nTaps-1):
@@ -90,14 +89,16 @@ def raisedCosine_filter(nTaps, nChannels, normalize = True):
            filterData[:,iTap,0] = np.sin(np.pi/(2*alpha)) / (np.pi/(2*alpha)) * np.pi/4
         else:
            filterData[:,iTap,0] = np.sin(np.pi*t/(nTaps-1)) / (np.pi*t/(nTaps-1)) * np.cos(alpha*np.pi*t / (nTaps-1)) / (1-2*(alpha*t/(nTaps-1))**2)
-        
+
     if normalize:
-        filterData /= np.sum(filterData[0]) 
+        filterData /= np.sum(filterData[0])
 
     return filterData
 
+
 def dbPrint(msg):
-    print(' {}: {} '.format(__file__, msg) )
+    print(' {}: {} '.format(__file__, msg))
+
 
 # functions to test filters
 if __name__ == '__main__':
@@ -113,12 +114,12 @@ if __name__ == '__main__':
 
     kaiser_filter = kaiser_filter_s0(ntaps_rfif, [1e6], fsamp_rf)
     raised_cosine = raisedCosine_filter(ntaps_ifbb, 1)
-    
+
     kaiser_filter = (kaiser_filter[0].T[0] + 1j * kaiser_filter[0].T[1])
     raised_cosine = (raised_cosine[0].T[0] + 1j * raised_cosine[0].T[1])
-    
-    kw, kh = signal.freqz(kaiser_filter) 
-    cw, ch = signal.freqz(raised_cosine) 
+
+    kw, kh = signal.freqz(kaiser_filter)
+    cw, ch = signal.freqz(raised_cosine)
 
     plt.subplot(2,1,1)
     plt.plot(kw, 20 * np.log10(abs(kh)))
@@ -135,9 +136,4 @@ if __name__ == '__main__':
     plt.show()
 
     pdb.set_trace()
-
-
-
-
-
 
