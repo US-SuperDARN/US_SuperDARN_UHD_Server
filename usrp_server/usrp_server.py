@@ -1989,6 +1989,7 @@ class RadarHardwareManager:
         array_config.read('../array_config.ini')
 
         self.N_RADARs = int(array_config['array_info']['nradars'])
+        self.ini_dsp_info       = array_config['dsp_filters']
 
         self.ThisRadar               = [[] for jrad in range(self.N_RADARs)]
         self.array_nBeams            = [[] for jrad in range(self.N_RADARs)]
@@ -2459,8 +2460,10 @@ class RadarHardwareManager:
            nSamples_per_sequence_if = nSequences_per_period
            num_requested_rx_samples = nSequences_per_period
         else:
-           nSamples_per_sequence_if =  int(downsamplingRates[1])* ((nSamples_per_sequence*nSequences_per_period) - 1 ) + int(downsamplingRates[1]*2) # assumes fixed nTaps for filter = 2*downsampling
-           num_requested_rx_samples =  int(downsamplingRates[0])* (nSamples_per_sequence_if                      - 1 ) + int(downsamplingRates[0]*2) # assumes fixed nTaps for filter = 2*downsampling
+           ntap_rf_if_factor = int(self.ini_dsp_info['ntap_rf_if_factor'])
+           ntap_if_bb_factor = int(self.ini_dsp_info['ntap_if_bb_factor'])
+           nSamples_per_sequence_if =  int(downsamplingRates[1])* ((nSamples_per_sequence*nSequences_per_period) - 1 ) + int(downsamplingRates[1]*ntap_if_bb_factor) # assumes fixed nTaps for filter = 2*downsampling
+           num_requested_rx_samples =  int(downsamplingRates[0])* (nSamples_per_sequence_if                      - 1 ) + int(downsamplingRates[0]*ntap_rf_if_factor) # assumes fixed nTaps for filter = 2*downsampling
 
         self.logger.debug("RFIFRATE: {}, IFBBRATE: {}, nSamples_per_sequence_if: {}, nSamples_per_sequence: {}, nSequences_per_period: {}, NTapsRX_ifbb: {}, NTapsRX_rfif: {}".format( \
                 downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, downsamplingRates[0]*2, downsamplingRates[1]*2))

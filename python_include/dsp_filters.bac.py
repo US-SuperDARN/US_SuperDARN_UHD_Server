@@ -18,7 +18,9 @@ def gaussian_pulse(samples, trise, rate):
     return filt_real + 1j * filt_imag
 
 # filter also includes mixing frequencies
-def kaiser_filter_s0(nTaps, channelFreqVec, normalize = True, beta = 5.25, gain = 3.73):
+def kaiser_filter_s0(nTaps, channelFreqVec, samplingRate, normalize = True):
+    gain = 3.73 # was 3.5 before
+    beta = 5.25
     #beta = 10
     filterData = np.zeros((len(channelFreqVec), nTaps,2), dtype=np.float32)
     m = nTaps - 1
@@ -28,9 +30,10 @@ def kaiser_filter_s0(nTaps, channelFreqVec, normalize = True, beta = 5.25, gain 
         if channelFreq != None:
           # dbPrint('filter generation Channel {}: Freq : {} kHz'.format(iChannel, channelFreq/1e3))
            for iTap in range(nTaps):
+               phi = 2 * np.pi * channelFreq * iTap / samplingRate # phase of downmixing frequency
                k = scipy.special.i0((2 * beta / m) * np.sqrt(iTap * (m - iTap)))
-               filterData[iChannel,iTap,0] = gain * (k / b)
-               filterData[iChannel,iTap,1] = gain * (k / b)
+               filterData[iChannel,iTap,0] = gain * (k / b)# * np.cos(phi)
+               filterData[iChannel,iTap,1] = gain * (k / b)# * np.sin(phi) # still real filter, imag part result from multiplication with oscillator
         else:
            dbPrint("filter generation: channel {}: skipping because undefined".format(iChannel))
 
