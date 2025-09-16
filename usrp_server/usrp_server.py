@@ -236,7 +236,7 @@ class usrpSockManager():
    def remove_sock(self, jrad, sock_to_remove):
        iSock = self.socks[jrad].index(sock_to_remove)
        self.logger.error("Removing usrp {} ({}:{}).".format(self.hostnameList_active[jrad][iSock], self.addressList_active[jrad][iSock][0], self.addressList_active[jrad][iSock][1]))
-       self.addressList_inactive[jrad].append(self.addressList_active[jrad][iSock] )
+       self.addressList_inactive[jrad].append(self.addressList_active[jrad][iSock])
        del self.addressList_active[jrad][iSock]
 
        lost_antennas = self.antennaList_active[jrad][iSock]
@@ -2008,7 +2008,7 @@ class RadarHardwareManager:
             self.array_nBeams[jrad]    = int(  array_config['array_info']['nbeams'])
             self.array_beam_sep[jrad]  = float(array_config['array_info']['beam_sep']) # degrees
             self.array_x_spacing[jrad] = float(array_config['array_info']['x_spacing']) # meters
-            self.hardwareLimit_freqRange[jrad] = [float(array_config['hardware_limits']['minimum_tfreq'] ) /1000, float(array_config['hardware_limits']['maximum_tfreq'] )/1000] # converted to kHz
+            self.hardwareLimit_freqRange[jrad] = [float(array_config['hardware_limits']['minimum_tfreq'])/1000, float(array_config['hardware_limits']['maximum_tfreq'])/1000] # converted to kHz
 
             self.ini_rxfe_settings[jrad]       = array_config['rxfe']
             self.scaling_factor_tx_total[jrad] = float(array_config['gain_control']['scaling_factor_tx_total'])
@@ -2238,7 +2238,7 @@ class RadarHardwareManager:
 
         cuda_driver_socks = []
         for jrad in range(self.N_RADARs):
-           socks=[]
+           socks = []
            for c in cuda_driver_hostnames[jrad]:
               try:
                  self.logger.debug('radar {} connecting to cuda driver on {}:{}'.format(jrad,c, cuda_driver_port))
@@ -2296,7 +2296,7 @@ class RadarHardwareManager:
             time.sleep(0.001)
             cmd.client_return()
             if channel.active_state == CS_INACTIVE:
-               RHM.logger.debug("initialize_channel() is setting radar {} ch {} swing {} from CS_INACTIVE to CS_READY".format(channel.rnum, channel.cnum,  channel.swingManager.activeSwing))
+               RHM.logger.debug("initialize_channel() is setting radar {} ch {} swing {} from CS_INACTIVE to CS_READY".format(channel.rnum, channel.cnum, channel.swingManager.activeSwing))
                channel.active_state = CS_READY # channel not really ready until CUDA_GENERATE, but there will be no trigger in parallel to this function
             else:
                RHM.logger.debug("initialize_channel() radar {} ch {} state stays {}".format(channel.rnum, channel.cnum, channel.active_state))
@@ -2467,7 +2467,7 @@ class RadarHardwareManager:
         self.logger.debug("RFIFRATE: {}, IFBBRATE: {}, nSamples_per_sequence_if: {}, nSamples_per_sequence: {}, nSequences_per_period: {}, NTapsRX_ifbb: {}, NTapsRX_rfif: {}".format( \
                 downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, downsamplingRates[0]*2, downsamplingRates[1]*2))
 
-        self.logger.info("Effective integration time: {:0.3f}s = {} sequences ({}s) swing {}".format(num_requested_rx_samples /self.usrp_rf_tx_rate, nSequences_per_period,  self.commonChannelParameter['integration_period_duration'], self.swingManager.activeSwing))
+        self.logger.info("Effective integration time: {:0.3f}s = {} sequences ({}s) swing {}".format(num_requested_rx_samples /self.usrp_rf_tx_rate, nSequences_per_period, self.commonChannelParameter['integration_period_duration'], self.swingManager.activeSwing))
 
         self.nsamples_per_sequence     = pulse_sequence_period * self.usrp_rf_tx_rate
 
@@ -2709,8 +2709,8 @@ class RadarHardwareManager:
                  self.logger.info("Buffering raw data to disk.")
                  chResExportList = [ ch.resultDict_list[-1] for ch in np.concatenate(self.channels).tolist() if ch.processing_state == CS_PROCESSING]
                  with open('tmpRawData.pkl', 'wb') as f:
-                    pickle.dump([[], [], chResExportList, self.antenna_idx_list_main[0], self.antenna_idx_list_back[0]],f,  pickle.HIGHEST_PROTOCOL)
-                    pickle.dump([[], [], chResExportList, self.antenna_idx_list_main[1], self.antenna_idx_list_back[1]],f,  pickle.HIGHEST_PROTOCOL)
+                    pickle.dump([[], [], chResExportList, self.antenna_idx_list_main[0], self.antenna_idx_list_back[0]], f, pickle.HIGHEST_PROTOCOL)
+                    pickle.dump([[], [], chResExportList, self.antenna_idx_list_main[1], self.antenna_idx_list_back[1]], f, pickle.HIGHEST_PROTOCOL)
                  os.rename("tmpRawData.pkl", "liveRawData.pkl")
                  os.remove("./bufferLiveData.flag")
 
@@ -2812,7 +2812,7 @@ class RadarHardwareManager:
                     self.logger.info("Buffering raw data to disk.")
                     chResExportList = [ ch.resultDict_list[-1] for ch in np.concatenate(self.channels).tolist() if ch.processing_state == CS_PROCESSING]
                     with open('tmpRawData.pkl', 'wb') as f:
-                       pickle.dump([main_samples, back_samples,chResExportList, self.antenna_idx_list_main[jrad], self.antenna_idx_list_back[jrad]],f,  pickle.HIGHEST_PROTOCOL)
+                       pickle.dump([main_samples, back_samples,chResExportList, self.antenna_idx_list_main[jrad], self.antenna_idx_list_back[jrad]], f, pickle.HIGHEST_PROTOCOL)
                        os.rename("tmpRawData.pkl", "liveRawData.pkl")
                        os.remove("./bufferLiveData.flag")
 
@@ -3125,7 +3125,7 @@ class RadarHardwareManager:
 
                 max_var= max(var_list)
                 var_threshold = max_var * 10 ** (-30/10)
-                RHM.logger.info("max var = {:2.3f} = {:2.3f} **2, var_threshold = {} (-30 dB)".format(max_var,  np.sqrt(max_var), var_threshold))
+                RHM.logger.info("max var = {:2.3f} = {:2.3f} **2, var_threshold = {} (-30 dB)".format(max_var, np.sqrt(max_var), var_threshold))
                 for iAntenna in range(nAntennas_main):
                     if antenna_scale_factors[iChannel][RHM.antenna_idx_list_main[jrad][iAntenna]]:
                         if var_list[iAntenna] > var_threshold:
@@ -3400,7 +3400,7 @@ class RadarChannelHandler:
                else:
                    status = self.DefaultHandler(rmsg)
             except:
-                self.logger.error('rnum {} ch {}: Error while command {} ({}). Removing this channel'.format(self.rnum, self.cnum,  RMSG_COMMAND_NAMES[command], command))
+                self.logger.error('rnum {} ch {}: Error while command {} ({}). Removing this channel'.format(self.rnum, self.cnum, RMSG_COMMAND_NAMES[command], command))
                 self.logger.error("Error: {}".format(sys.exc_info()[0]))
                 print(sys.exc_info()[0])
                 raise
@@ -3476,9 +3476,9 @@ class RadarChannelHandler:
             self.update_ctrlprm_class('current')
             self.logger.debug("Getting current sequence with {} samples (305x1500x {}) rbeam {}".format(self.nrf_rx_samples_per_integration_period, self.nrf_rx_samples_per_integration_period/305/1500, self.ctrlprm_struct.payload['rbeam']))
 
-        seq = sequence(self.npulses_per_sequence,  self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor,  self.ctrlprm_struct.payload )
+        seq = sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload )
 
-       # seq = sequence(self.npulses_per_sequence,  self.tr_to_pulse_delay, self.pulse_sequence_offsets_vector, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor,  self.ctrlprm_struct.payload )
+       # seq = sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.pulse_sequence_offsets_vector, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload )
         return seq
 
 
@@ -3684,7 +3684,7 @@ class RadarChannelHandler:
       #  print("pulse masks (len {}):".format(len(pulse_masks)))
       #  print(pulse_masks)
 
-        self.logger.debug("pulse0 length: {} us, tr_pulse_delay: {} us, tx_time: {} us".format(self.pulse_lens[0], tr_to_pulse_delay,  self.pulse_lens[0] + 2 * self.tr_to_pulse_delay))
+        self.logger.debug("pulse0 length: {} us, tr_pulse_delay: {} us, tx_time: {} us".format(self.pulse_lens[0], tr_to_pulse_delay, self.pulse_lens[0] + 2 * self.tr_to_pulse_delay))
         if npulses_per_sequence == 0:
             raise ValueError('number of pulses per sequence must be greater than zero!')
         if nbb_samples == 0:
@@ -3931,7 +3931,7 @@ class RadarChannelHandler:
            # self.logger.debug("radar {} Ch {} released semaphore".format(self.rnum, self.cnum))
 
         else:
-           self.logger.error("ROS:SetParameter: Active state is {} (current_swing={}, activeSwing={} ). Dont know what to do...".format(self.state[current_swing], self.swingManager.activeSwing,  self.active_state))
+           self.logger.error("ROS:SetParameter: Active state is {} (current_swing={}, activeSwing={} ). Dont know what to do...".format(self.state[current_swing], self.swingManager.activeSwing, self.active_state))
            self.logger.error("ROS:SetParameter: Exit usrp_server...")
            RHM.n_SetParameterHandlers_active -= 1
 
@@ -3959,8 +3959,8 @@ class RadarChannelHandler:
     def CheckChannelCompatibility(self):
         self.logger.debug('checking channel compatibility for radar {} channel {}'.format(self.rnum, self.cnum))
         hardwareManager = self.parent_RadarHardwareManager
-        commonParList_ctrl = ['number_of_samples', 'baseband_samplerate' ]
-        commonParList_seq  = [ 'npulses_per_sequence', 'pulse_sequence_offsets_vector',  'tr_to_pulse_delay', 'integration_period_duration', 'tx_time']
+        commonParList_ctrl = ['number_of_samples', 'baseband_samplerate']
+        commonParList_seq  = ['npulses_per_sequence', 'pulse_sequence_offsets_vector', 'tr_to_pulse_delay', 'integration_period_duration', 'tx_time']
 
         if all([self.pulse_lens[0]==self.pulse_lens[i] for i in range(1,len(self.pulse_lens))]):
             pulseLength = self.pulse_lens[0]
@@ -4193,7 +4193,7 @@ class RadarChannelHandler:
            return RMSG_FAILURE
 
         self.ctrlprm_struct.set_data('channel', self.cnum)
-        self.ctrlprm_struct.set_data('radar',  self.rnum)
+        self.ctrlprm_struct.set_data('radar', self.rnum)
 
         self.scanManager = scanManager(self)
 
