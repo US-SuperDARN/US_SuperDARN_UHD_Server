@@ -75,8 +75,7 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
                            char *clr_file, char *ststr, int channel);
 
 // Define Constants
-#define CLR_NOISE_THRESHOLD 250000  // Noise Threshold for a clear band to be considered a valid usable band
-#define GB_MULT 1.25                   // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw = clear_freq bandwidth)
+#define GB_MULT 1.25                // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw = clear_freq bandwidth)
 #define MIN_FREQ_SEP 1500           // Minimum Frequency Separation (in Hz), guard band will be kept at and above this value.  
 
 #define MIN_ANT_PWR_MULT .1         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.

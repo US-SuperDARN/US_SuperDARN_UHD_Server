@@ -328,7 +328,7 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         // log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
         
         // Select band if it has a lower noise
-        if (curr_band.noise < clr_band->noise && curr_band.noise > 0 && curr_band.noise < CLR_NOISE_THRESHOLD && curr_band.noise < RAND_MAX) {
+        if (curr_band.noise < clr_band->noise && curr_band.noise > 0 && curr_band.noise < RAND_MAX) {
             clr_band->f_start = curr_band.f_start;
             clr_band->f_end   = curr_band.f_end;
             clr_band->noise   = curr_band.noise;
