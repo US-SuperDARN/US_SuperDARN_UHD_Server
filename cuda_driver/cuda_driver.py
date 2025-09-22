@@ -761,7 +761,7 @@ class ProcessingGPU(object):
            self.logger.debug('  RX Block rf => if : {}'.format( str(self.rx_if_block)))
            self.logger.debug('  RX Grid  rf => if : {}'.format(str(self.rx_if_grid )))
 
-           self.logger.debug("RF => IF")
+           self.logger.debug("IF => BB")
            self.logger.debug(" downsampling if => bb : {}x ".format( self.rx_if2bb_downsamplingRate ))
            self.logger.debug('  RX Block if => bb : {}'.format( str(self.rx_bb_block)))
            self.logger.debug('  RX Grid  if => bb : {}'.format( str(self.rx_bb_grid )))
