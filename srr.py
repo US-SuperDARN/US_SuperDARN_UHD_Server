@@ -3,28 +3,28 @@
 #  Function to quickly start and terminate single radar processes.
 #
 #  Usage:
-#     srr.py [status]              : shows all software radio processes 
+#     srr.py [status]              : shows all software radio processes
 #     srr.py init [stid]           : create symlink to array_, usrp_, and driver_config.ini files
 #
-#     srr.py networkTool|net       : calls networkTool.py 
+#     srr.py networkTool|net       : calls networkTool.py
 #     srr.py rawView               : plot raw rx bb samples of all antennas
 #     srr.py watchdog|w            : calls tools/watchdog.py
 #     srr.py help                  : show this help
 #
-#     srr.py start   PROCESS       : start a process or process group (see below for processes) 
-#     srr.py stop    PROCESS       : stop a process or process group (see below for processes) 
+#     srr.py start   PROCESS       : start a process or process group (see below for processes)
+#     srr.py stop    PROCESS       : stop a process or process group (see below for processes)
 #     srr.py restart PROCESS       : restart a process or process group with needed wait times
 #
 #  Available PROCESSES:
 #     cuda (or cuda_driver)        : cuda driver
 #     usrps (or usrp_driver)       : all usrps defined in usrp_config.ini
 #     server (or usrp_server)      : usrp_server
-#   
+#
 #     errlog (or errorlog)         : errlog server            (no restart)
 #     rawacf (or rawacfwrite)      : rawacf write process     (no restart)
 #     fitacf (or fitacfwrite)      : fitacf write process     (no restart)
 #     rtserver                     : real time display server (no restart)
-#   
+#
 #     uaf_fix (or uafscan_fix)     : starts uafscan fast with fixfreq 14000 (only start)
 #     uaf_fix ch_No                : starts uaf_fix on channel ch_No (1-4)
 #     uaf_fix_onesec [ch_No]       : starts uafscan (onsec, fixfreq) default ch_No=1
@@ -45,7 +45,7 @@
 # restart is processes already running?
 # get all differnt call types "python3 cuda_driver.py" ".../python3 ./cuda_driver.py"
 # add return argument to stop commands and don't wait on restart if nothing has been shut down
-# 
+#
 
 
 import sys
@@ -82,7 +82,7 @@ USRPDriverPort = 54420
 UHD_EXIT = ord('e')
 
 USRP_SERVER_PORT = 45000
-USRP_SERVER_QUIT  = ',' # '.'
+USRP_SERVER_QUIT = ',' # '.'
 
 USE_USRP_DRIVER_WRAPPER = True
 
@@ -98,6 +98,7 @@ def myPrint(msg):
    print("||>  {}".format(msg))
 basePrintLine = "||>==============================================================="
 
+
 def waitFor(nSeconds):
    print("||> Waiting for {} second(s): ".format(nSeconds), end="", flush=True)
    for i in range(nSeconds):
@@ -105,10 +106,12 @@ def waitFor(nSeconds):
       time.sleep(1)
    else:
       print()
+
+
 ######################
 ## init
 def initialize(inputArg):
-   configPath = basePath + "/config" 
+   configPath = basePath + "/config"
 
    array_config_target_file  = basePath + "/array_config.ini"
    driver_config_target_file = basePath + "/driver_config.ini"
@@ -125,8 +128,8 @@ def initialize(inputArg):
              myPrint("  removing file {}".format(targetFile))
              os.remove(targetFile)
 
-   # default paramter values 
-   radarName    = 'lab'
+   # default paramter values
+   radarName = 'lab'
    myPrint(" Starting with default: {}".format(radarName))
 
    # parse input arguments
@@ -136,11 +139,11 @@ def initialize(inputArg):
 
    myPrint(" Initializing with: {}".format(radarName))
 
-   array_config_source_file   = configPath + "/" + radarName + "/" + "array_config__" + radarName + ".ini"
-   driver_config_source_file  = configPath + "/" + radarName + "/" + "driver_config__" + radarName + ".ini"
-   usrp_config_source_file    = configPath + "/" + radarName + "/" + "usrp_config__" + radarName + ".ini"
+   array_config_source_file  = configPath + "/" + radarName + "/" + "array_config__" + radarName + ".ini"
+   driver_config_source_file = configPath + "/" + radarName + "/" + "driver_config__" + radarName + ".ini"
+   usrp_config_source_file   = configPath + "/" + radarName + "/" + "usrp_config__" + radarName + ".ini"
 
-   # linking new files   
+   # linking new files
    myPrint("Creating symlink {} ".format(array_config_target_file))
    myPrint("   -> {}".format(array_config_source_file))
    os.symlink(array_config_source_file, array_config_target_file)
@@ -153,8 +156,9 @@ def initialize(inputArg):
    myPrint("   -> {}".format(usrp_config_source_file))
    os.symlink(usrp_config_source_file, usrp_config_target_file)
 
+
 def show_help():
-   thisFile = open( os.path.realpath(__file__), 'r')
+   thisFile = open(os.path.realpath(__file__), 'r')
    helpText = []
    isFirst = True
    for line in thisFile:
@@ -167,13 +171,14 @@ def show_help():
       else:
          break
 #   print(helpText)
-      
+
 
 def set_alias():
    # does only work for the subprocess session...
    aliasPar = 'alias srrt="{}/srr.py " '.format(basePath)
    subprocess.call(['alias', aliasPar], shell=True)
    myPrint("setting alias srr to script")
+
 
 ######################
 ## Processes:
@@ -185,10 +190,11 @@ def get_processes():
    processList = out.decode("UTF-8").split("\n")
    return processList
 
+
 def print_status():
     processList = get_processes()
     srrProcesses = get_known_processes(processList)
-   
+
     myPrint("Local: Found {} processes:".format(len(srrProcesses)))
     for line in sorted(srrProcesses):
        myPrint("  {}".format(line))
@@ -203,6 +209,7 @@ def print_status():
        for line in sorted(srrProcesses):
           myPrint("  {}".format(line))
 
+
 def remote_stop_all():
     remote_pc_list = get_remote_driver_host()
     for remote_pc in remote_pc_list:
@@ -210,22 +217,23 @@ def remote_stop_all():
         respond = remote_command_echo(userName, remote_pc, "srr stop", verbose=False)
         print(respond)
 
+
 def get_known_processes(processList):
-    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py",  "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd", "normalscan", "onebeamscan", "uafscan", "pcodescan", "interleavescan", "normalsound", "themisscan", "noopscan", "./cf_server"]
+    knownProcessList = ['./usrp_driver', "/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py", "/usr/bin/python3 ./usrp_server", "uafscan", "fitacfwrite", "iqwrite", "rawacfwrite", "errlog", "shellserver", "rtserver", "python3 "+homePath+"/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 "+homePath+"/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","/usr/bin/python3 ./srr_watchdog.py", "schedule", "start.scd", "normalscan", "onebeamscan", "uafscan", "pcodescan", "interleavescan", "normalsound", "themisscan", "noopscan", "./cf_server"]
     srrProcesses = []
     for line in processList:
         wordList = [word for word in line.split(" " ) if word != ""]
         if len(wordList):
-           commandString = " ".join(wordList[10:]) 
+           commandString = " ".join(wordList[10:])
            for knownProcess in knownProcessList:
                if commandString.startswith(knownProcess):
-                  srrProcesses.append( " " + commandString + "  (PID " + wordList[1] + ")")
+                  srrProcesses.append(" " + commandString + "  (PID " + wordList[1] + ")")
                   break
     return srrProcesses
 
 
 def pid_exists(pid):
-    """Check whether pid exists in the current process table.  UNIX only. 
+    """Check whether pid exists in the current process table.  UNIX only.
     """
     if pid < 0:
         return False
@@ -246,10 +254,12 @@ def pid_exists(pid):
     else:
         return True
 
+
 def terminate_pid(pid):
   if pid_exists(pid):
      myPrint("   killing pid {}".format(pid))
      os.kill(pid, signal.SIGTERM)
+
 
 def terminate_all(pidDictList):
     if len(pidDictList):
@@ -277,18 +287,19 @@ def get_usrp_driver_processes():
 
     return usrpProcesses
 
+
 def stop_usrp_driver_soft():
     """ soft stop: connectin as server and sending quit command
-        output: 0 (no driver processes have been active), 1 (soft stop worked) or -1 (driver still active) 
+        output: 0 (no driver processes have been active), 1 (soft stop worked) or -1 (driver still active)
     """
     usrpProcesses = get_usrp_driver_processes()
     if len(usrpProcesses) == 0:
         myPrint("  No usrp_driver processes")
         return 0
     myPrint("Found {} usrp_driver processes".format(len(usrpProcesses)))
-    
+
     dtype = np.uint8
-    
+
     for process in usrpProcesses:
         if process['host'] == None:
             continue
@@ -297,17 +308,16 @@ def stop_usrp_driver_soft():
         try:
            usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
            usrpsock.connect(('localhost', int(process['host'].split(".")[2]) + USRPDriverPort))
-    
+
            usrpsock.sendall(dtype(UHD_EXIT).tobytes())
         except:
            myPrint("  connection to {}:{} (pid {}) failed".format(process['host'], int(process['host'].split(".")[2]) + USRPDriverPort, process['pid']))
-    
+
        # dstr = usrpsock.recv(dtype().nbytes )
-       # myPrint('  => {}  received ?? as {} ({} / {}  bytes): {}'.format(__file__, dtype, len(dstr), dtype().nbytes , dstr  ))
+       # myPrint('  => {}  received ?? as {} ({} / {}  bytes): {}'.format(__file__, dtype, len(dstr), dtype().nbytes, dstr))
        # data = np.fromstring(dstr, dtype=dtype)
        # myPrint("   data:{}".format(data))
-    
-    
+
     myPrint("  Done.")
     waitFor(2)
     myPrint("   Again checking for usrp_driver processes after soft stop...")
@@ -318,6 +328,7 @@ def stop_usrp_driver_soft():
     else:
         myPrint("   Found {} usrp_driver processes".format(len(usrpProcesses)))
         return -1
+
 
 def stop_usrp_driver_hard():
   #  myPrint("Stop usrp_driver hard...")
@@ -347,10 +358,11 @@ def get_cuda_driver_processes():
               cudaProcesses.append(dict(pid=int(wordList[1]) ))
     return cudaProcesses
 
+
 def get_process_ids(processShortName):
     if processShortName == "cuda":
        processMatchString = ["/usr/bin/python3 ./cuda_driver.py", "python3 cuda_driver.py"]
-       nWords = 2 
+       nWords = 2
     elif processShortName == "srr_watchdog":
        processMatchString = ["/usr/bin/python3 ./srr_watchdog.py", "python3 /home/radar/repos/SuperDARN_UHD_Server/tools/srr_watchdog.py","python3 /home/radar/SuperDARN_UHD_Server/tools/srr_watchdog.py"]
        nWords = 1
@@ -367,8 +379,7 @@ def get_process_ids(processShortName):
        nWords = 0
        processMatchString = [processShortName]
        ValueError("unknown process short name {}".format(processShortName))
-       
-     
+
     processList = get_processes()
     foundProcesses = []
     for iLine, line in enumerate(processList):
@@ -378,6 +389,7 @@ def get_process_ids(processShortName):
            if commandString in processMatchString:
               foundProcesses.append(dict(pid=int(wordList[1]) ))
     return foundProcesses
+
 
 def stop_cuda_driver():
     myPrint(" Stopping cuda_driver...")
@@ -391,14 +403,14 @@ def stop_cuda_driver():
                sock.sendall(np.uint8(CUDA_EXIT).tobytes())
             except:
                 myPrint(" soft exit failed: localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
-                
-        
+
        time.sleep(1)
        # terminate processes if they still exis
        terminate_all(cudaProcesses)
     else:
        myPrint("  No cuda_driver processes found...")
-    
+
+
 def stop_usrp_server():
     myPrint(" Stopping usrp_server...")
     serverProcesses = get_process_ids("usrp_server")
@@ -414,7 +426,7 @@ def stop_usrp_server():
                rmsg.set_data('status', 0)
                rmsg.set_data('type', ord(USRP_SERVER_QUIT))
                rmsg.transmit()
- 
+
           time.sleep(1)
       except:
           myPrint("Error while connecting to server. Killing PID...")
@@ -424,7 +436,8 @@ def stop_usrp_server():
     else:
        myPrint("  No usrp_server processes found...")
        return 0
-    
+
+
 def stop_rtserver():
     myPrint(" Stopping rtserver...")
     serverProcesses = get_process_ids("rtserver")
@@ -434,7 +447,8 @@ def stop_rtserver():
     else:
        myPrint("  No rtserver processes found...")
        return 0
-    
+
+
 def stop_allscans():
     myPrint(" Stopping scans...")
     serverProcesses = get_process_ids("scan")
@@ -444,6 +458,8 @@ def stop_allscans():
     else:
        myPrint("  No errlog processes found...")
        return 0
+
+
 def stop_errorlog():
     myPrint(" Stopping errlog...")
     serverProcesses = get_process_ids("errlog")
@@ -453,7 +469,8 @@ def stop_errorlog():
     else:
        myPrint("  No errlog processes found...")
        return 0
-    
+
+
 def stop_fitacf_write():
     myPrint(" Stopping fitacfwrite...")
     serverProcesses = get_process_ids("fitacfwrite")
@@ -463,7 +480,8 @@ def stop_fitacf_write():
     else:
        myPrint("  No fitacfwrite processes found...")
        return 0
-    
+
+
 def stop_rawacf_write():
     myPrint(" Stopping rawacfwrite...")
     serverProcesses = get_process_ids("rawacfwrite")
@@ -473,7 +491,8 @@ def stop_rawacf_write():
     else:
        myPrint("  No rawacfwrite processes found...")
        return 0
-    
+
+
 def stop_watchdog():
     myPrint(" Stopping watchdog...")
     serverProcesses = get_process_ids("srr_watchdog")
@@ -486,9 +505,7 @@ def stop_watchdog():
     else:
         myPrint("  No watchdog processes found...")
         return 0
-    
-    
-    
+
 
 ########################
 ## START:
@@ -497,6 +514,7 @@ def read_config(fileName):
    config = configparser.ConfigParser()
    config.read(fileName)
    return config
+
 
 def get_remote_driver_host():
     fileName = os.path.join(basePath, 'usrp_config.ini')
@@ -512,6 +530,7 @@ def get_remote_driver_host():
           all_driver_hosts.append(curr_host)
     return all_driver_hosts
 
+
 def start_usrps_from_config(usrp_sleep = False):
     myPrint("Starting usrp_driver from config:")
     fileName = os.path.join(basePath, 'usrp_config.ini')
@@ -519,15 +538,15 @@ def start_usrps_from_config(usrp_sleep = False):
        myPrint("  ERROR: usrp_config.ini not found! Run srr init or symlink correct init file by hand.")
        return -1
     usrp_config = read_config(fileName)
-    
+
     usrpNameList = usrp_config.sections()
     usrpPIDlist  = []
-    
+
     myPrint("  Found {} usrps in config {}:".format(len(usrpNameList), fileName))
     start_arg_list = []
     for usrpName in usrpNameList:
         if usrp_config[usrpName]['driver_hostname'] == 'localhost':
-            myPrint("     {} : antenna {},   ip: {}".format( usrpName , usrp_config[usrpName]['array_idx'],  usrp_config[usrpName]['usrp_hostname'] ))
+            myPrint("     {} : antenna {},   ip: {}".format(usrpName, usrp_config[usrpName]['array_idx'], usrp_config[usrpName]['usrp_hostname']))
             if usrp_config[usrpName]['side'].lower()[0] == 'a':
                ant_arg = "--antennaA"
             elif usrp_config[usrpName]['side'].lower() == "b":
@@ -539,62 +558,65 @@ def start_usrps_from_config(usrp_sleep = False):
             newDevice = True
             for arg in start_arg_list:
                 if arg[0] == usrp_config[usrpName]['usrp_hostname']:
-                    arg += [ant_arg, usrp_config[usrpName]['array_idx'] ]
+                    arg += [ant_arg, usrp_config[usrpName]['array_idx']]
                     newDevice = False
                     break
             if newDevice:
-               allArgs =[ usrp_config[usrpName]['usrp_hostname'], ant_arg, usrp_config[usrpName]['array_idx'] ] 
+               allArgs =[ usrp_config[usrpName]['usrp_hostname'], ant_arg, usrp_config[usrpName]['array_idx'] ]
                if usrp_config[usrpName]['mainarray'] == "False":
                   allArgs += ["--interferometer"]
 
                start_arg_list.append(allArgs)
         else:
-            myPrint("not local:  {} : antenna {},   ip: {}".format( usrpName , usrp_config[usrpName]['array_idx'],  usrp_config[usrpName]['usrp_hostname'] ))
+            myPrint("not local:  {} : antenna {},   ip: {}".format(usrpName, usrp_config[usrpName]['array_idx'], usrp_config[usrpName]['usrp_hostname']))
 
-      
-    os.chdir(os.path.join(basePath, "usrp_driver") )   
+    os.chdir(os.path.join(basePath, "usrp_driver") )
 
-###    baseStartArg = ['./usrp_driver', '--intclk', '--host' ] # intclock only for debug
+###    baseStartArg = ['./usrp_driver', '--intclk', '--host'] # intclock only for debug
 
     if USE_USRP_DRIVER_WRAPPER:
-        baseStartArg = ['./usrp_driver_logging_wrapper',  '--host' ]
+        baseStartArg = ['./usrp_driver_logging_wrapper', '--host']
     else:
-        baseStartArg = ['./usrp_driver',  '--host' ]
+        baseStartArg = ['./usrp_driver', '--host']
 
-    
     for start_arg in start_arg_list:
-       all_start_arg = baseStartArg + start_arg 
+       all_start_arg = baseStartArg + start_arg
        myPrint("Starting {}".format(" ".join(all_start_arg) ))
 
-       usrpPIDlist.append( subprocess.Popen(all_start_arg))
+       usrpPIDlist.append(subprocess.Popen(all_start_arg))
 
        # test: wait to avoid frame sizes < 8000 bytes
        time.sleep(0.1)
-#       usrpPIDlist.append( subprocess.Popen(['./usrp_driver', '--intclk', '--antenna', usrp_config[usrpName]['array_idx']  , '--host', usrp_config[usrpName]['usrp_hostname'] ]))
-#       usrpPIDlist.append( subprocess.Popen(['./usrp_driver',  '--antenna', usrp_config[usrpName]['array_idx']  , '--host', usrp_config[usrpName]['usrp_hostname'] ]))
+#       usrpPIDlist.append( subprocess.Popen(['./usrp_driver', '--intclk', '--antenna', usrp_config[usrpName]['array_idx'], '--host', usrp_config[usrpName]['usrp_hostname']]))
+#       usrpPIDlist.append( subprocess.Popen(['./usrp_driver', '--antenna', usrp_config[usrpName]['array_idx'], '--host', usrp_config[usrpName]['usrp_hostname']]))
        if usrp_sleep:
           time.sleep(8)
     os.chdir(basePath)
-    
+
+
 def start_usrp_driver():
     start_usrps_from_config()
 
+
 def start_cuda_driver():
     myPrint("Starting cuda_driver...")
-    os.chdir(os.path.join(basePath, "cuda_driver") )   
-    subprocess.Popen(['./cuda_driver.py' ])
+    os.chdir(os.path.join(basePath, "cuda_driver") )
+    subprocess.Popen(['./cuda_driver.py'])
     os.chdir(basePath)
+
 
 def start_clear_frequency_server():
     myPrint("Starting clear_frequency_server...")
-    subprocess.Popen(['./cf_server' ])
+    subprocess.Popen(['./cf_server'])
+
 
 def start_usrp_server():
     myPrint("Starting usrp_server...")
     os.chdir(os.path.join(basePath, "usrp_server") )
     print(os.getcwd())
-    subprocess.Popen(['./usrp_server.py' ])
+    subprocess.Popen(['./usrp_server.py'])
     os.chdir(basePath)
+
 
 def start_uafscan_fixfreq_onesec(inputArg):
     commandList ='uafscan --stid mcm -c 1 --nowait --fixfrq 14000 --onesec --debug'.split(" ")
@@ -605,6 +627,7 @@ def start_uafscan_fixfreq_onesec(inputArg):
        commandList[4] = inputArg[2]
     myPrint("  >>>{}".format(" ".join(commandList)))
     subprocess.Popen(commandList)
+
 
 def start_uafscan_fixfreq(inputArg):
     commandList ='uafscan --stid mcm -c 1 --nowait --fixfrq 14000 --fast --debug'.split(" ")
@@ -621,6 +644,8 @@ def start_normalscan():
     command = 'normalscan -stid mcm -xcf 1 -fast -df 10400 -nf 10400 -c 4'
     myPrint("Starting normalscan...({})".format(command))
     subprocess.Popen(command.split(" "))
+
+
 def start_2normalscans():
     command = 'normalscan -stid mcm -xcf 1 -fast -df 10400 -nf 10400 -c 3'
     myPrint("Starting first (of two) normalscan...({})".format(command))
@@ -628,6 +653,7 @@ def start_2normalscans():
     command = 'normalscan -stid mcm -xcf 1 -fast -df 10400 -nf 10400 -c 4'
     myPrint("Starting second (of two) normalscan...({})".format(command))
     subprocess.Popen(command.split(" "))
+
 
 def start_rtserver():
     commandList = 'rtserver -rp 41104 -ep 41000 -tp 1401'.split(" ")
@@ -638,10 +664,12 @@ def start_rtserver():
     myPrint("Starting {}  ({})".format(commandList[0], " ".join(commandList)))
     subprocess.Popen(commandList)
 
+
 def start_fitacf_write():
     commandList = 'fitacfwrite -r mcm.a -lp 41103 -ep 41000'.split(" ")
     myPrint("Starting {}  ({})".format(commandList[0], " ".join(commandList)))
     subprocess.Popen(commandList)
+
 
 def start_rawacf_write():
     commandList = 'rawacfwrite -r mcm.a -lp 41102 -ep 41000'.split(" ")
@@ -663,18 +691,21 @@ def start_network_tool():
     networkTool.printStatus()
     return
    # myPrint("Starting networkTool.py...")
-   # os.chdir(os.path.join(basePath, "tools") )   
-   # subprocess.Popen(['./networkTool.py' ])
+   # os.chdir(os.path.join(basePath, "tools") )
+   # subprocess.Popen(['./networkTool.py'])
+
 
 def start_liveRawView_tool():
     myPrint("Starting tools/plotRawSamples_usrpServer.py...")
-    os.chdir(os.path.join(basePath, "tools") )   
-    subprocess.Popen(['./plotRawSamples_usrpServer.py' ])
+    os.chdir(os.path.join(basePath, "tools") )
+    subprocess.Popen(['./plotRawSamples_usrpServer.py'])
+
 
 def start_watchdog():
     myPrint("Starting tools/watchdog.py...")
-    os.chdir(os.path.join(basePath, "tools") )   
-    subprocess.Popen(['./watchdog.py' ])
+    os.chdir(os.path.join(basePath, "tools") )
+    subprocess.Popen(['./watchdog.py'])
+
 
 ###############
 def restart_all():
@@ -686,12 +717,14 @@ def restart_all():
    myPrint("done  waiting.... starting server")
    start_usrp_server()
 
+
 def restart_clear_frequency_service():
    server_was_running = stop_clear_frequency_service()
    if server_was_running:
       waitFor(nSecs_restart_pause)
    stop_clear_frequency_service()
    start_clear_frequency_server()
+
 
 def stop_clear_frequency_service():
     myPrint(" Stopping clear frequency service...")
@@ -703,8 +736,9 @@ def stop_clear_frequency_service():
        myPrint("  No clear_frequency_server process found...")
        return 0
 
+
 def restart_driver():
-    server_was_running = stop_usrp_server() 
+    server_was_running = stop_usrp_server()
     if server_was_running:
         waitFor(5)
     usrp_driver_was_running = stop_usrp_driver()
@@ -747,22 +781,22 @@ def main():
 
    inputArg = sys.argv[1:]
    nArguments = len(inputArg)
-   
+
    if nArguments == 0:   # DEFAULT option
       print_status()
    else:
       firstArg = inputArg[0].lower()
-      
+
       if firstArg == "status":
           print_status()
       elif firstArg == "init":
           initialize(inputArg)
       elif firstArg.lower() in ["liverawview", "rawview"]:
-           start_liveRawView_tool()  
+           start_liveRawView_tool()
       elif firstArg.lower() in ["watchdog", "w"]:
-           start_watchdog()  
+           start_watchdog()
       elif firstArg.lower() in ["network", "networktool", "net"]:
-           start_network_tool()  
+           start_network_tool()
       elif firstArg == "start":
          if nArguments == 1 or inputArg[1].lower() == "all":
             myPrint("Starting all...")
@@ -801,7 +835,7 @@ def main():
             myPrint("See srr help for process names:")
             myPrint("")
             show_help()
-   
+
       elif firstArg == "restart":
          if nArguments == 1 or inputArg[1].lower() == "all":
             restart_all()
@@ -809,32 +843,31 @@ def main():
          elif inputArg[1].lower() in ["usrp_driver", "usrps"]:
             usrp_driver_was_running = stop_usrp_driver()
             if usrp_driver_was_running:
-                waitFor(nSecs_restart_pause) 
+                waitFor(nSecs_restart_pause)
             start_usrp_driver()
-   
+
          elif inputArg[1].lower() in ["cuda_driver", "cuda"]:
             stop_cuda_driver()
             start_cuda_driver()
-   
+
          elif inputArg[1].lower() == "driver":
              restart_driver()
          elif inputArg[1].lower() in ["usrp_server", "server"]:
             stop_usrp_server()
             start_usrp_server()
-   
+
          else:
             myPrint("ERROR: Unknown process to restart")
             myPrint("See srr help for process names:")
             myPrint("")
             show_help()
-   
-   
+
       elif firstArg == "stop":
          if nArguments == 1 or inputArg[1].lower() == "all":
             myPrint("Stopping all...")
             remote_stop_all()
             stop_watchdog()
-            server_was_running = stop_usrp_server() 
+            server_was_running = stop_usrp_server()
             stop_clear_frequency_service()
             if server_was_running:
                 waitFor(5)
@@ -872,25 +905,18 @@ def main():
             show_help()
       elif firstArg == "help":
          show_help()
-      
+
       else:
          myPrint("ERROR: UNKNWON COMMAND")
          myPrint("See srr help for usage:")
          myPrint("")
          show_help()
-      
+
    myPrint(" ")
    print(basePrintLine)
    print(basePrintLine)
-   
-   
-   
+
+
 if __name__ == '__main__':
    main()
-   
-   
-   
-   
-   
-   
 
