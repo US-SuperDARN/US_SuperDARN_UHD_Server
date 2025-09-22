@@ -681,7 +681,7 @@ class ClearFrequencyService():
                 ClearFrequencyService.sl_clrfreq,
             ]
             ClearFrequencyService.shm_objects = [
-                self.create_shm_obj(self.SAMPLES_SHM_NAME ,         self.SAMPLES_SHM_SIZE       , self.SAMPLES_ELEM_NUM),
+                self.create_shm_obj(self.SAMPLES_SHM_NAME,          self.SAMPLES_SHM_SIZE       , self.SAMPLES_ELEM_NUM),
                 self.create_shm_obj(self.FCENTER_SHM_NAME,          self.FCENTER_SHM_SIZE       , ),
                 self.create_shm_obj(self.CLR_RANGE_SHM_NAME,        self.CLR_RANGE_SHM_SIZE     , self.CLR_RANGE_ELEM_NUM),
                 self.create_shm_obj(self.BEAM_NUM_SHM_NAME,         self.BEAM_NUM_SHM_SIZE      , ),
@@ -1759,7 +1759,7 @@ class scanManager():
 
         RHM.clearFreqRawDataManager.add_channel(clearFreq, bandwidth)
 
-        self.logger.debug("clear freq result for radar {} channel {}: selected {} , noise level {:2.1f}".format(self.channel.rnum, self.channel.cnum, clearFreq, noise))
+        self.logger.debug("clear freq result for radar {} channel {}: selected {}, noise level {:2.1f}".format(self.channel.rnum, self.channel.cnum, clearFreq, noise))
         RHM.clearFreqRawDataManager.select_clear_freq.release()
         RHM.set_par_semaphore.release()
 
@@ -2424,7 +2424,7 @@ class RadarHardwareManager:
         self.logger.debug("_calc_period_details: samplingRate_bb={}, number_of_samples={}".format(self.commonChannelParameter['baseband_samplerate'], self.commonChannelParameter['number_of_samples']))
         # calculate the pulse sequence period with padding
     #    nSamples_per_sequence = self.commonChannelParameter['number_of_samples'] + int(PULSE_SEQUENCE_PADDING_TIME * self.commonChannelParameter['baseband_samplerate'])
-        nSamples_per_sequence = max(self.commonChannelParameter['number_of_samples']+2 , int(np.ceil((self.commonChannelParameter['pulse_sequence_offsets_vector'][-1]+ self.commonChannelParameter['pulseLength']/1e6 + PULSE_SEQUENCE_PADDING_TIME) * self.commonChannelParameter['baseband_samplerate'])))
+        nSamples_per_sequence = max(self.commonChannelParameter['number_of_samples']+2, int(np.ceil((self.commonChannelParameter['pulse_sequence_offsets_vector'][-1]+ self.commonChannelParameter['pulseLength']/1e6 + PULSE_SEQUENCE_PADDING_TIME) * self.commonChannelParameter['baseband_samplerate'])))
         pulse_sequence_period = nSamples_per_sequence / self.commonChannelParameter['baseband_samplerate']
 
         self.logger.debug("nSamples_per_sequence: {}, pulse_sequence_period: {}".format(nSamples_per_sequence, pulse_sequence_period))
@@ -3993,13 +3993,13 @@ class RadarChannelHandler:
 
             goodDownsampleRates = [[20, 75],  # 5M => 3.333k
                                    [20, 25],  # 5M => 10k
-                                   [15 ,20],  # 5M => 16.67k
-                                   [10 ,20],  # 5M => 25k
-                                   [10 ,75],  # 2.5M => 3.333k
-                                   [30 ,100], # 10M => 3.333k
+                                   [15, 20],  # 5M => 16.67k
+                                   [10, 20],  # 5M => 25k
+                                   [10, 75],  # 2.5M => 3.333k
+                                   [30, 100], # 10M => 3.333k
                                    [20, 50],  # 10M => 10k
                                    [20, 30],  # 10M => 16.67k
-                                   [20 ,20],  # 10M => 25k
+                                   [20, 20],  # 10M => 25k
             ]
 
             total_downsample_rate = hardwareManager.usrp_rf_rx_rate / hardwareManager.commonChannelParameter['baseband_samplerate']
@@ -4038,10 +4038,10 @@ class RadarChannelHandler:
                 self.logger.error('Unable to add new channel. Parameters not compatible with active channels.')
                 for iPar,isCompatible in enumerate(parCompatibleList_seq):
                      if not all(isCompatible):
-                        self.logger.error(" Not compatible sequence parameter: {}   old channel(s): {} , new channel: {}".format(commonParameterList_seq[iPar], hardwareManager.commonChannelParameter[commonParameterList_seq[iPar]] , getattr(self, commonParameterList_seq[iPar])))
+                        self.logger.error(" Not compatible sequence parameter: {}   old channel(s): {}, new channel: {}".format(commonParameterList_seq[iPar], hardwareManager.commonChannelParameter[commonParameterList_seq[iPar]], getattr(self, commonParameterList_seq[iPar])))
                 for iPar,isCompatible in enumerate(parCompatibleList_ctrl):
                      if not isCompatible:
-                        self.logger.error(" Not compatible ctrlprm: {}   old channel(s): {} , new channel: {}".format(commonParameterList_ctrl[iPar], hardwareManager.commonChannelParameter[commonParameterList_ctrl[iPar]] , self.ctrlprm_struct.payload[commonParameterList_ctrl[iPar]]))
+                        self.logger.error(" Not compatible ctrlprm: {}   old channel(s): {}, new channel: {}".format(commonParameterList_ctrl[iPar], hardwareManager.commonChannelParameter[commonParameterList_ctrl[iPar]], self.ctrlprm_struct.payload[commonParameterList_ctrl[iPar]]))
                 if pulseLength != hardwareManager.commonChannelParameter['pulseLength']:
                     self.logger.error(" Pulse length of new channel ({}) is not compatible to old channel(s) ({})".format(pulseLength, hardwareManager.commonChannelParameter['pulseLength']))
                 return False
