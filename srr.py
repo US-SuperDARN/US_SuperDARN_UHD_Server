@@ -913,7 +913,7 @@ def main():
          show_help()
 
       else:
-         myPrint("ERROR: UNKNWON COMMAND")
+         myPrint("ERROR: UNKNOWN COMMAND")
          myPrint("See srr help for usage:")
          myPrint("")
          show_help()
