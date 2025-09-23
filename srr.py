@@ -307,6 +307,8 @@ def stop_usrp_driver_soft():
         myPrint("  sending UHD_EXIT to {}:{} (pid {})".format(process['host'], int(process['host'].split(".")[2]) + USRPDriverPort, process['pid']))
         try:
            usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+           usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+           usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
            usrpsock.connect(('localhost', int(process['host'].split(".")[2]) + USRPDriverPort))
 
            usrpsock.sendall(dtype(UHD_EXIT).tobytes())
@@ -399,6 +401,8 @@ def stop_cuda_driver():
             try:
                myPrint("  sending CUDA_EXIT to localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+               sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+               sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
                sock.connect(('localhost',CUDADriverPort))
                sock.sendall(np.uint8(CUDA_EXIT).tobytes())
             except:
@@ -419,6 +423,8 @@ def stop_usrp_server():
           for process in serverProcesses:
                myPrint("  sending SERVER_EXIT to localhost:{} (pid {})".format(USRP_SERVER_PORT, process['pid']))
                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+               sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+               sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
                sock.connect(('localhost', USRP_SERVER_PORT))
                time.sleep(0.3)
            #    sock.sendall(np.int32(ord(USRP_SERVER_QUIT)).tobytes())
