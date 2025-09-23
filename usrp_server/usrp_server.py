@@ -1474,7 +1474,7 @@ class clearFrequencyRawDataManager():
             data_age = np.inf
             rec_new_samples = True
         else:
-            data_age =  time.time() - self.recordTime[jrad]
+            data_age = time.time() - self.recordTime[jrad]
             rec_new_samples = data_age > self.usrpManager.RHM.auto_max_age
 
         if rec_new_samples:
@@ -2454,15 +2454,15 @@ class RadarHardwareManager:
         ### sampling_duration = pulse_sequence_period * nSequences_per_period   # just record full number of sequences
 
         # calculate the number of RF transmit and receive samples
-        downsamplingRates =  self.commonChannelParameter["downsample_rates"]
+        downsamplingRates = self.commonChannelParameter["downsample_rates"]
         if nSequences_per_period == 0:
            nSamples_per_sequence_if = nSequences_per_period
            num_requested_rx_samples = nSequences_per_period
         else:
            ntap_rf_if_factor = int(self.ini_dsp_info['ntap_rf_if_factor'])
            ntap_if_bb_factor = int(self.ini_dsp_info['ntap_if_bb_factor'])
-           nSamples_per_sequence_if =  int(downsamplingRates[1])* ((nSamples_per_sequence*nSequences_per_period) - 1 ) + int(downsamplingRates[1]*ntap_if_bb_factor) # assumes fixed nTaps for filter = 2*downsampling
-           num_requested_rx_samples =  int(downsamplingRates[0])* (nSamples_per_sequence_if                      - 1 ) + int(downsamplingRates[0]*ntap_rf_if_factor) # assumes fixed nTaps for filter = 2*downsampling
+           nSamples_per_sequence_if = int(downsamplingRates[1])* ((nSamples_per_sequence*nSequences_per_period) - 1 ) + int(downsamplingRates[1]*ntap_if_bb_factor) # assumes fixed nTaps for filter = 2*downsampling
+           num_requested_rx_samples = int(downsamplingRates[0])* (nSamples_per_sequence_if                      - 1 ) + int(downsamplingRates[0]*ntap_rf_if_factor) # assumes fixed nTaps for filter = 2*downsampling
 
         self.logger.debug("RFIFRATE: {}, IFBBRATE: {}, nSamples_per_sequence_if: {}, nSamples_per_sequence: {}, nSequences_per_period: {}, NTapsRX_ifbb: {}, NTapsRX_rfif: {}".format( \
                 downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, downsamplingRates[0]*2, downsamplingRates[1]*2))
@@ -3105,7 +3105,7 @@ class RadarHardwareManager:
                 var_list = []
                 for iAntenna in range(nAntennas_main):
                     if antenna_scale_factors[iChannel][RHM.antenna_idx_list_main[jrad][iAntenna]]:
-                        curr_variance =   np.var(np.real(main_samples[iChannel][iAntenna][rx_idx]))
+                        curr_variance = np.var(np.real(main_samples[iChannel][iAntenna][rx_idx]))
                     else: # don't calculate if antenna is muted
                         curr_variance = 1
 
@@ -3118,7 +3118,7 @@ class RadarHardwareManager:
                 # back array
                 for iAntenna in range(nAntennas_back):
                     if antenna_scale_factors[iChannel][RHM.antenna_idx_list_back[jrad][iAntenna]]:
-                        curr_variance =   np.var(np.real(back_samples[iChannel][iAntenna][rx_idx]))
+                        curr_variance = np.var(np.real(back_samples[iChannel][iAntenna][rx_idx]))
                     else: # don't calculate if antenna is muted
                         curr_variance = 1
                     var_list.append(curr_variance)
@@ -3152,7 +3152,7 @@ class RadarHardwareManager:
                         if var_list[iAntenna+nAntennas_main] > var_threshold:
                             scale_factor = np.sqrt(max_var/var_list[iAntenna+nAntennas_main]) * antenna_scale_factors[iChannel][RHM.antenna_idx_list_back[jrad][iAntenna]]
 
-                            antenna_scale_factors[iChannel][RHM.antenna_idx_list_back[jrad][iAntenna]]  =  scale_factor
+                            antenna_scale_factors[iChannel][RHM.antenna_idx_list_back[jrad][iAntenna]] = scale_factor
                             RHM.logger.info("scaling antenna {} with factor {:}".format(RHM.antenna_idx_list_back[jrad][iAntenna], scale_factor))
                         else:
                             RHM.logger.info("not scaling antenna {} because of small variance: {} (< threshold)".format(RHM.antenna_idx_list_back[jrad][iAntenna], var_list[iAntenna+nAntennas_main]))
@@ -3765,9 +3765,9 @@ class RadarChannelHandler:
         exportList.append( channel.raw_export_data['beam'])
         exportList.append( channel.raw_export_data['rfreq']) # in kHz
         exportList.append( channel.raw_export_data['mppul'])
-        exportList +=  channel.raw_export_data['ppat']
+        exportList += channel.raw_export_data['ppat']
         exportList.append( channel.raw_export_data['nbaud'])
-        exportList +=  channel.raw_export_data['pcode']
+        exportList += channel.raw_export_data['pcode']
 #       exportList.append(channel.bb_export['nSamples'])
         exportList.append(channel.bb_export['number_of_samples'])
         exportList.append(channel.bb_export['nSequences_per_period'])
@@ -3826,9 +3826,9 @@ class RadarChannelHandler:
         exportList.append( channel.raw_export_data['beam'])
         exportList.append( channel.raw_export_data['rfreq']) # in kHz
         exportList.append( channel.raw_export_data['mppul'])
-        exportList +=  channel.raw_export_data['ppat']
+        exportList += channel.raw_export_data['ppat']
         exportList.append( channel.raw_export_data['nbaud'])
-        exportList +=  channel.raw_export_data['pcode']
+        exportList += channel.raw_export_data['pcode']
         exportList.append( RECV_SAMPLE_HEADER)
         exportList.append(channel.raw_export_data['nSamples'])
         exportList.append(channel.raw_export_data['nAntennas'])
