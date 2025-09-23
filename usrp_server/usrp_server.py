@@ -319,7 +319,7 @@ class usrpSockManager():
               memory = posix_ipc.SharedMemory(name)
               mapfile = mmap.mmap(memory.fd, memory.size)
               mapfile.seek(0)
-              for iBlock in  range(nFullBlocks): # TODO speed up by writing more than one byte at a time?
+              for iBlock in range(nFullBlocks): # TODO speed up by writing more than one byte at a time?
                  mapfile.write(zeros_block)
               mapfile.write(zeros_block[0:int(2*nInts_rem)])
               memory.close_fd()
@@ -1408,7 +1408,7 @@ class clearFrequencyRawDataManager():
         self.outstanding_request = [False for jrad in range(N_RADARs)]     # Flag set by the RadarChannelHandlers
         self.repeat_request_for_2nd_period = False
 
-        self.usrpManager = usrpManager # TODO change to take socks automatically form usrpManager
+        self.usrpManager = usrpManager # TODO change to take socks automatically from usrpManager
         self.usrp_socks = [None for jrad in range(N_RADARs)]
         self.center_freq = [None for jrad in range(N_RADARs)]
         self.sampling_rate = [None for jrad in range(N_RADARs)]
@@ -1719,7 +1719,7 @@ class scanManager():
 
 
     def evaluate_clear_freq(self, jrad, cnum, iPeriod, beamNo):
-        # TODO make sure this is function is only called once at a time
+        # TODO make sure this function is only called once at a time
         RHM = self.RHM
 
         RHM.clearFreqRawDataManager.select_clear_freq.acquire()
