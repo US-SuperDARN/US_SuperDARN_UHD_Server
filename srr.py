@@ -682,6 +682,7 @@ def start_rawacf_write():
     myPrint("Starting {}  ({})".format(commandList[0], " ".join(commandList)))
     subprocess.Popen(commandList)
 
+
 def start_errorlog():
     commandList = 'errlog -name mcm.a -lp 41000'.split(" ")
     myPrint("Starting {} on port {} ({})".format(commandList[0], commandList[-1], " ".join(commandList)))
@@ -708,9 +709,9 @@ def start_liveRawView_tool():
 
 
 def start_watchdog():
-    myPrint("Starting tools/watchdog.py...")
+    myPrint("Starting tools/srr_watchdog.py...")
     os.chdir(os.path.join(basePath, "tools") )
-    subprocess.Popen(['./watchdog.py'])
+    subprocess.Popen(['./srr_watchdog.py'])
 
 
 ###############
