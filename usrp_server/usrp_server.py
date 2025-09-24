@@ -3558,10 +3558,8 @@ class RadarChannelHandler:
 
     #@timeit
     def RegisterSeqHandler(self, rmsg):
+
         # function to get the indexes of rising edges going from zero to a nonzero value in array ar
-
-        self.logger.debug('Entering RegisterSeqHandler for channel {}'.format(self.cnum))
-
         def _rising_edge_idx(ar):
             ar = np.insert(ar, 0, -2)
             edges = np.array([ar[i+1] * (ar[i+1] - ar[i] > 1) for i in range(len(ar)-1)])
@@ -3576,10 +3574,13 @@ class RadarChannelHandler:
                     break
                 runlen += 1
             return runlen
+
+        self.logger.debug('Entering RegisterSeqHandler for channel {}'.format(self.cnum))
+
         # site libraries appear to not initialize the status, so a nonzero status here is normal.
 
         self.seqprm_struct.receive(self.conn)
-        self.seq_rep = recv_dtype(self.conn, np.uint8, self.seqprm_struct.payload['len'])
+        self.seq_rep  = recv_dtype(self.conn, np.uint8, self.seqprm_struct.payload['len'])
         self.seq_code = recv_dtype(self.conn, np.uint8, self.seqprm_struct.payload['len'])
 
         self.logger.debug('RegisterSeqHandler, received sequence data from control program')
