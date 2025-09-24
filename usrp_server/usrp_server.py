@@ -1924,7 +1924,7 @@ class RadarHardwareManager:
                             self.logger.info("Waiting for radar {} ch {} to be added to newChannelList".format(jrad, active_ch.cnum))
                             time.sleep(0.01)
 
-                   while( self.n_SetParameterHandlers_active):
+                   while(self.n_SetParameterHandlers_active):
                       self.logger.debug("Waiting for all {} SetParameterHandlers to finish before initializing new channels".format(self.n_SetParameterHandlers_active))
                       time.sleep(0.001)
                    controlLoop_logger.info('initializing channel')
@@ -2517,7 +2517,7 @@ class RadarHardwareManager:
         for ch in np.concatenate(self.channels).tolist():
             self.logger.debug('rnum {} cnum {}: tfreq={}, rfreq={}, usrp_center={} rx_rate={}MHz'.format(ch.rnum, ch.cnum, ch.ctrlprm_struct.payload['tfreq'], ch.ctrlprm_struct.payload['rfreq'], self.mixingFreqManager.current_mixing_freq[ch.rnum], self.usrp_rf_tx_rate/1e6))
             if not (ch.ctrlprm_struct.payload['tfreq'] == ch.ctrlprm_struct.payload['rfreq']):
-                    self.logger.warning('tfreq (={}) != rfreq (={}) !'.format( ch.ctrlprm_struct.payload['tfreq'], ch.ctrlprm_struct.payload['rfreq']))
+                    self.logger.warning('tfreq (={}) != rfreq (={}) !'.format(ch.ctrlprm_struct.payload['tfreq'], ch.ctrlprm_struct.payload['rfreq']))
 
         # START LOOP OVER RADARS
 
@@ -2755,7 +2755,7 @@ class RadarHardwareManager:
                                 self.logger.error("Cuda transmitted antenna ({}) that is not in main array list ({}) and back array list ({}). (Maybe different antenna definitions in usrp_config.ini on both computers?)".format(antIdx, self.antenna_idx_list_main[jrad], self.antenna_idx_list_back[jrad]))
                                 sys.exit(1)
                        else:
-                          channel.logger.debug("Receiving NOTHING for channel {} because processing_state is {}".format( channel.cnum, channel.processing_state))
+                          channel.logger.debug("Receiving NOTHING for channel {} because processing_state is {}".format(channel.cnum, channel.processing_state))
 
                     transmit_dtype(cudasock, -1, np.int32) # to end transfer process
 
@@ -2764,7 +2764,7 @@ class RadarHardwareManager:
 
                  # BEAMFORMING
                  self.logger.debug('start rx beamforming')
-                 antenna_scale_factors = self.calc_normalize_and_mute_factors( jrad, main_samples, back_samples)
+                 antenna_scale_factors = self.calc_normalize_and_mute_factors(jrad, main_samples, back_samples)
 
                  beamformed_main_samples, beamformed_back_samples = self.calc_beamforming(jrad, main_samples, back_samples, antenna_scale_factors)
                  for iChannel, channel in enumerate(self.channels[jrad]):
@@ -3074,10 +3074,10 @@ class RadarHardwareManager:
 
     # normalize
     def calc_normalize_and_mute_factors(RHM, jrad, main_samples, back_samples):
-        antenna_scale_factors = np.ones(max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad])+1)
+        antenna_scale_factors = np.ones(max(RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad])+1)
         for ant_to_mute in RHM.mute_antenna_list[jrad]:
             # If antenna present and on mute list, mute it
-            if (max( RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad]) + 1) > ant_to_mute:
+            if (max(RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad]) + 1) > ant_to_mute:
                 antenna_scale_factors[ant_to_mute] = 0
         antenna_scale_factors = [antenna_scale_factors for i in range(len(np.concatenate(RHM.channels).tolist()))]
 
@@ -3716,7 +3716,7 @@ class RadarChannelHandler:
                   nSamples_if = int(recv_dtype(cudasock, np.uint32) )
                   channel.logger.debug("Receiving {} if samples.".format(nSamples_if))
                   if if_samples is None:
-                     if_samples = np.zeros(( nAntennas, nSamples_if), dtype=np.float32)
+                     if_samples = np.zeros((nAntennas, nSamples_if), dtype=np.float32)
 
                   samples = recv_dtype(cudasock, np.float32, nSamples_if )
 #                  samples = samples[0::2] + 1j * samples[1::2] # TODO change to match export format. i/q int32 ????
@@ -3976,7 +3976,7 @@ class RadarChannelHandler:
 
         if (hardwareManager.nRegisteredChannels <= 0) or (len(hardwareManager.commonChannelParameter) == 0):  # this is the first channel
             hardwareManager.commonChannelParameter = {key: getattr(self, key) for key in commonParList_seq}
-            hardwareManager.commonChannelParameter.update( {key: self.ctrlprm_struct.payload[key] for key in commonParList_ctrl})
+            hardwareManager.commonChannelParameter.update({key: self.ctrlprm_struct.payload[key] for key in commonParList_ctrl})
             hardwareManager.commonChannelParameter.update({'pulseLength':pulseLength})
 
             # upsampling rates
