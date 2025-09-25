@@ -420,7 +420,7 @@ class usrp_get_auto_clear_freq_command(driver_command):
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
 
-            # give non-local usrps some extra timem to respond
+            # give non-local usrps some extra time to respond
             if sock.getpeername()[0] != '127.0.0.1':
                 time.sleep(0.003)
 
@@ -435,6 +435,7 @@ class usrp_get_auto_clear_freq_command(driver_command):
                 try:
                     sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 except:
+                    self.logger.error("Error receiving clear search samples for antenna {}".format(antenna_no_side))
                     return nSides, -1, sample_buf
                     # sample_buf_side = [np.int16(0) for j in range(2*nSamples)]
 
@@ -450,7 +451,7 @@ class usrp_get_auto_clear_freq_command(driver_command):
         antenna_list = []
         all_samples = []
         for sock in self.clients:
-            nSides,tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock)
+            nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock)
             if tmp_ant != -1:
                 for jside in range(nSides):
                     antenna_list.append(tmp_ant[jside])
