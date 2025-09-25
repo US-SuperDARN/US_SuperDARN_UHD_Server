@@ -8,7 +8,7 @@ import time
 from socket_utils import *
 from termcolor import cprint
 
-checkSwing  = True # check if transmitted swing is declared
+checkSwing = True # check if transmitted swing is declared
 
 UHD_SETUP = ord('s')
 UHD_RXFE_SET = ord('r')
@@ -104,7 +104,7 @@ class driver_command(object):
 
                for item in self.dataqueue:
                   # pdb.set_trace()
-                   if checkSwing and  item.name == "swing" and item.data == np.uint32(-1):
+                   if checkSwing and item.name == "swing" and item.data == np.uint32(-1):
                       raise ValueError("swing has been not defined!")
                    item.transmit(clientsock)
 
