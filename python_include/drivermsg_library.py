@@ -429,7 +429,7 @@ class usrp_get_auto_clear_freq_command(driver_command):
                 sample_buf_side = []
             else:
                 nSamples = recv_dtype(sock, np.int32)
-                self.logger.debug("clear search return number of samples:{}".format(nSamples))
+                # self.logger.debug("clear search return number of samples:{}".format(nSamples))
 
                 time.sleep(0.001)
                 try:
