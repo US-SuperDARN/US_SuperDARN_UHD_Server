@@ -269,6 +269,10 @@ void send_timing_for_sequence(
     time_t current_time;
     struct tm *gmt;
 
+    float priority=1;
+    bool realtime=true;
+    uhd::set_thread_priority_safe(priority,realtime);
+
     GPIOCommand c; // struct to hold command information so gpio commands can be created out of temporal order, sorted, and issued in order
     std::priority_queue<GPIOCommand, std::vector<GPIOCommand>, CompareTime> cmdq;
     
