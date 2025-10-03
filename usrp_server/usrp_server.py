@@ -2091,7 +2091,7 @@ class RadarHardwareManager:
           if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
              time.sleep(0.002)
        except:
-          self.logger.debug("No USRPs for radar {}".format(jrad))
+          self.logger.error("No USRPs for radar {}".format(jrad))
 
        # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
 
@@ -2593,7 +2593,7 @@ class RadarHardwareManager:
                     if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
                        time.sleep(0.002)
                  except:
-                    self.logger.debug("No USRPs for radar {}".format(jrad))
+                    self.logger.error("No USRPs for radar {}".format(jrad))
 
                  # self.usrpManager.eval_client_return(cmd, jrad)
                  self.logger.debug("end USRP_SETUP")
@@ -2928,11 +2928,14 @@ class RadarHardwareManager:
               cmd = usrp_ready_data_command(self.usrpManager.socks[jrad], self.swingManager.activeSwing)
               cmd.transmit()
 
-              # give non-local usrps some extra time to respond
-              if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-                 time.sleep(0.002)
-              else:
-                 time.sleep(0.004)
+              try:
+                 # give non-local usrps some extra time to respond
+                 if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
+                    time.sleep(0.002)
+                 else:
+                    time.sleep(0.004)
+              except:
+                 self.logger.error("No USRPs for radar {}".format(jrad))
 
               # check status of usrp drivers
               self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
@@ -3028,11 +3031,14 @@ class RadarHardwareManager:
               cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],int(nSamples_clear_freq))
               cmd.transmit()
 
-              # give non-local usrps some extra time to respond
-              if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-                 time.sleep(0.001)
-              else:
-                 time.sleep(0.0025)
+              try:
+                 # give non-local usrps some extra time to respond
+                 if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
+                    time.sleep(0.001)
+                 else:
+                    time.sleep(0.0025)
+              except:
+                 self.logger.error("No USRPs for radar {}".format(jrad))
 
               antenna_list, clr_samples = cmd.recv_all()
               cmd.client_return()
