@@ -164,6 +164,9 @@ void write_spectrum_mag_bin(
     char timestamp[buffer_size];
     char name[buffer_size]; 
 
+    int freq_start = 0;
+    int dfreq = 0;
+
     // If file doesn't exists, create it
     if (filename == NULL) {
         // Generate timestamp
@@ -188,10 +191,14 @@ void write_spectrum_mag_bin(
 
     __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
 
+    freq_start = freq_vector[0]/1000;
+    dfreq = (freq_vector[1]-freq_vector[0])/1000;
+
     fwrite(&t, sizeof(__uint64_t), 1, file);
     fwrite(&beam_num, sizeof(int), 1, file);
     fwrite(&num_samples, sizeof(int), 1, file);
-    fwrite(freq_vector, sizeof(double), num_samples, file);
+    fwrite(&freq_start, sizeof(int), 1, file);
+    fwrite(&dfreq, sizeof(int), 1, file);
     fwrite(spectrum, sizeof(double), num_samples, file);
 
     fclose(file);
