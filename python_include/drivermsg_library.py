@@ -417,12 +417,17 @@ class usrp_get_auto_clear_freq_command(driver_command):
     def recv_samples_from_one_usrp(self, sock):
         antenna_no = []
         sample_buf = []
+
+        # give non-local usrps some extra time to respond
+        if sock.getpeername()[0] != '127.0.0.1':
+            time.sleep(0.001)
+
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
 
             # give non-local usrps some extra time to respond
             if sock.getpeername()[0] != '127.0.0.1':
-                time.sleep(0.003)
+                time.sleep(0.002)
 
             antenna_no_side = recv_dtype(sock, np.int32)
             if antenna_no_side == -1:
@@ -481,12 +486,17 @@ class usrp_clrfreq_command(driver_command):
     def recv_samples_from_one_usrp(self, sock, nSamples):
         antenna_no = []
         sample_buf = []
+
+        # give non-local usrps some extra time to respond
+        if sock.getpeername()[0] != '127.0.0.1':
+            time.sleep(0.001)
+
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
 
             # give non-local usrps some extra time to respond
             if sock.getpeername()[0] != '127.0.0.1':
-                time.sleep(0.003)
+                time.sleep(0.002)
 
             antenna_no_side = recv_dtype(sock, np.int32)
             if antenna_no_side == -1:
@@ -498,6 +508,7 @@ class usrp_clrfreq_command(driver_command):
                 try:
                     sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 except:
+                    self.logger.error("Error receiving auto clear samples for antenna {}".format(antenna_no_side))
                     return nSides, -1, sample_buf
 
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
