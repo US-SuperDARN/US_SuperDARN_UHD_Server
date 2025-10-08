@@ -56,7 +56,7 @@ static int config_ini_handler(void* user, const char* section, const char* name,
                 if (i_token == 0 && idx != 0) break;
 
                 pconfig->gain_control.mute_antenna_ids[idx] = i_token;
-                value_copy = strdup(value); 
+                value_copy = strdup(value);
                 token = strtok(NULL, ",");
                 idx++;
             }
@@ -69,7 +69,7 @@ static int config_ini_handler(void* user, const char* section, const char* name,
 }
 
 /**
- * @brief  Loads in the array configuration from array_config.ini. 
+ * @brief  Loads in the array configuration from array_config.ini.
  * @note   By DF
  * @param  *config_path:       Filepath of the array_config.ini file
  * @retval None
@@ -97,7 +97,6 @@ int main() {
         printf("Can't load 'config.ini'\n");
         return 1;
     }
-    
 
     // Assign the read values to the variables
     double restricted_frequencies[] = { };
@@ -121,9 +120,6 @@ int main() {
     printf("minimum_tfreq = %lf\n", config.hardware_limits.minimum_tfreq);
     printf("maximum_tfreq = %lf\n", config.hardware_limits.maximum_tfreq);
     printf("min_tr_to_pulse = %lf\n", config.hardware_limits.min_tr_to_pulse);
-
-    
-    
 
     return 0;
 }

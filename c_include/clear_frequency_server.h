@@ -5,7 +5,7 @@
 
 
 // Logging Vars
-#define LOG_TERMINAL_LEVEL  1                           // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL  
+#define LOG_TERMINAL_LEVEL  1                           // 0 = TRACE, 1 = DEBUG, 2 = INFO, 3 = WARN, 4 = ERROR, 5 = FATAL
 #define LOG_FILE_LEVEL      0
 #define LOG_PREFIX          "[CFS] %s"                  // *Unused* Prefix for log messages
 #define LOG_FILEPATH        "/data/log/cfs/cfs.%s.log"
@@ -25,11 +25,11 @@
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500
 #define ANTENNA_NUM             16
-#define STATIC_ANTENNA_NUM      20 
+#define STATIC_ANTENNA_NUM      20
 #define STATIC_RADAR_NUM        2                       // Max Number of possible radars in an array
 #define STATIC_CHANNEL_NUM      2                       // Max Number of possible channels in an array
 #define STATIC_RANGE_NUM        8                       // Max number of possible clear ranges per radar
-#define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table 
+#define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table
 #define BEAM_NUM                16                      // Number of beams to process
 #define SAMPLE_TIME             3                       // Time per Sample (in seconds)
 #define STORAGE_TIME            60                      // Total time per Sample Storage Batch (in seconds)
@@ -39,9 +39,9 @@
 #define RESTRICT_NUM            50                      // Number of restricted freq bands in the restrict.dat.inst
 #endif
 #define CLR_STORAGE_NUM         1000
-#define SITE_ID_ELEM            3                       // 3 = 3-letter identifier 
+#define SITE_ID_ELEM            3                       // 3 = 3-letter identifier
 
-#define SAMPLES_SHM_SIZE        (ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int)) 
+#define SAMPLES_SHM_SIZE        (ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int))
 #define CLR_RANGE_SHM_SIZE      (2 * sizeof(int))
 #define FCENTER_SHM_SIZE        (1 * sizeof(int))
 #define BEAM_NUM_SHM_SIZE       (1 * sizeof(int))
@@ -49,14 +49,14 @@
 #define RESTRICT_SHM_SIZE       (RESTRICT_NUM * 2 * sizeof(int))          // 2 = start and end freqs
 #define META_DATA_SHM_SIZE      ((META_ELEM + ANTENNA_NUM) * sizeof(double))
 #define ANTENNA_SHM_SIZE        (1 * sizeof(int))
-#define CLR_BAND_SHM_SIZE       (1 * sizeof(int) * 3)    
+#define CLR_BAND_SHM_SIZE       (1 * sizeof(int) * 3)
 #define SITE_ID_SHM_SIZE        (SITE_ID_ELEM * sizeof(char))
 #define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
 #define CHANNEL_ID_SHM_SIZE     (1 * sizeof(int))
 #define ACTIVE_CLIENTS_SHM_SIZE (1 * sizeof(int))
 #define MUTED_ANT_SHM_SIZE      (STATIC_ANTENNA_NUM * sizeof(int))          // List of Muted Antennas
 
-// Shared Memory and Semaphore Names 
+// Shared Memory and Semaphore Names
 #define SAMPLES_SHM_NAME        "/samples"
 #define CLR_RANGE_SHM_NAME      "/clear_freq_range"
 #define FCENTER_SHM_NAME        "/fcenter"
@@ -77,10 +77,10 @@
 #define PARAM_NUM 14
 
 #define SEM_F_CLIENT    "/sf_client"                // For Sync and reserving client and server roles during data transfer
-#define SEM_F_SERVER    "/sf_server"    
+#define SEM_F_SERVER    "/sf_server"
 #define SEM_F_SAMPLES   "/sf_samples"
-#define SEM_F_INIT      "/sf_init"           
-#define SEM_F_CLRFREQ   "/sf_clrfreq"               // For multiple data transfers on single instance 
+#define SEM_F_INIT      "/sf_init"
+#define SEM_F_CLRFREQ   "/sf_clrfreq"               // For multiple data transfers on single instance
 #define SEM_F_PROCESSED "/sf_processed"             // For processed data transfer
 #define SEM_L_SAMPLES   "/sl_samples"               // For Data locking b/w write/reads
 #define SEM_L_INIT      "/sl_init"                  // init = initialization

@@ -36,11 +36,11 @@ void add_ptr_no_global(void **ptr, void **temp_ptrs, int *temp_ptrs_num) {
     }
     free(temp_ptrs);
     temp_ptrs = tmp;
-    
+
     temp_ptrs[*temp_ptrs_num] = ptr; // Store the address of the pointer
     log_trace("  temp_ptrs[%d] = %p -> %p\n", *temp_ptrs_num, temp_ptrs[*temp_ptrs_num], *(void **)temp_ptrs[*temp_ptrs_num]);
     temp_ptrs_num++;
-    
+
 }
 
 void update_ptr_no_global(void *old_ptr, void *new_ptr, void** temp_ptrs, int temp_ptrs_num) {
@@ -52,7 +52,7 @@ void update_ptr_no_global(void *old_ptr, void *new_ptr, void** temp_ptrs, int te
             return; // Exit the function once the pointer is found and updated
         }
     }
-    
+
     // If the old pointer is not found, add the new pointer to the array
     add_ptr_no_global((void **)&new_ptr, temp_ptrs, &temp_ptrs_num);
 }
@@ -99,8 +99,8 @@ void write_spectrum_mag_csv(
     char *ststr,
     int channel,
     int beam_num,
-    double *spectrum, 
-    double *freq_vector, 
+    double *spectrum,
+    double *freq_vector,
     int num_samples
 ) {
     FILE *file = NULL;
@@ -110,9 +110,9 @@ void write_spectrum_mag_csv(
     struct tm *time_info;
     int buffer_size = 100;
     char timestamp[buffer_size];
-    char name[buffer_size]; 
+    char name[buffer_size];
 
-    // If file doesn't exists, ... 
+    // If file doesn't exists, ...
     if (filename == NULL) {
         // Generate timestamp
         time(&raw_time);
@@ -137,7 +137,7 @@ void write_spectrum_mag_csv(
     }
 
     __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
-    
+
     for (int i = 0; i < num_samples; i++) {
         if (i == 0) fprintf(file, "%f,%f,%d,%" PRId64 "\n", freq_vector[i], spectrum[i], beam_num, t);
         fprintf(file, "%f,%f\n", freq_vector[i], spectrum[i]);
@@ -151,8 +151,8 @@ void write_spectrum_mag_bin(
     char *ststr,
     int channel,
     int beam_num,
-    double *spectrum, 
-    double *freq_vector, 
+    double *spectrum,
+    double *freq_vector,
     int num_samples
 ) {
     FILE *file = NULL;
@@ -162,7 +162,7 @@ void write_spectrum_mag_bin(
     struct tm *time_info;
     int buffer_size = 100;
     char timestamp[buffer_size];
-    char name[buffer_size]; 
+    char name[buffer_size];
 
     int freq_start = 0;
     int dfreq = 0;
@@ -180,7 +180,7 @@ void write_spectrum_mag_bin(
             file_access_error(name);
             return;
         }
-    } 
+    }
     else {
         file = fopen(filename, "ab");
         if (file == NULL) {
@@ -210,7 +210,7 @@ void write_clr_freq_csv(
     char *ststr,
     int channel,
     int beam_num,
-    freq_band *clr_band, 
+    freq_band *clr_band,
     int *clr_range
 ) {
     FILE *file = NULL;
@@ -220,9 +220,9 @@ void write_clr_freq_csv(
     struct tm *time_info;
     int buffer_size = 100;
     char timestamp[buffer_size];
-    char name[buffer_size]; 
+    char name[buffer_size];
 
-    // If file doesn't exists, ... 
+    // If file doesn't exists, ...
     if (filename == NULL) {
         // Generate timestamp
         time(&raw_time);
@@ -243,7 +243,7 @@ void write_clr_freq_csv(
             return;
         }
     }
-    
+
     __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
 
     fprintf(file, "%" PRId64 ",%d,%d,%d,%f,%d,%d\n", t, beam_num, clr_band->f_start, clr_band->f_end, clr_band->noise,clr_range[0],clr_range[1]);
@@ -256,7 +256,7 @@ void write_clr_freq_bin(
     char *ststr,
     int channel,
     int beam_num,
-    freq_band *clr_band, 
+    freq_band *clr_band,
     int* clr_range
 ) {
     FILE *file = NULL;
@@ -266,10 +266,10 @@ void write_clr_freq_bin(
     struct tm *time_info;
     int buffer_size = 100;
     char timestamp[buffer_size];
-    char name[buffer_size]; 
-    
+    char name[buffer_size];
 
-    // If file doesn't exists, ... 
+
+    // If file doesn't exists, ...
     if (filename == NULL) {
         // Generate timestamp
         time(&raw_time);
@@ -334,7 +334,7 @@ void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_ve
 void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector) {
     int num_samples = 0;
     int status = 0;
-    
+
     FILE *file = NULL;
     file = fopen(filename, "rb");
     if (file == NULL) {
@@ -398,21 +398,20 @@ int read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_nu
             if (r1 < r2 && r1 > 0 && r2 > 0) {
                 // Store freq band
                 restricted_freq[i].f_start  = r1 * 1000;
-                restricted_freq[i].f_end    = r2 * 1000; 
+                restricted_freq[i].f_end    = r2 * 1000;
                 log_trace("Restricted[%d]: %5d -- %5d", i, restricted_freq[i].f_start/1000, restricted_freq[i].f_end/1000);
                 i++;
-            } 
-            
+            }
             else {
                 log_trace("Invalid freq band: %d -- %d", r1, r2);
                 continue;
             }
         }
     }
-    
-    *restricted_num = i;    
+
+    *restricted_num = i;
     log_trace("Number of restricted bands: %d", *restricted_num);
-    
+
     fclose(file);
 
     return 0;
@@ -433,7 +432,7 @@ void read_radar_config(char *filepath, int *avg_ratio) {
 
     while (fgets(line, sizeof(line), file)) {
         result = sscanf(line, "%s = %d", &word, &value);
-        word[11] = '\0'; // Ensure null-termination     
+        word[11] = '\0'; // Ensure null-termination
 
         // Debug: Print word and value
         // log_trace("Read line: %s, word: %s, value: %d", line, word, value);
@@ -459,7 +458,7 @@ void read_radar_config(char *filepath, int *avg_ratio) {
     else if (*avg_ratio > 5) {
         log_warn("avg_ratio is high (%d > 5). This can result in corrupted clear frequency bands!", *avg_ratio);
         log_warn("Please check radar_config_constants.py file.");
-    } 
+    }
 
     fclose(file);
 }

@@ -19,7 +19,7 @@
 #include "misc_read_writes.h"
 
 // Build with the following flags:
-// -lrt -pthread -lfftw3 -lm 
+// -lrt -pthread -lfftw3 -lm
 
 
 typedef struct shm_obj{
@@ -50,7 +50,7 @@ struct semaphore sl_init     = {SEM_L_INIT,         NULL};
 struct semaphore sl_clrfreq  = {SEM_L_CLRFREQ,      NULL};
 struct semaphore *semaphores[SEM_NUM] = {
     &sf_client,
-    &sf_server,    
+    &sf_server,
     &sf_samples,
     &sf_init,
     &sf_clrfreq,
@@ -141,9 +141,9 @@ void add_ptr(void **ptr) {
         exit(EXIT_FAILURE);
     }
     temp_ptrs = tmp;
-    temp_ptrs[temp_ptrs_num] = ptr; 
+    temp_ptrs[temp_ptrs_num] = ptr;
     // log_trace("  temp_ptrs[%d] = %p -> %p", temp_ptrs_num, temp_ptrs[temp_ptrs_num], *(void **)temp_ptrs[temp_ptrs_num]);
-    temp_ptrs_num++;    
+    temp_ptrs_num++;
 }
 
 void update_ptr(void *old_ptr, void *new_ptr) {
@@ -156,7 +156,7 @@ void update_ptr(void *old_ptr, void *new_ptr) {
             return; // Exit the function once the pointer is found and updated
         }
     }
-    
+
     // If the old pointer is not found, add the new pointer to the array
     add_ptr((void **)&new_ptr);
 }
@@ -165,7 +165,7 @@ void free_nested_fftw_ptr(void *ptr, int nest_depth, int *sizes) {
     if (ptr == NULL || nest_depth <= 0) {
         return; // Base case: nothing to free
     }
-    
+
     // Debug: Print the pointer and sizes
     // log_trace("free_nested_fftw_ptr: %p, nest_depth: %d,", ptr, nest_depth);
     // log_trace("sizes: ");
@@ -181,7 +181,7 @@ void free_nested_fftw_ptr(void *ptr, int nest_depth, int *sizes) {
         ptr = NULL;
         return;
     }
-    
+
     // Cast the pointer to a void** to access nested pointers
     void **nested_ptr = (void **)ptr;
 
@@ -201,7 +201,7 @@ void free_nested_ptr(void *ptr, int nest_depth, int *sizes) {
     if (ptr == NULL || nest_depth <= 0) {
         return; // Base case: nothing to free
     }
-    
+
     log_trace("free_nested_ptr: %p, nest_depth: %d,", ptr, nest_depth);
     log_trace("sizes: ");
     for (int i = 0; i < nest_depth; i++) {
@@ -216,7 +216,7 @@ void free_nested_ptr(void *ptr, int nest_depth, int *sizes) {
         ptr = NULL;
         return;
     }
-    
+
     // Cast the pointer to a void** to access nested pointers
     void **nested_ptr = (void **)ptr;
 
@@ -242,7 +242,7 @@ void print_temp_ptrs() {
 
 void read_sample_shm(fftw_complex *temp_samples, void *samples_shm_ptr, int antenna_num, int samples_num) {
     int *s_ptr = (int *) samples_shm_ptr;
-    
+
     // Store sample data into complex form
     for (unsigned long i = 0; i < antenna_num; i++) {
 
@@ -278,10 +278,10 @@ void read_clrfreq_shm(freq_band *clr_band, int *ptr) {
 
 /**
  * @brief  Reads shm integer data into the result ptr.
- * @note   
+ * @note
  * @param  *result: Destination ptr where data will be stored.
  * @param  *shm_ptr: Shared Memory Pointer where data will read-in from.
- * @param  elem_num: Number of elements to read in from shm_ptr. 
+ * @param  elem_num: Number of elements to read in from shm_ptr.
  * @retval None
  */
 void read_int(int *result, void *shm_ptr, int elem_num) {
@@ -319,13 +319,13 @@ void read_meta_data(sample_meta_data *result, void *shm_ptr, int ant_num) {
     log_trace("starting meta read..");
     double *ref_ptr = (double *) shm_ptr;
     int *antenna_ptr = (int *) result->antenna_list;
-    
+
     // Read in meta data elements
     result->number_of_samples = (int) ref_ptr[0];
     result->x_spacing = ref_ptr[1];
     result->usrp_rf_rate = (int) ref_ptr[2];
     log_trace("Fin reading meta_elem; reading antenna_list...");
-    
+
     // Read in antenna_list elements
     for (int i = META_ELEM; i < (ant_num + META_ELEM); i++) {
         if (VERBOSE) log_trace("    reading antenna_list: %d", antenna_ptr[i - META_ELEM]);
@@ -373,7 +373,7 @@ void write_int(int *result, int *shm_ptr, int n_elements, int shm_len) {
 
 /**
  * @brief  Writes Clear Freq Bands to its shared memory pointer.
- * @note   
+ * @note
  * @param  clr_band: Clear Frequency Band
  * @param  *ptr: Shared Memory Pointer for Clear Frequency Bands
  * @retval None
@@ -387,47 +387,47 @@ void write_clrfreq_shm(freq_band clr_band, int *ptr) {
     ptr[2]  = clr_band.f_end;
 
     log_debug( "Sending the following Clear Frequency: ");
-    log_debug("    Clear Freq Band: | %5d kHz -- Noise: %-9.2f -- %5d kHz |", 
+    log_debug("    Clear Freq Band: | %5d kHz -- Noise: %-9.2f -- %5d kHz |",
         clr_band.f_start/1000, clr_band.noise, clr_band.f_end/1000
     );
 }
 
 /**
- * @brief  Unlinks/deallocates Shared Memory Object mapping (ptr), file 
+ * @brief  Unlinks/deallocates Shared Memory Object mapping (ptr), file
  * * descriptor (fd), and semaphore name (name).
- * @note   
+ * @note
  * @param  shm_obj: Shared Memory Object struct.
  * @retval None
  */
 void clean_obj(shm_obj shm_obj) {
-    // if (shm_obj.shm_ptr) 
+    // if (shm_obj.shm_ptr)
     munmap(shm_obj.shm_ptr, shm_obj.size);
-    // if (shm_obj.shm_fd >= 0) 
+    // if (shm_obj.shm_fd >= 0)
     close(shm_obj.shm_fd);
     sem_unlink(shm_obj.name);
 }
 
 void clean_sem(semaphore sem) {
-    // if ((sem.sem)) 
+    // if ((sem.sem))
     sem_close(sem.sem);
     sem_unlink(sem.name);
 }
 
 /**
  * @brief  Deallocates all service semaphores, SHM pointers, pointers, and the pointers' lengths
- * @note   
+ * @note
  * @retval None
  */
 void cleanup() {
     log_info( "Cleaning up ...");
-        
+
     // Cleanup semaphores and SHM objects
     log_info( "Cleaning all semaphores and SHM objects...");
     for (int i = 0; i < SEM_NUM; i++) clean_sem(*semaphores[i]);
     log_info( "Cleaned all semaphores ...");
     for (int i = 0; i < PARAM_NUM; i++) clean_obj(*objects[i]);
     log_info( "Cleaned all objects ...");
-    
+
     // Cleanup fftw ptrs
     // free_nested_fftw_ptr(temp_samples, 2, temp_sample_sizes);
     fftw_free(temp_samples);
@@ -436,9 +436,9 @@ void cleanup() {
     log_debug( "Cleaned spectra_storage ...");
     // cleanup_storage_fft();
     // log_debug( "Cleaned fftw plan ...");
-    
+
     log_info( "Cleaned all fftw pointers ...");
-    
+
     // Cleanup ptrs
     free_nested_ptr(clr_band_storage, 3, clr_storage_sizes);
     log_debug( "Cleaned clr_band_storage ...");
@@ -450,19 +450,19 @@ void cleanup() {
     log_debug( "Cleaned radar_table ...");
 
     for (int i = 0; i < temp_ptrs_num; i++) {
-        if (*(void **)temp_ptrs[i] != NULL) { //temp_ptrs[i] != NULL && 
+        if (*(void **)temp_ptrs[i] != NULL) { //temp_ptrs[i] != NULL &&
             // log_trace("Freeing temp_ptrs[%d/%d]: %p", i, temp_ptrs_num, *(void **)temp_ptrs[i]);
             free(*(void **)temp_ptrs[i]);
-            *(void **)temp_ptrs[i] = NULL; 
+            *(void **)temp_ptrs[i] = NULL;
         } else {
             log_error("Skipping invalid or NULL pointer at temp_ptrs[%d]", i);
         }
     }
     free(temp_ptrs);
-    
+
 
     log_info("Cleaned all pointers ...");
-    
+
     // cleanup_fftw_threads();
     fftw_cleanup();
     log_info( "Cleaned all fftw-related entities...");
@@ -470,17 +470,17 @@ void cleanup() {
 
 /**
  * @brief  Catch exit signals and exits gracefully by calling to deallocate all service parameters.
- * @note   
+ * @note
  * @param  sig: Caught signal
  * @retval None
  */
 void handle_sig(int sig) {
     log_warn("Caught signal %d, cleaning up and exiting...", sig);
     cleanup();
-    
-    // Prompt exit to terminal  
+
+    // Prompt exit to terminal
     log_warn( "Main processes and communication terminated. Goodbye.\n");
-    
+
     fclose(log_file);
     exit(sig);
 }
@@ -491,7 +491,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
     struct tm *time_info;
     int buffer_size = 128;
     char timestamp[buffer_size];
-    char name[buffer_size]; 
+    char name[buffer_size];
 
     // Generate timestamp
     log_trace("Generating timestamp...");
@@ -513,7 +513,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
 
         // Debug: Output results
         log_trace("Clear Freq Band: | %dHz -- Noise: %.2f -- %dHz |\n", clr_band.f_start, clr_band.noise, clr_band.f_end);
-        
+
         // Record Clear Freq
         fprintf(file, "%d,%d,%f\n", clr_band.f_start, clr_band.f_end, clr_band.noise);
     }
@@ -523,7 +523,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
 
 /**
  * @brief  Reallocates the long-term dynamic memory for storage variables, which is reliant on samples_num.
- * @note   
+ * @note
  * @param  samples_num: Number of Samples
  * @param  total_beams: Total number of beams to process
  * @retval None
@@ -540,7 +540,7 @@ void realloc_storage(int samples_num, int total_beams, int radar_num, int avg_ra
         exit(EXIT_FAILURE);
     }
     log_trace( "Allocated new spectra_storage memory...");
-    
+
     // Realloc avg_beam_spectrum
     free_nested_ptr(avg_beam_spectrum, 2, avg_beam_spectrum_sizes);
     avg_beam_spectrum_sizes[0] = total_beams;
@@ -567,7 +567,7 @@ void realloc_storage(int samples_num, int total_beams, int radar_num, int avg_ra
     // Realloc avg_freq_vector
     free(avg_freq_vector);
     avg_freq_vector = calloc(samples_num / avg_ratio, sizeof(double));
-    
+
     if (avg_freq_vector == NULL) {
         log_fatal( "Error reallocating memory for avg_freq_vector");
         perror("Error reallocating memory for avg_freq_vector");
@@ -620,7 +620,7 @@ void realloc_samples(int samples_num)
 
 
 /* @brief  Checks if the TCS parameters have changed and updates them if necessary.
- * @note   
+ * @note
  * @param  old_tcs_param: Old TCS parameters
  * @param  new_tcs_param: New TCS parameters
  * @retval true if any parameter has changed, false otherwise
@@ -641,7 +641,7 @@ bool has_tcs_param_changed(int old_tcs_param[3], int new_tcs_param[3]) {
 
 /**
  * @brief  Clears the list of active antennas.
- * @note   
+ * @note
  * @param  active_antennas: Array of active antennas
  * @retval None
  */
@@ -676,7 +676,7 @@ int main() {
 
     log_info("Pre-Cleaning all Shared Memory...\n");
     cleanup();
-    
+
     // Open Shared Memory Object
     log_trace( "Initializing Shared Memory Object...");
     for (int i = 0; i < PARAM_NUM; i++){
@@ -688,7 +688,7 @@ int main() {
         }
     }
     log_trace( "Created Shared Memory Objects...");
-    
+
     // Set Size of Shared Memory Object
     for (int i = 0; i < PARAM_NUM; i++){
         if (ftruncate(objects[i]->shm_fd, objects[i]->size) == -1) {
@@ -699,7 +699,7 @@ int main() {
     }
 
     // Request Block of Memory
-    log_trace( "Requesting Shared Memory Cache...");    
+    log_trace( "Requesting Shared Memory Cache...");
     for (int i = 0; i < PARAM_NUM; i++) {
         objects[i]->shm_ptr = mmap(0, objects[i]->size, PROT_WRITE | PROT_READ, MAP_SHARED, objects[i]->shm_fd, 0);
         if (objects[i]->shm_ptr == MAP_FAILED) {
@@ -718,8 +718,8 @@ int main() {
     log_trace( "Successfully initialized SHM to zero...");
 
 
-    // Open Semaphores for synchronization     
-    log_info( "Opening Communication Semaphores...");    
+    // Open Semaphores for synchronization
+    log_info( "Opening Communication Semaphores...");
     for (int i = 0; i < SEM_NUM; i++) {
         // Set Semaphore flags to 0
         if (i < (SEM_NUM - SL_NUM)) semaphores[i]->sem = sem_open(semaphores[i]->name, O_CREAT, 0666, 0);
@@ -728,15 +728,15 @@ int main() {
         if (semaphores[i]->sem == SEM_FAILED) {
             log_fatal( "\"%s\" sem_open failed.", semaphores[i]->name);
             perror("sem_open failed");
-            exit(EXIT_FAILURE);    
-        } 
+            exit(EXIT_FAILURE);
+        }
     }
     log_info( "Done Initializing SHM...\n");
 
 
     // Initialize Array Configuration
     log_info( "Initializing Array Configuration...");
-    Config array_config = {0}; 
+    Config array_config = {0};
     int ini_check = ini_parse(ARRAY_CONFIG_FILEPATH, config_ini_handler, &array_config);
     if (ini_check < 0) {
         log_fatal( "Error reading array configuration file");
@@ -795,7 +795,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Get Clear Frequency Resolution 
+    // Get Clear Frequency Resolution
     log_debug( "Reading Avg_ratio from radar_config_constants.py ...");
     int avg_ratio = 0;
     read_radar_config(RADAR_CONST_CONFIG_FILEPATH, &avg_ratio);
@@ -899,7 +899,7 @@ int main() {
         beam_total,
         0
     };
-    int valid_sample_cycles[STATIC_RADAR_NUM] = {0};                    // num of times valid samples were in send() cycle 
+    int valid_sample_cycles[STATIC_RADAR_NUM] = {0};                    // num of times valid samples were in send() cycle
     int ccn_invalid_sample_cyles[STATIC_RADAR_NUM] = {0};               // num of times in a row invalid samples were in send() cycle
     long accu_avg_ant_pwr[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};  // integrated avg antenna power from sample sets for an accurate avg ant power
     int active_antennas[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};    // active antennas for each radar
@@ -913,7 +913,7 @@ int main() {
     int clr_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM][2] = {0};
     time_t clr_range_time[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {0};
     int clr_range_overwrite_idx[STATIC_RADAR_NUM] = {0};                  // Index used to track which clr_range to overwrite (increments to next clr_range idx each overwrite)
-    bool using_full_usrp_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false}; 
+    bool using_full_usrp_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false};
     freq_band selected_clr_band = {0};
     int def_low_range[STATIC_RADAR_NUM] = {0};
     int def_high_range[STATIC_RADAR_NUM]= {0};
@@ -926,7 +926,7 @@ int main() {
 
     // Failure flags
     bool fl_clr_range_out_bounds = false; // Flag for Clear Search Range being out of bounds
-    
+
     // Parameters for Reading Restricted Frequencies
     char restrict_file[255] = "";
     char *rst_path = getenv("RSTPATH");
@@ -937,8 +937,8 @@ int main() {
     }
 
     log_info( "Getting site's Resticted Frequencies...");
-    int str_f_result = 0; 
-    
+    int str_f_result = 0;
+
     // Get site specific restrict file and join with path
     log_info( "Using /site.%s/restrict.dat.%s from array_config\n", ststr[0], ststr[0]);
     str_f_result = snprintf(restrict_file, sizeof(restrict_file), "%s/tables/superdarn/site/site.%s/restrict.dat.%s", rst_path, ststr[0], ststr[0]);
@@ -966,9 +966,9 @@ int main() {
     // Continuously process clients via shared memory
     while (1) {
         log_info( "Requesting new client to respond...");
-        sem_post(sf_client.sem); 
+        sem_post(sf_client.sem);
         log_info( "Awaiting client response...");
-        sem_wait(sf_server.sem);   
+        sem_wait(sf_server.sem);
         log_info( "Processing CF Client...");
 
 
@@ -984,15 +984,15 @@ int main() {
             // Read Antenna number
             log_debug( "Antenna Number reading...");
             read_single_int(&meta_data.num_antennas, antenna_obj.shm_ptr);
-            
-            // If new num_antennas, Reallocate meta SHM 
+
+            // If new num_antennas, Reallocate meta SHM
             if (meta_data.num_antennas != old_antenna_num) {
                 log_info( "Reallocating Meta Shared Memory...");
                 log_debug("num of antenna: %d", meta_data.num_antennas);
 
                 log_trace( "Freeing Meta SHM Cache...");
                 munmap(meta_obj.shm_ptr, meta_obj.size);
-                
+
                 // Set Size of meta_data SHM Object
                 log_trace( "Setting Size of Meta SHM Cache...");
                 meta_obj.size = (meta_data.num_antennas + META_ELEM) * sizeof(double);
@@ -1003,16 +1003,16 @@ int main() {
                 }
 
                 // Request meta_data's Block of Memory
-                log_trace( "Requesting Meta SHM Cache...");                    
+                log_trace( "Requesting Meta SHM Cache...");
                 meta_obj.shm_ptr = mmap(0, meta_obj.size, PROT_WRITE | PROT_READ, MAP_SHARED, meta_obj.shm_fd, 0);
                 if (meta_obj.shm_ptr == MAP_FAILED) {
                     log_fatal( "Memory Mapping failed for %s", meta_obj.name);
                     perror("Memory Mapping failed");
                     exit(EXIT_FAILURE);
-                }                    
-                log_trace( "Meta Data successfully cached...");     
-                
-                // Read Meta Data 
+                }
+                log_trace( "Meta Data successfully cached...");
+
+                // Read Meta Data
                 log_trace( "Meta Data reading...");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                 samples_num = meta_data.number_of_samples;
@@ -1020,18 +1020,18 @@ int main() {
                 // Reallocate Samples SHM
                 log_info( "Reallocating Sample related Memory due to change in Antenna Num...");
                 realloc_samples(samples_num);
-            
+
                 old_antenna_num = meta_data.num_antennas;
                 log_info( "Reallocation due to change in Antenna Num done...");
             }
-            
+
             // Default: Read in Meta Data
             else {
                 log_trace( "Meta Data reading...");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                 samples_num = meta_data.number_of_samples;
             }
-            
+
             // If critical TCS parameters have changed, reset TCS
             new_tcs_param[0] = samples_num;
             new_tcs_param[1] = beam_total;
@@ -1044,7 +1044,7 @@ int main() {
                         tcs_storage_i[r_idx][range_idx] = 0;
                     }
                 }
-                
+
                 realloc_storage(samples_num, beam_total, radar_num, avg_ratio);
 
                 // Reset Avg Antenna Power and Missing Antenna Trackers
@@ -1060,7 +1060,7 @@ int main() {
                 // cleanup_storage_fft();
                 // init_storage_fft(samples_num, beam_total);
             }
-            
+
             // Debug: Display meta_data info
             for (int j = 0; j < meta_data.num_antennas; j++) {
                 log_trace("    antenna_list[%d]: %d", j, meta_data.antenna_list[j]);
@@ -1079,7 +1079,7 @@ int main() {
 
             // log_info( "Initialization data processed...");
         }
-        
+
         // If samples flagged, process samples and clear frequency
         if (sem_trywait(sf_samples.sem) == 0){
             // Special: Semaphore order is faulty
@@ -1089,7 +1089,7 @@ int main() {
                 cleanup();
                 return 0;
             }
-            
+
             // Wait to read-in data
             log_trace( "Awaiting sample data unlock...");
             sem_wait(sl_samples.sem);
@@ -1122,7 +1122,7 @@ int main() {
             // Skip reading channel ID, as it is not used in this context
 
 
-            // Lock out so no data interferance 
+            // Lock out so no data interferance
             sem_post(sl_samples.sem);
 
 
@@ -1158,14 +1158,14 @@ int main() {
                 }
             }
             log_info("Active Main Array Antennas: %d", active_ant_num);
-            // If has an active antenna, Increment # of valid sample sets 
+            // If has an active antenna, Increment # of valid sample sets
             if (active_ant_num > 0) {
                 valid_sample_cycles[cur_radar]++;
                 ccn_invalid_sample_cyles[cur_radar] = 0;
             }
             else {ccn_invalid_sample_cyles[cur_radar]++;}
 
-            // Send back Muted Antennas 
+            // Send back Muted Antennas
             if (USE_ACTIVE_MUTE == 1) write_int(muted_ant_ids[cur_radar], muted_ant_obj.shm_ptr, muted_ant_idx, STATIC_ANTENNA_NUM);
             else write_int(muted_config_ants[cur_radar], muted_ant_obj.shm_ptr, num_muted_config_ants[cur_radar], STATIC_ANTENNA_NUM);
 
@@ -1196,12 +1196,12 @@ int main() {
                     for (int range_idx = 0; range_idx < STATIC_RANGE_NUM; range_idx++) {
 
                         // Special: Skip processing of default clear ranges, unless Client is scanning entire usrp range
-                        if (clr_range[cur_radar][range_idx][0] == def_low_range [cur_radar] && 
+                        if (clr_range[cur_radar][range_idx][0] == def_low_range [cur_radar] &&
                             clr_range[cur_radar][range_idx][1] == def_high_range[cur_radar] &&
                             using_full_usrp_range[cur_radar][range_idx] == false
                         ) {
                             log_trace("skipping range [%5d -- %5d]...",
-                                clr_range[cur_radar][range_idx][0] / 1000, 
+                                clr_range[cur_radar][range_idx][0] / 1000,
                                 clr_range[cur_radar][range_idx][1] / 1000
                             );
                             continue;
@@ -1210,94 +1210,94 @@ int main() {
                         // Skip processing of inactive clear ranges
                         if (time(NULL) - clr_range_time[cur_radar][range_idx] > 120) {
                             log_trace("skipping range [%5d -- %5d]...",
-                                clr_range[cur_radar][range_idx][0] / 1000, 
+                                clr_range[cur_radar][range_idx][0] / 1000,
                                 clr_range[cur_radar][range_idx][1] / 1000
                             );
                             continue;
                         }
 
-                        // Process Spectra 
-                        log_info("Processing samples for #%d[%5d -- %5d]...", 
-                            range_idx, 
-                            clr_range[cur_radar][range_idx][0] / 1000, 
+                        // Process Spectra
+                        log_info("Processing samples for #%d[%5d -- %5d]...",
+                            range_idx,
+                            clr_range[cur_radar][range_idx][0] / 1000,
                             clr_range[cur_radar][range_idx][1] / 1000
                         );
                         process_all_beamformed_spectras(
                                 temp_samples,
                                 active_antennas[cur_radar],
-                                clr_range[cur_radar][range_idx], 
-                                sample_sep, 
-                                restricted_freq, 
+                                clr_range[cur_radar][range_idx],
+                                sample_sep,
+                                restricted_freq,
                                 restricted_num,
                                 &meta_data,
                                 array_config,
                                 &(spectra_storage[
-                                    cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num + 
+                                    cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num +
                                     range_idx * STORAGE_NUM * beam_total * samples_num +
                                     tcs_storage_i[cur_radar][range_idx] * beam_total * samples_num
                                 ])
                             );
-        
+
                         // Display TCS state
-                        log_info( "[TCS] Processed Radar[%d][%5d --  %5d]'s spectra_storage[%d/%d] successfully...", 
-                            cur_radar, 
+                        log_info( "[TCS] Processed Radar[%d][%5d --  %5d]'s spectra_storage[%d/%d] successfully...",
+                            cur_radar,
                             clr_range[cur_radar][range_idx][0] / 1000,
                             clr_range[cur_radar][range_idx][1] / 1000,
-                            tcs_storage_i[cur_radar][range_idx] + 1, 
+                            tcs_storage_i[cur_radar][range_idx] + 1,
                             STORAGE_NUM
                         );
                         tcs_storage_i[cur_radar][range_idx] += 1;
-        
+
                         // Reset TCS Storing point at (Storage_Num - 1)
                         if (tcs_storage_i[cur_radar][range_idx] >= STORAGE_NUM) {
-                            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
-                                cur_radar, 
-                                clr_range[cur_radar][range_idx][0] / 1000, 
+                            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...",
+                                cur_radar,
+                                clr_range[cur_radar][range_idx][0] / 1000,
                                 clr_range[cur_radar][range_idx][1] / 1000
                             );
                             is_tcs_ready [cur_radar][range_idx] = true;
                             tcs_storage_i[cur_radar][range_idx] = 0;
-                        } 
+                        }
                     }
                 }
 
                 else {
-                    // Process Spectra 
+                    // Process Spectra
                     process_all_beamformed_spectras(
                             temp_samples,
                             active_antennas[cur_radar],
-                            clr_range[cur_radar][cur_range], 
-                            sample_sep, 
-                            restricted_freq, 
+                            clr_range[cur_radar][cur_range],
+                            sample_sep,
+                            restricted_freq,
                             restricted_num,
                             &meta_data,
                             array_config,
                             &(spectra_storage[
-                                cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num + 
+                                cur_radar * STATIC_RANGE_NUM *  STORAGE_NUM * beam_total * samples_num +
                                 cur_range * STORAGE_NUM * beam_total * samples_num +
                                 tcs_storage_i[cur_radar][cur_range] * beam_total * samples_num
                             ])
                         );
 
                     // Display TCS state
-                    log_info( "[TCS] Processed Radar[%d][%5d --  %5d]'s spectra_storage[%d/%d] successfully...", 
-                        cur_radar, 
+                    log_info( "[TCS] Processed Radar[%d][%5d --  %5d]'s spectra_storage[%d/%d] successfully...",
+                        cur_radar,
                         clr_range[cur_radar][cur_range][0] / 1000,
                         clr_range[cur_radar][cur_range][1] / 1000,
-                        tcs_storage_i[cur_radar][cur_range] + 1, 
+                        tcs_storage_i[cur_radar][cur_range] + 1,
                         STORAGE_NUM
                     );
                     tcs_storage_i[cur_radar][cur_range] += 1;
 
                     if (tcs_storage_i[cur_radar][cur_range] >= STORAGE_NUM) {
-                        log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
-                            cur_radar, 
-                            clr_range[cur_radar][cur_range][0] / 1000, 
+                        log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...",
+                            cur_radar,
+                            clr_range[cur_radar][cur_range][0] / 1000,
                             clr_range[cur_radar][cur_range][1] / 1000
                         );
                         is_tcs_ready [cur_radar][cur_range] = true;
                         tcs_storage_i[cur_radar][cur_range] = 0;
-                    } 
+                    }
                 }
             }
             else if (active_ant_num == 0) {
@@ -1313,7 +1313,7 @@ int main() {
                 perror("msync failed");
             }
             sem_post(sf_processed.sem);
-        } 
+        }
 
         // If Clear Freq flagged, process clear frequency
         else if (sem_trywait(sf_clrfreq.sem) == 0) {
@@ -1419,7 +1419,7 @@ int main() {
                                 range_exists = true;
                             }
                             old_clr_range[0] = clr_range[cur_radar][i][0];
-                            old_clr_range[1] = clr_range[cur_radar][i][1]; 
+                            old_clr_range[1] = clr_range[cur_radar][i][1];
                             cur_range = i;
                         }
                         log_debug("    tmp_clr_range: %d -- %d kHz", tmp_clr_range[0]/1000, tmp_clr_range[1]/1000);
@@ -1440,7 +1440,7 @@ int main() {
                     if (tmp_clr_range[0] == clr_range[cur_radar][0][0] && tmp_clr_range[1] == clr_range[cur_radar][0][1]) {
                         range_exists = true;
                         old_clr_range[0] = clr_range[cur_radar][0][0];
-                        old_clr_range[1] = clr_range[cur_radar][0][1]; 
+                        old_clr_range[1] = clr_range[cur_radar][0][1];
                         cur_range = 0;
                         log_debug("    matching_range: %5d -- %5d kHz", clr_range[cur_radar][0][0]/1000, clr_range[cur_radar][0][1]/1000);
                     }
@@ -1461,7 +1461,7 @@ int main() {
                     log_info( "Radar#%d's Clear Range changed...", cur_radar);
                     log_info("    old_clr_range: %d -- %d", old_clr_range[0], old_clr_range[1]);
                     log_info("    clr_range: %d -- %d", clr_range[cur_radar][cur_range][0]/1000, clr_range[cur_radar][cur_range][1]/1000);
-                    
+
                     // Reset TCS per clr range
                     is_tcs_ready[cur_radar] [cur_range] = false;
                     tcs_storage_i[cur_radar][cur_range] = 0;
@@ -1481,10 +1481,10 @@ int main() {
                 if (clr_range[cur_radar][cur_range][1] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) {
                     clr_range[cur_radar][cur_range][1] = (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2));
                 }
-                
-                // Fail: Clr Range has no intersection with Usrp Range 
+
+                // Fail: Clr Range has no intersection with Usrp Range
                 if (clr_range[cur_radar][cur_range][1] < (meta_data.usrp_fcenter * 1000 - (meta_data.usrp_rf_rate / 2)) ||
-                    clr_range[cur_radar][cur_range][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2))) 
+                    clr_range[cur_radar][cur_range][0] > (meta_data.usrp_fcenter * 1000 + (meta_data.usrp_rf_rate / 2)))
                 {
                     log_error("ERROR: Clear Range is out of Usrp Range!");
                     log_error("ERROR: Please check your Clear Range and Usrp RF Rate settings.");
@@ -1501,9 +1501,9 @@ int main() {
                 }
 
             }
-            
+
             // Unmask current channel's old reserved frequency
-            log_debug("Unmasking old reserved clr band[%d]: | %5d kHz -- %5d kHz |", 
+            log_debug("Unmasking old reserved clr band[%d]: | %5d kHz -- %5d kHz |",
                 restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel,
                 restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_start/1000,
                 restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel].f_end/1000
@@ -1543,7 +1543,7 @@ int main() {
                 if (log_age[cur_radar][cur_channel] == 0 || log_age[cur_radar][cur_channel] != (time(NULL) - (time(NULL) % 7200))) {
                     char *ext = BIN_OR_CSV_LOG ? ".csv" : "bin";
                     log_trace("extension \"%s\" enabled", ext);
-                    
+
                     log_trace("Initializing FFT File");
                     sprintf(tcs_spectra_filename_template, SPECTRUM_FILE, "%s", ststr[cur_radar], channel+'`', "%s");
                     gen_filename(&tcs_spectra_filename_template, ext, &tcs_spectra_filename);
@@ -1568,31 +1568,31 @@ int main() {
             if (fl_clr_range_out_bounds == false) {
                 // If TCS is not ready, process new clrfreq per unique beam request
                 if (is_tcs_ready[cur_radar][cur_range] == false) {
-                    
+
                     // Fail: No active antennas and no sample data from prior clr freqs
                     if (active_ant_num == 0 && (clr_band->noise == 0 || clr_band->noise == RAND_MAX)) {
                         log_error("ERROR: No main array antennas active and no computed clr freqs...CFS has no data to compensate with.");
-                    } 
+                    }
 
                     // Special: No active antennas, but usable sample data from prior CFS cycle
                     else if (active_ant_num == 0 && (clr_band->noise != 0 && clr_band->noise != RAND_MAX)) {
                         log_warn("WARN: No main array antennas active, but computed clr freqs... using old clr freqs to compensate...");
 
-                        // "Output Clear Freq Bands" handles the selection of clr freqs... 
-                    } 
+                        // "Output Clear Freq Bands" handles the selection of clr freqs...
+                    }
 
                     // Default: Process Clear Search
                     else {
                         log_info( "Clr Freq @ Beam #%d ...", cur_beam);
                         log_info( "Starting Clear Freq Search...");
                         clear_freq_search(
-                            temp_samples, 
+                            temp_samples,
                             active_antennas[cur_radar],
                             tmp_clr_range,
                             cur_beam,
                             sample_sep,
                             avg_ratio,
-                            restricted_freq, 
+                            restricted_freq,
                             restricted_num + RESERV_NUM,
                             meta_data,
                             array_config,
@@ -1602,14 +1602,14 @@ int main() {
                             ststr[cur_radar],
                             channel
                         );
-                    }                
-                } // end of Clear Search (CS) 
+                    }
+                } // end of Clear Search (CS)
                 // If TCS ready, process beam-specific clr freq
                 else {
                     log_info( "[TCS] Clr Freq @ Beam #%d ...", cur_beam);
                     process_avg_beam_spectra(
                         &(spectra_storage[cur_radar * STATIC_RANGE_NUM * STORAGE_NUM * beam_total * samples_num]),
-                        avg_ratio, 
+                        avg_ratio,
                         meta_data.number_of_samples,
                         cur_beam,
                         beam_total,
@@ -1628,7 +1628,7 @@ int main() {
                         cur_beam,
                         tmp_clr_range,
                         sample_sep,
-                        restricted_freq, 
+                        restricted_freq,
                         restricted_num + RESERV_NUM,
                         avg_freq_vector,
                         (int) (meta_data.number_of_samples / avg_ratio),
@@ -1639,25 +1639,25 @@ int main() {
                         channel
                     );
                     log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
-                } // end of TCS 
+                } // end of TCS
             } // end of Clear Freq Processing
 
-            // Clear Freq Selection and Display 
+            // Clear Freq Selection and Display
             bool is_clr_band_found = true;
             if (clr_band->noise != 0 && clr_band->noise != RAND_MAX) {  // if clr_band filled correctly, proceed to Freq Selection
-                log_debug("Clear Freq Band: | %5d kHz -- Noise: %-9.2f -- %5d kHz |", 
+                log_debug("Clear Freq Band: | %5d kHz -- Noise: %-9.2f -- %5d kHz |",
                     clr_band->f_start/1000,
                     clr_band->noise,
                     clr_band->f_end/1000
                 );
-                
+
                 // Compare with Radar/Reservation Table
                 bool cur_freq_intersects = false;
                 for (int r_idx = 0; r_idx < STATIC_RADAR_NUM; r_idx++) {
                     for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
                         freq_band compare_freq = radar_table[cur_radar][c_idx].clr_band;
-    
-                        // If cur freq intersects w/ reservations, flag to skip the freq 
+
+                        // If cur freq intersects w/ reservations, flag to skip the freq
                         if ((compare_freq.f_start <= clr_band->f_start   && clr_band->f_start < compare_freq.f_end ) ||
                              compare_freq.f_start <= clr_band->f_end      && clr_band->f_end <= compare_freq.f_end ) {
                                 cur_freq_intersects = true;
@@ -1667,7 +1667,7 @@ int main() {
                                 break;
                             }
                     }
-                    if (cur_freq_intersects == true) {break;} 
+                    if (cur_freq_intersects == true) {break;}
                 }
 
                 // Skip the freq; Do NOT select it
@@ -1680,8 +1680,8 @@ int main() {
 
             if (is_clr_band_found == true) {
                 log_debug("    Reserving frequency into RadarTable...");
-                
-                // Reserve the frequency band 
+
+                // Reserve the frequency band
                 radar_table[cur_radar][cur_channel].clr_band = *clr_band;
                 radar_table[cur_radar][cur_channel].clear_freq_range[0] = tmp_clr_range[0];
                 radar_table[cur_radar][cur_channel].clear_freq_range[1] = tmp_clr_range[1];
@@ -1706,7 +1706,7 @@ int main() {
                     log_error("ERROR: There COULD be an error in CFS order of operations, or too wide of a guardband/narrow clear search range!");
                 }
             }
-            // Fail: A valid clr freq could not be found 
+            // Fail: A valid clr freq could not be found
             else {
                 selected_clr_band.f_start = 0;
                 selected_clr_band.f_end = 0;
@@ -1718,7 +1718,7 @@ int main() {
                     selected_clr_band = radar_table[cur_radar][cur_channel].clr_band;
                     restricted_freq[restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel] = radar_table[cur_radar][cur_channel].clr_band;
 
-                    log_warn("CFS resorted to old reservation: | %5d kHz -- Noise: %-9.2f -- %5d kHz |", 
+                    log_warn("CFS resorted to old reservation: | %5d kHz -- Noise: %-9.2f -- %5d kHz |",
                             selected_clr_band.f_start/1000, selected_clr_band.noise, selected_clr_band.f_end/1000
                         );
                 }
@@ -1737,20 +1737,20 @@ int main() {
             }
 
             // Display TCS Storage Information
-            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage [%d/%d]", 
-                cur_radar, 
-                clr_range[cur_radar][cur_range][0] / 1000, 
-                clr_range[cur_radar][cur_range][1] / 1000, 
+            log_info( "[TCS] Radar[%d][%5d -- %5d] Storage [%d/%d]",
+                cur_radar,
+                clr_range[cur_radar][cur_range][0] / 1000,
+                clr_range[cur_radar][cur_range][1] / 1000,
                 tcs_storage_i[cur_radar][cur_range] + 1, STORAGE_NUM
             );
-            if (is_tcs_ready[cur_radar][cur_range] == true) log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...", 
-                            cur_radar, 
-                            clr_range[cur_radar][cur_range][0] / 1000, 
+            if (is_tcs_ready[cur_radar][cur_range] == true) log_info( "[TCS] Radar[%d][%5d -- %5d] Storage is now Ready...",
+                            cur_radar,
+                            clr_range[cur_radar][cur_range][0] / 1000,
                             clr_range[cur_radar][cur_range][1] / 1000
                         );
-            else log_info( "[TCS] Radar[%d][%5d -- %5d] is NOT Ready...", 
+            else log_info( "[TCS] Radar[%d][%5d -- %5d] is NOT Ready...",
                 cur_radar,
-                clr_range[cur_radar][cur_range][0] / 1000, 
+                clr_range[cur_radar][cur_range][0] / 1000,
                 clr_range[cur_radar][cur_range][1] / 1000
             );
 
@@ -1767,7 +1767,7 @@ int main() {
                         is_muted = true;
                         break;
                     }
-                }          
+                }
                 if (is_muted == true) ant_status = "   muted";
                 else if (active_antennas[cur_radar][ant_idx] > 0 && (ant_idx <= IDX_LAST_MA || ant_idx > IDX_LAST_IA)) {
                     ant_status = "  active";
@@ -1777,9 +1777,9 @@ int main() {
                     ant_status = "inactive";
                 }
 
-                log_info( "-> ant#%2d[radar#%d][%s]: %6d (missed %4d)", 
+                log_info( "-> ant#%2d[radar#%d][%s]: %6d (missed %4d)",
                     ant_idx,
-                    cur_radar, 
+                    cur_radar,
                     ant_status,
                     avg_ant_pwr,
                     valid_sample_cycles[cur_radar] - ant_active_ct[cur_radar][ant_idx]
@@ -1795,8 +1795,8 @@ int main() {
             }
             // // If active antennas are less than # passed to CFS, flag
             // if (active_ant_num < meta_data.num_antennas) {
-            //     log_warn( "WARN: Main Active antennas (%d) < passed antennas (%d) results in less noise", 
-            //         active_ant_num, 
+            //     log_warn( "WARN: Main Active antennas (%d) < passed antennas (%d) results in less noise",
+            //         active_ant_num,
             //         meta_data.num_antennas
             //     );
             // }
@@ -1807,9 +1807,9 @@ int main() {
                 for (int c_idx = 0; c_idx < STATIC_CHANNEL_NUM; c_idx++) {
                     if (radar_table[r_idx][c_idx].clr_band.f_start != 0 && radar_table[r_idx][c_idx].clr_band.f_end != 0) {
                         log_debug( "    Radar[%d] Channel[%d]: | %5d kHz -- Noise: %-9.2f -- %5d kHz | in range: | %5d kHz -- %5d kHz |",
-                            r_idx, c_idx, 
-                            radar_table[r_idx][c_idx].clr_band.f_start      / 1000, 
-                            radar_table[r_idx][c_idx].clr_band.noise, 
+                            r_idx, c_idx,
+                            radar_table[r_idx][c_idx].clr_band.f_start      / 1000,
+                            radar_table[r_idx][c_idx].clr_band.noise,
                             radar_table[r_idx][c_idx].clr_band.f_end        / 1000,
                             radar_table[r_idx][c_idx].clear_freq_range[0]   / 1000,
                             radar_table[r_idx][c_idx].clear_freq_range[1]   / 1000
@@ -1823,7 +1823,7 @@ int main() {
             if (msync(clrfreq_obj.shm_ptr, CLR_BAND_SHM_SIZE, MS_SYNC) == -1) {
                 log_fatal( "msync failed");
                 perror("msync failed");
-            }            
+            }
 
             log_trace( "clrfreq_shm written...");
             sem_post(sl_clrfreq.sem);
@@ -1838,8 +1838,8 @@ int main() {
             perror( "ERROR: No Clear Freq or Sample flag to process... likely a semaphore leak or error in CFS order of operations");
             exit(EXIT_FAILURE);
         }
-        
-        
+
+
         t2 = clock();
         log_info( "Processed Client successfully...");
         log_info( "Processing Time for Client (s): %lf\n", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));

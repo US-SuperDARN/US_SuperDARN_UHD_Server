@@ -76,7 +76,7 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 
 // Define Constants
 #define GB_MULT 1.25                // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw = clear_freq bandwidth)
-#define MIN_FREQ_SEP 1500           // Minimum Frequency Separation (in Hz), guard band will be kept at and above this value.  
+#define MIN_FREQ_SEP 1500           // Minimum Frequency Separation (in Hz), guard band will be kept at and above this value.
 
 #define MIN_ANT_PWR_MULT .1         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
 #define MAX_ANT_PWR 25000           // Debug: used to flag high power samples during TCS's process_beamformed_samples
