@@ -12,16 +12,6 @@
 #include "log.h"
 #include "misc_read_writes.h"
 
-
-
-
-// TODO: Pass in clr_freq_range via restrict actual file
-// #define RESTRICT_FILE = '/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/tables/superdarn/site/site.sps/restrict.dat.inst'
-
-// TODO: Pass in x_spacing, etc. via config actual file
-
-// TODO: Store Clear Freq Bands for each Beam
-
 /*
 * NOTE:
 * When compiling make sure to add "-lm" and "-lfftw3" to link the libraries

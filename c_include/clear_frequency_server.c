@@ -1072,12 +1072,6 @@ int main() {
             log_debug("     x_spacing   : %f", meta_data.x_spacing);
 
             sem_post(sl_init.sem);
-
-            // log_info( "Initialization data read; processing...");
-
-            // TODO: storeInRadarTable(restrict_freq, meta_data)
-
-            // log_info( "Initialization data processed...");
         }
 
         // If samples flagged, process samples and clear frequency
