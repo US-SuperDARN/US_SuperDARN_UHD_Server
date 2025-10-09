@@ -98,6 +98,8 @@ void **temp_ptrs;
 fftw_complex *temp_samples = NULL;
 fftw_complex *spectra_storage = NULL;
 
+fftw_plan storage_fft_plan = NULL;
+
 double **avg_beam_spectrum = NULL;
 int avg_beam_spectrum_sizes[] = {
     BEAM_NUM,
@@ -434,8 +436,8 @@ void cleanup() {
     log_debug( "Cleaned temp_samples ...");
     fftw_free(spectra_storage);
     log_debug( "Cleaned spectra_storage ...");
-    // cleanup_storage_fft();
-    // log_debug( "Cleaned fftw plan ...");
+    cleanup_storage_fft();
+    log_debug( "Cleaned fftw plan ...");
 
     log_info( "Cleaned all fftw pointers ...");
 
@@ -649,6 +651,33 @@ void clear_active_antennas(int active_antennas[]) {
     // Set the active antennas based on the antenna_list
     for (int i = 0; i < STATIC_ANTENNA_NUM; i++) {
         active_antennas[i] = 0;
+    }
+}
+
+
+// Initialization function to create the plan
+void init_storage_fft(int num_samples) {
+    fftw_complex *input = fftw_alloc_complex(num_samples);
+    fftw_complex *output = fftw_alloc_complex(num_samples);
+
+    if (storage_fft_plan == NULL) {
+        storage_fft_plan = fftw_plan_dft_1d(num_samples, input, output, FFTW_FORWARD, FFTW_ESTIMATE);
+        if (!storage_fft_plan) {
+            perror("Error creating FFT plan");
+            exit(EXIT_FAILURE);
+        }
+        log_info("FFT plan created and cached.");
+    }
+
+    fftw_free(input);
+    fftw_free(output);
+}
+
+
+// Cleanup function to destroy the plan
+void cleanup_storage_fft() {
+    if (storage_fft_plan != NULL) {
+        fftw_destroy_plan(storage_fft_plan);
     }
 }
 
@@ -1056,9 +1085,10 @@ int main() {
                         ant_active_ct[r_idx][ant_idx] = 0;
                     }
                 }
-                // log_info( "Reinitializing TCS FFTW plan...");
-                // cleanup_storage_fft();
-                // init_storage_fft(samples_num, beam_total);
+
+                log_info( "Reinitializing TCS FFTW plan...");
+                cleanup_storage_fft();
+                init_storage_fft(samples_num);
             }
 
             // Debug: Display meta_data info
@@ -1218,6 +1248,7 @@ int main() {
                         );
                         process_all_beamformed_spectras(
                                 temp_samples,
+                                storage_fft_plan,
                                 active_antennas[cur_radar],
                                 clr_range[cur_radar][range_idx],
                                 sample_sep,
@@ -1259,6 +1290,7 @@ int main() {
                     // Process Spectra
                     process_all_beamformed_spectras(
                             temp_samples,
+                            storage_fft_plan,
                             active_antennas[cur_radar],
                             clr_range[cur_radar][cur_range],
                             sample_sep,
@@ -1581,6 +1613,7 @@ int main() {
                         log_info( "Starting Clear Freq Search...");
                         clear_freq_search(
                             temp_samples,
+                            storage_fft_plan,
                             active_antennas[cur_radar],
                             tmp_clr_range,
                             cur_beam,

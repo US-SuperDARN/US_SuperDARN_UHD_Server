@@ -40,9 +40,9 @@ typedef struct clear_freq {
 
 #pragma once
 
-clear_freq clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
-                             int clear_freq_range[], int cur_beam, int smsep,
-                             int avg_ratio, freq_band *restricted_bands,
+clear_freq clear_freq_search(fftw_complex *raw_samples, fftw_plan storage_fft_plan,
+                             int *active_antennas, int clear_freq_range[], int cur_beam,
+                             int smsep, int avg_ratio, freq_band *restricted_bands,
                              int restrict_num, sample_meta_data meta_data,
                              Config config, freq_band *clr_band,
                              char *fft_file, char *clr_file,
@@ -62,8 +62,8 @@ void process_avg_beam_spectra(fftw_complex *beamformed_spectra, int avg_ratio,
                               double **avg_beam_spectra, double *avg_freq_vector,
                               char *fft_file, char *ststr, int channel);
 
-void process_all_beamformed_spectras(fftw_complex *raw_samples, int *active_antennas,
-                                     int clear_freq_range[], int smsep,
+void process_all_beamformed_spectras(fftw_complex *raw_samples, fftw_plan storage_fft_plan,
+                                     int *active_antennas, int clear_freq_range[], int smsep,
                                      freq_band *restricted_bands, int restrict_num,
                                      sample_meta_data *meta_data, Config config,
                                      fftw_complex *beamformed_spectra);
