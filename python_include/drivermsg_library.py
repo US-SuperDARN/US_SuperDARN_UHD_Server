@@ -440,7 +440,7 @@ class usrp_get_auto_clear_freq_command(driver_command):
                 try:
                     sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 except:
-                    self.logger.error("Error receiving clear search samples for antenna {}".format(antenna_no_side))
+                    self.logger.error("Error receiving auto clear freq samples for antenna {}".format(antenna_no_side))
                     return nSides, -1, sample_buf
                     # sample_buf_side = [np.int16(0) for j in range(2*nSamples)]
 
@@ -508,7 +508,7 @@ class usrp_clrfreq_command(driver_command):
                 try:
                     sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 except:
-                    self.logger.error("Error receiving auto clear samples for antenna {}".format(antenna_no_side))
+                    self.logger.error("Error receiving clear search samples for antenna {}".format(antenna_no_side))
                     return nSides, -1, sample_buf
 
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
