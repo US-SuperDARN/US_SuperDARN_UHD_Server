@@ -1883,9 +1883,6 @@ class RadarHardwareManager:
                    self.logger.info("ending main_control_loop")
                    break
 
-                # set start time of integration period (will be overwriten if not triggered)
-                self.starttime_period = time.time() # TODO change this to reference clock and scan times
-
                 # check if there are any disconnected USRPs
                 # (only if no radars are active, to avoid resync interrupting scan)
                 if not radar_active.any():
@@ -1893,7 +1890,10 @@ class RadarHardwareManager:
                       if len(self.usrpManager.addressList_inactive[jrad]):
                          self.usrpManager.restore_lost_connections()
 
-                # CLEAR FREQ SEARCH: recoring when ever requested (independent of swing, state or channel)
+                # set start time of integration period (will be overwritten if not triggered)
+                self.starttime_period = time.time() # TODO change this to reference clock and scan times
+
+                # CLEAR FREQ SEARCH: recording when ever requested (independent of swing, state or channel)
                 for jrad in range(self.N_RADARs):
                    if self.clearFreqRawDataManager.outstanding_request[jrad]:
                       controlLoop_logger.debug('start self.clearFreqRawDataManager.record_new_data({})'.format(jrad))
@@ -2519,7 +2519,7 @@ class RadarHardwareManager:
         #self.apply_channel_scaling() # currently does nothing
 
         self._calc_period_details()
-        trigger_next_period = self.nSequences_per_period != 0 # don't triger if no time left
+        trigger_next_period = self.nSequences_per_period != 0 # don't trigger if no time left
 
         nSamples_per_pulse = int(np.round((self.commonChannelParameter['pulseLength'] / 1e6 * self.usrp_rf_tx_rate) + 2 * (self.commonChannelParameter['tr_to_pulse_delay']/1e6 * self.usrp_rf_tx_rate)))
         for ch in np.concatenate(self.channels).tolist():
