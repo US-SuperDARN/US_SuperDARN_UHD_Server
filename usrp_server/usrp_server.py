@@ -1452,7 +1452,7 @@ class clearFrequencyRawDataManager():
 
 
     def update_auto_clear_freq_data(self, jrad, antenna_list, raw_data, meta_data_dict):
-        """ Take the auto clear freq data collected at the end of tranmitting and update the clear freq class"""
+        """ Take the auto clear freq data collected at the end of transmitting and update the clear freq class"""
         self.rawData[jrad] = raw_data
         self.recordTime[jrad] = meta_data_dict['record_time']
         self.antennaList[jrad] = antenna_list
