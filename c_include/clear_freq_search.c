@@ -1129,14 +1129,16 @@ void process_avg_ant_pwr (
 
     }
 
-    main_avg_pwr /= num_main_antennas;
-    int_avg_pwr /= num_int_antennas;
+    if (num_main_antennas > 0) main_avg_pwr /= num_main_antennas;
+    if (num_int_antennas > 0)  int_avg_pwr  /= num_int_antennas;
+
     double min_main_pwr_threshold = 1;
     double min_int_pwr_threshold = 1;
-    if (main_avg_pwr > 0 && int_avg_pwr > 0) {
-        min_main_pwr_threshold = main_avg_pwr * MIN_ANT_PWR_MULT;
-        min_int_pwr_threshold  =  int_avg_pwr * MIN_ANT_PWR_MULT;
-    } else {
+
+    if (main_avg_pwr > 0) min_main_pwr_threshold = main_avg_pwr * MIN_ANT_PWR_MULT;
+    if (int_avg_pwr  > 0) min_int_pwr_threshold  =  int_avg_pwr * MIN_ANT_PWR_MULT;
+
+    if (num_main_antennas == 0 && num_int_antennas == 0) {
         log_error("ERROR: CFS shows antennas are all down! CFS will resort to last clear freq set.");
     }
     log_debug("main_avg_pwr: %.2f min_pwr_threshold: %.2f", main_avg_pwr, min_main_pwr_threshold);

@@ -1751,7 +1751,12 @@ int main() {
             // Display Average Antenna Power, reset active antennas, and warn of antenna abnormalities
             log_info( "[TCS] Average Antenna Power (total valid cycles: %d):", valid_sample_cycles[cur_radar]);
             for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
-                long avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles[cur_radar];
+                long avg_ant_pwr = 0;
+                if (valid_sample_cycles[cur_radar] > 0) {
+                  avg_ant_pwr = (ant_active_ct[cur_radar][ant_idx] == 0) ? 0 : accu_avg_ant_pwr[cur_radar][ant_idx] / valid_sample_cycles[cur_radar];
+                } else if (ant_active_ct[cur_radar][ant_idx] > 0) {
+                  avg_ant_pwr = accu_avg_ant_pwr[cur_radar][ant_idx] / ant_active_ct[cur_radar][ant_idx];
+                }
                 char *ant_status;
 
                 // Check if muted in Array Config
