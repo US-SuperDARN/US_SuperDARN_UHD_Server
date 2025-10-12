@@ -2309,13 +2309,16 @@ class RadarHardwareManager:
         # CUDA_GENERATE for first period
         RHM.logger.debug('start CUDA_GENERATE_PULSE swing {} (1st period)'.format(RHM.swingManager.activeSwing))
 
+        cmd_list = []
         for jrad in range(RHM.N_RADARs):
            if radar_active[jrad]:
               RHM.logger.debug('CUDA_GENERATE_PULSE jrad {} socket {}'.format(jrad,RHM.cudasocks[jrad]))
               cmd = cuda_generate_pulse_command(RHM.cudasocks[jrad], RHM.swingManager.activeSwing, RHM.mixingFreqManager.current_mixing_freq[jrad]*1000)
               cmd.transmit()
-              time.sleep(0.001)
-              cmd.client_return()
+              cmd_list.append(cmd)
+
+        for cmd in cmd_list:
+           cmd.client_return()
 
         RHM.logger.debug('end CUDA_GENERATE_PULSE (1st period)')
         RHM.logger.debug("end initialize_channel")
@@ -2903,6 +2906,7 @@ class RadarHardwareManager:
 
         # CUDA_GENERATE for next period
         self.logger.debug('start CUDA_GENERATE_PULSE')
+        cmd_list = []
         for jrad in range(self.N_RADARs):
            if self.last_period[jrad]:
               self.logger.debug('skipping CUDA_GENERATE_PULSE jrad {} (is last period)'.format(jrad))
@@ -2911,7 +2915,10 @@ class RadarHardwareManager:
               cmd = cuda_generate_pulse_command(self.cudasocks[jrad], self.swingManager.processingSwing,
                                                 self.mixingFreqManager.current_mixing_freq[jrad]*1000)
               cmd.transmit()
-              cmd.client_return()
+              cmd_list.append(cmd)
+
+        for cmd in cmd_list:
+           cmd.client_return()
         self.logger.debug('end CUDA_GENERATE_PULSE')
 
         all_usrps_report_failure = True
