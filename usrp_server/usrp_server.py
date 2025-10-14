@@ -1480,7 +1480,9 @@ class clearFrequencyRawDataManager():
         if rec_new_samples:
             self.logger.debug("clearFreqRawData: age of data is {:2.2f} s. Recording new data".format(data_age))
             self.logger.debug('start record_clrfreq_raw_samples on radar {}'.format(jrad))
-            self.rawData[jrad], self.antennaList[jrad] = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(jrad), self.number_of_samples, self.center_freq[jrad], self.sampling_rate, self.usrpManager.RHM.min_clrfreq_delay)
+            self.rawData[jrad], self.antennaList[jrad] = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(jrad), \
+                                                                                    self.number_of_samples, self.center_freq[jrad]*1000, \
+                                                                                    self.sampling_rate, self.usrpManager.RHM.min_clrfreq_delay)
             self.logger.debug('end record_clrfreq_raw_samples')
 
             self.metaData[jrad]['antenna_list'] = self.antennaList[jrad]
