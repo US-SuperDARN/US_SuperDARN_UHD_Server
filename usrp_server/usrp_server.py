@@ -3469,7 +3469,8 @@ class RadarChannelHandler:
 
     def update_ctrlprm_class(self, period):
         if len(self.scanManager.scan_beam_list) == 0:
-           self.logger.warning("scan_beam_list is empty. unable to update ctrlprm_class!")
+           if self.received_first_SETPAR:
+              self.logger.warning("scan_beam_list is empty. unable to update ctrlprm_class!")
            return
 
         if period == "current":
