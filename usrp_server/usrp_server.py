@@ -1831,6 +1831,7 @@ class RadarHardwareManager:
         self.newChannelList  = []   # waiting list for channels to be added at the right time (between two trigger_next() calls)
         self.swingManager    = swingManager()
 
+        self.skip_calc_period = False
         self.processing_swing_invalid = False
         self.trigger_next_function_running = False
         self.commonChannelParameter = {}
@@ -2281,6 +2282,7 @@ class RadarHardwareManager:
               nChannelsNew += 1
 
         RHM._calc_period_details(newChannels=newChannelList) # TODO only if this is first channel?
+        RHM.skip_calc_period = True
         for channel in newChannelList:
 
             RHM.apply_channel_scaling(channel.rnum, nChannelsWillBeAdded=nChannelsNew)
@@ -2520,7 +2522,10 @@ class RadarHardwareManager:
 
         #self.apply_channel_scaling() # currently does nothing
 
-        self._calc_period_details()
+        if not self.skip_calc_period:
+            self._calc_period_details()
+        else:
+            self.skip_calc_period = False
         trigger_next_period = self.nSequences_per_period != 0 # don't trigger if no time left
 
         nSamples_per_pulse = int(np.round((self.commonChannelParameter['pulseLength'] / 1e6 * self.usrp_rf_tx_rate) + 2 * (self.commonChannelParameter['tr_to_pulse_delay']/1e6 * self.usrp_rf_tx_rate)))
