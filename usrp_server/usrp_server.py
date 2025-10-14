@@ -1527,7 +1527,7 @@ class swingManager():
         self.processingSwing = 1
 
         # async buffers for control program handlers
-        # a/p swing status is switched in main loop async from crtl progam. this var is used for GetDataHandler to get the correct swing no matter when handler is called
+        # a/p swing status is switched in main loop async from ctrl progam. this var is used for GetDataHandler to get the correct swing no matter when handler is called
         self.nextSwingToTrigger = self.activeSwing
 
 
@@ -2341,7 +2341,7 @@ class RadarHardwareManager:
            self.newChannelList.remove(channelObject)
 
         if channelObject in self.channels[channelObject.rnum]:
-       # this is only called if something went wrong or crtl program quit => so don't care about channel states ?
+       # this is only called if something went wrong or ctrl program quit => so don't care about channel states ?
        #    # don't delete channel in middle of trigger, pretrigger, or ....
        #     channelObject._waitForState([CS_READY, CS_INACTIVE])
             self.logger.info('unregister_channel_from_HardwareManager() removing channel {} from HardwareManager'.format(self.channels[channelObject.rnum].index(channelObject)))
@@ -2851,15 +2851,15 @@ class RadarHardwareManager:
                  channel.next_processing_state = CS_INACTIVE
                  channel.active_state          = CS_INACTIVE
                  channel.next_active_state     = CS_INACTIVE
-                 channel.logger.debug('last period finished, setting radar {} cnum {} active and next processing state to CS_INACTIVE'.format(channel.rnum,channel.cnum))
+                 channel.logger.debug('last period finished, setting radar {} cnum {} active and next processing states to CS_INACTIVE'.format(channel.rnum,channel.cnum))
               elif channel.scanManager.isLastPeriod:
                  channel.next_processing_state = CS_LAST_SWING
-                 channel.logger.debug('Setting radar {} channel {} processing state to CS_LAST_SWING'.format(channel.rnum,channel.cnum))
+                 channel.logger.debug('Setting radar {} channel {} next processing state to CS_LAST_SWING'.format(channel.rnum,channel.cnum))
               else:
                  channel.next_processing_state = CS_READY
-              channel.logger.debug("Switching next processing state (swing {}) of radar {} cnum {} to {}".format(self.swingManager.processingSwing, channel.rnum, channel.cnum, channel.next_processing_state))
+              channel.logger.debug("Switching next processing state (swing {}) of radar {} cnum {} to {}".format(self.swingManager.activeSwing, channel.rnum, channel.cnum, channel.next_processing_state))
 
-              channel.logger.debug("Switching processing state (swing {}) state of radar {} cnum {} from CS_PROCESSING to CS_SAMPLES_READY".format(self.swingManager.processingSwing, channel.rnum, channel.cnum))
+              channel.logger.debug("Switching processing state (swing {}) of radar {} cnum {} from CS_PROCESSING to CS_SAMPLES_READY".format(self.swingManager.processingSwing, channel.rnum, channel.cnum))
               channel.processing_state = CS_SAMPLES_READY
 
         # CUDA_ADD & CUDA_GENERATE for processingSwing
