@@ -2078,24 +2078,23 @@ class RadarHardwareManager:
                                 self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, \
                                 1, 0, 0, 0, 0, [0], 0)
        cmd.transmit()
-       time.sleep(0.001)
 
-       # rxrate,rxfreq,txrate,txfreq = cmd.receive_settings(self.usrpManager.socks[jrad])
+       try:
+          # give non-local usrps some extra time to respond
+          if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
+             time.sleep(0.001)
+          else:
+             time.sleep(0.002)
+       except:
+          self.logger.error("No USRPs for radar {}".format(jrad))
+
        rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
        cmd.client_return()
 
        self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate {} txfreq {}".format(rxrate,rxfreq,txrate,txfreq))
 
-       try:
-          # give non-local usrps some extra time to respond
-          if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-             time.sleep(0.002)
-       except:
-          self.logger.error("No USRPs for radar {}".format(jrad))
-
        # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
 
-       # self.usrpManager.eval_client_return(cmd, jrad)
        self.usrp_setup_semaphore.release()
        self.logger.debug("end USRP_SETUP")
 
@@ -2486,7 +2485,7 @@ class RadarHardwareManager:
         nPulses_per_sequence           = self.commonChannelParameter['npulses_per_sequence']
         pulse_sequence_offsets_samples = self.commonChannelParameter['pulse_sequence_offsets_vector'] * self.usrp_rf_tx_rate
 
-        # then, calculate sample indices at which pulses start within an integration period (all possible for cuda, only trasmitted for usrp_driver)
+        # then, calculate sample indices at which pulses start within an integration period (all possible for cuda, only transmitted for usrp_driver)
         # TODO if the pulse offsets change in one scan, this has to be changed (calc next pulse period for cuda, current for usrp driver)
         all_possible_integration_period_pulse_sample_offsets = np.zeros(nPulses_per_sequence * nSequences_per_period_max, dtype=np.uint64)
         for iSequence in range(nSequences_per_period_max):
@@ -2581,9 +2580,16 @@ class RadarHardwareManager:
                                           channel.integration_period_pulse_sample_offsets, \
                                           self.swingManager.activeSwing)
                  cmd.transmit()
-                 time.sleep(0.001)
 
-                 # rxrate,rxfreq,txrate,txfreq = cmd.receive_settings(self.usrpManager.socks[jrad][0])
+                 try:
+                    # give non-local usrps some extra time to respond
+                    if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
+                       time.sleep(0.001)
+                    else:
+                       time.sleep(0.002)
+                 except:
+                    self.logger.error("No USRPs for radar {}".format(jrad))
+
                  rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
                  cmd.client_return()
 
@@ -2591,14 +2597,6 @@ class RadarHardwareManager:
 
                  # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
 
-                 try:
-                    # give non-local usrps some extra time to respond
-                    if not self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-                       time.sleep(0.002)
-                 except:
-                    self.logger.error("No USRPs for radar {}".format(jrad))
-
-                 # self.usrpManager.eval_client_return(cmd, jrad)
                  self.logger.debug("end USRP_SETUP")
 
                  self.usrp_setup_semaphore.release()
