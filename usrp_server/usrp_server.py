@@ -2107,10 +2107,15 @@ class RadarHardwareManager:
          self.logger.debug("Skipping call of cuda_setup because up/down samplingRates are unknown.")
       else:
          self.logger.debug("start CUDA_SETUP")
+         cmd_list = []
          for jrad in range(self.N_RADARs):
             cmd = cuda_setup_command(self.cudasocks[jrad], self.commonChannelParameter['upsample_rate'],self.commonChannelParameter['downsample_rates'][0],self.commonChannelParameter['downsample_rates'][1], self.mixingFreqManager.current_mixing_freq[jrad]*1000 )
             cmd.transmit()
-            time.sleep(0.001)
+            cmd_list.append(cmd)
+
+         time.sleep(0.001)
+
+         for cmd in cmd_list:
             cmd.client_return()
 
          self.logger.debug("end CUDA_SETUP")
@@ -2179,6 +2184,8 @@ class RadarHardwareManager:
     #@timeit
     def rxfe_init(self):
 
+        cmd_list = []
+        jrad_list = []
         for jrad in range(self.N_RADARs):
            amp1 = self.ini_rxfe_settings[jrad].getboolean('enable_amp1')
            amp2 = self.ini_rxfe_settings[jrad].getboolean('enable_amp2')
@@ -2195,7 +2202,13 @@ class RadarHardwareManager:
            self.logger.info("Radar {}: Setting RXFE: Amp1={}, Amp2={}, Attenuation={} dB".format(jrad, amp1, amp2, att))
            cmd = usrp_rxfe_setup_command(self.usrpManager.socks[jrad], amp1, amp2, att*2) # *2 since LSB is 0.5 dB
            cmd.transmit()
-           time.sleep(0.001)
+           cmd_list.append(cmd)
+           jrad_list.append(jrad)
+
+        time.sleep(0.001)
+
+        for ind, cmd in enumerate(cmd_list):
+           jrad = jrad_list[ind]
            self.usrpManager.eval_client_return(cmd, jrad)
 
 
@@ -2285,6 +2298,7 @@ class RadarHardwareManager:
 
         RHM._calc_period_details(newChannels=newChannelList) # TODO only if this is first channel?
         RHM.skip_calc_period = True
+        cmd_list = []
         for channel in newChannelList:
 
             RHM.apply_channel_scaling(channel.rnum, nChannelsWillBeAdded=nChannelsNew)
@@ -2296,8 +2310,11 @@ class RadarHardwareManager:
             cmd = cuda_add_channel_command(RHM.cudasocks[channel.rnum], sequence=seq, swing = channel.swingManager.activeSwing)
             RHM.logger.debug('calling CUDA_ADD_CHANNEL at initialize_channel() (rnum {} cnum {}, swing {}, beam {})'.format(channel.rnum, channel.cnum, channel.swingManager.activeSwing, channel.scanManager.current_beam))
             cmd.transmit()
-            time.sleep(0.001)
-            cmd.client_return()
+            cmd_list.append(cmd)
+
+        time.sleep(0.001)
+        for iChannel, channel in enumerate(newChannelList):
+            cmd_list[iChannel].client_return()
             if channel.active_state == CS_INACTIVE:
                RHM.logger.debug("initialize_channel() is setting radar {} ch {} swing {} from CS_INACTIVE to CS_READY".format(channel.rnum, channel.cnum, channel.swingManager.activeSwing))
                channel.active_state = CS_READY # channel not really ready until CUDA_GENERATE, but there will be no trigger in parallel to this function
@@ -2631,6 +2648,9 @@ class RadarHardwareManager:
 
         usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
 
+        cmd_list = []
+        jrad_list = []
+
         for jrad in range(self.N_RADARs):
 
            if not radar_active[jrad]:
@@ -2673,13 +2693,14 @@ class RadarHardwareManager:
 
               if trigger_next_period:
                  # broadcast the start of the next integration period to all usrp
-                 self.logger.debug('start USRP_TRIGGER')
+                 self.logger.debug('start USRP_TRIGGER radar {}'.format(jrad))
 
-                 # trigger_time = usrp_time + self.integration_time_manager.get_usrp_delay_time()
                  cmd = usrp_trigger_pulse_command(self.usrpManager.socks[jrad], trigger_time, self.commonChannelParameter['tr_to_pulse_delay'], self.swingManager.activeSwing)
                  self.logger.debug('sending trigger pulse command for swing {}'.format(self.swingManager.activeSwing))
                  cmd.transmit()
                  self.logger.debug('radar {} current usrp time: {}, trigger time of: {}'.format(jrad, usrp_time, trigger_time))
+                 cmd_list.append(cmd)
+                 jrad_list.append(jrad)
               else:
                  self.logger.info("No time left, not triggering this swing.")
 
@@ -2688,16 +2709,16 @@ class RadarHardwareManager:
                  if ch.active_state == CS_TRIGGER:
                     ch.active_state = CS_PROCESSING
                     ch.logger.debug("Changing active channel state from CS_TRIGGER to CS_PROCESSING (rnum: {}, cnum: {}, swing {}, period {})".format(ch.rnum, ch.cnum, self.swingManager.activeSwing, ch.scanManager.current_period))
-              if trigger_next_period:
-                 self.logger.debug('waiting for trigger return')
-                 returns = self.usrpManager.eval_client_return(cmd, jrad)
-
-                 if TRIGGER_BUSY in returns:
-                    self.logger.error('could not trigger, usrp driver is busy')
-                    # pdb.set_trace()
-                 self.logger.debug('end USRP_TRIGGER')
            else:
               self.logger.debug('No transmitting channels available on radar {}. Skipping USRP_TRIGGER'.format(jrad))
+
+        for ind, cmd in enumerate(cmd_list):
+           self.logger.debug('waiting for trigger return on radar {}'.format(jrad_list[ind]))
+           returns = self.usrpManager.eval_client_return(cmd, jrad_list[ind])
+           if TRIGGER_BUSY in returns:
+              self.logger.error('could not trigger radar {}, usrp driver is busy'.format(jrad_list[ind]))
+              # pdb.set_trace()
+           self.logger.debug('end USRP_TRIGGER radar {}'.format(jrad_list[ind]))
 
         # Block to process last swing
 
@@ -2926,6 +2947,8 @@ class RadarHardwareManager:
            cmd.client_return()
         self.logger.debug('end CUDA_GENERATE_PULSE')
 
+        cmd_list = []
+        jrad_list = []
         all_usrps_report_failure = True
         for jrad in range(self.N_RADARs):
            if not radar_active[jrad]:
@@ -2933,136 +2956,160 @@ class RadarHardwareManager:
 
            if transmittingChannelAvailable[jrad] and trigger_next_period:
               # USRP_READY_DATA for activeSwing
-              self.logger.debug('start USRP_READY_DATA')
+              self.logger.debug('start USRP_READY_DATA radar {}'.format(jrad))
 
               self.logger.debug("socks: {}".format(self.usrpManager.socks[jrad]))
 
               cmd = usrp_ready_data_command(self.usrpManager.socks[jrad], self.swingManager.activeSwing)
               cmd.transmit()
+              cmd_list.append(cmd)
+              jrad_list.append(jrad)
 
-              try:
-                 # give non-local usrps some extra time to respond
-                 if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-                    time.sleep(0.002)
+              #try:
+              #   # give non-local usrps some extra time to respond
+              #   if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
+              #      time.sleep(0.002)
+              #   else:
+              #      time.sleep(0.004)
+              #except:
+              #   self.logger.error("No USRPs for radar {}".format(jrad))
+
+        time.sleep(0.002)
+
+        for ind, cmd in enumerate(cmd_list):
+           jrad = jrad_list[ind]
+
+           # check status of usrp drivers
+           self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
+           payloadList = self.usrpManager.eval_client_return(cmd, jrad, fcn=cmd.receive_all_metadata)
+           self.logger.debug('end receiving all USRP status for radar {}'.format(jrad))
+
+           antenna_list_offset = 0
+           for iUSRP, ready_return in enumerate(payloadList):
+              if ready_return == CONNECTION_ERROR:
+                 self.usrpManager.fault_status[iUSRP] = True
+                 self.logger.error('connection to USRP broke in GET_DATA for radar {}'.format(jrad))
+                 antenna_list_offset += 1
+              else:
+                 rx_status = ready_return['status']
+                 if rx_status < 0:
+                    rx_error_codes = dict(ERROR_CODE_NONE = 0x0, ERROR_CODE_TIMEOUT = 0x1,
+                                          ERROR_CODE_LATE_COMMAND = 0x2, ERROR_CODE_BROKEN_CHAIN = 0x4,
+                                          ERROR_CODE_OVERFLOW = 0x8, ERROR_CODE_ALIGNMENT = 0xc,
+                                          ERROR_CODE_BAD_PACKET = 0xf, WRONG_NUMBER_OF_SAMPLES = 100)
+
+                    error_code = - rx_status
+                    print_name = 'unknown'
+                    if error_code % 1000 in rx_error_codes.values():
+                       for err_name, err_value in rx_error_codes.items():
+                          if err_value == (error_code % 1000):
+                             print_name = "UHD::" + err_name
+                             break
+                    if error_code == 10:
+                       print_name = "RX_WORKER_STREAM_TIME_ERROR"
+                    # out of sequence flag adds (-) 1000 to error code
+                    if error_code >= 1000:
+                       print_name += " and out_of_sequence=1"
+                    self.logger.error("Error: {} (code {}) occurred in rx_worker for radar {} antennas {}.".format(print_name, rx_status, jrad, self.usrpManager.antennaList_active[jrad][iUSRP-antenna_list_offset]))
+
                  else:
-                    time.sleep(0.004)
-              except:
-                 self.logger.error("No USRPs for radar {}".format(jrad))
+                    all_usrps_report_failure = False
 
-              # check status of usrp drivers
-              self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
-              payloadList = self.usrpManager.eval_client_return(cmd, jrad, fcn=cmd.receive_all_metadata)
-              self.logger.debug('end receiving all USRP status')
+                 self.usrpManager.fault_status[iUSRP] = ready_return["fault"]
 
-              antenna_list_offset = 0
-              for iUSRP, ready_return in enumerate(payloadList):
-                 if ready_return == CONNECTION_ERROR:
-                    self.usrpManager.fault_status[iUSRP] = True
-                    self.logger.error('connection to USRP broke in GET_DATA')
-                    antenna_list_offset += 1
-                 else:
-                    rx_status = ready_return['status']
-                    if rx_status < 0:
-                       rx_error_codes = dict(ERROR_CODE_NONE = 0x0, ERROR_CODE_TIMEOUT = 0x1,
-                                             ERROR_CODE_LATE_COMMAND = 0x2, ERROR_CODE_BROKEN_CHAIN = 0x4,
-                                             ERROR_CODE_OVERFLOW = 0x8, ERROR_CODE_ALIGNMENT = 0xc,
-                                             ERROR_CODE_BAD_PACKET = 0xf, WRONG_NUMBER_OF_SAMPLES = 100)
+                 self.logger.debug('GET_DATA rx status {}'.format(rx_status))
+                 if rx_status != 2:
+                    self.logger.error('USRP driver status {} in GET_DATA'.format(rx_status))
+                    #status = USRP_DRIVER_ERROR # TODO: understand what is an error here..
 
-                       error_code = - rx_status
-                       print_name = 'unknown'
-                       if error_code % 1000 in rx_error_codes.values():
-                          for err_name, err_value in rx_error_codes.items():
-                             if err_value == (error_code % 1000):
-                                print_name = "UHD::" + err_name
-                                break
-                       if error_code == 10:
-                          print_name = "RX_WORKER_STREAM_TIME_ERROR"
-                       # out of sequence flag adds (-) 1000 to error code
-                       if error_code >= 1000:
-                          print_name += " and out_of_sequence=1"
-                       self.logger.error("Error: {} (code {}) occurred in rx_worker for radar {} antennas {}.".format(print_name, rx_status, jrad, self.usrpManager.antennaList_active[jrad][iUSRP-antenna_list_offset]))
+           self.usrpManager.watchdog(all_usrps_report_failure)
 
-                    else:
-                       all_usrps_report_failure = False
+           self.logger.debug('start waiting for USRP_DATA return radar {}'.format(jrad))
+           self.usrpManager.eval_client_return(cmd, jrad)
+           self.logger.debug('end waiting for USRP_DATA return radar {}'.format(jrad))
 
-                    self.usrpManager.fault_status[iUSRP] = ready_return["fault"]
-
-                    self.logger.debug('GET_DATA rx status {}'.format(rx_status))
-                    if rx_status != 2:
-                       self.logger.error('USRP driver status {} in GET_DATA'.format(rx_status))
-                       #status = USRP_DRIVER_ERROR # TODO: understand what is an error here..
-
-              self.usrpManager.watchdog(all_usrps_report_failure)
-
-              self.logger.debug('start waiting for USRP_DATA return')
-              self.usrpManager.eval_client_return(cmd, jrad)
-              self.logger.debug('end waiting for USRP_DATA return')
-
-              self.logger.debug('end USRP_READY_DATA')
+           self.logger.debug('end USRP_READY_DATA radar {}'.format(jrad))
 
         # SWITCH SWINGS
         self.swingManager.switch_swings()
         self.logger.debug('switching swings to: active={}, processing={}'.format(self.swingManager.activeSwing, self.swingManager.processingSwing))
 
         # START CUDA_PROCESS
+        cmd_list = []
+        jrad_list = []
         for jrad in range(self.N_RADARs):
            if transmittingChannelAvailable[jrad]:
               if trigger_next_period:
                  # CUDA_PROCESS for processingSwing
-                 self.logger.debug('start CUDA_PROCESS')
+                 self.logger.debug('start CUDA_PROCESS radar {}'.format(jrad))
                  self.logger.debug("cuda process radar {} active {}".format(jrad,radar_active[jrad]))
                  if radar_active[jrad]:
                     self.logger.debug("cuda process radar {} socks {}".format(jrad,self.cudasocks[jrad]))
                     cmd = cuda_process_command(self.cudasocks[jrad], swing=self.swingManager.processingSwing, nSamples=nSamples_rx_requested_of_last_trigger)
                     cmd.transmit()
-                    time.sleep(0.001)
-                    cmd.client_return()
+                    cmd_list.append(cmd)
+                    jrad_list.append(jrad)
 
-                 self.logger.debug('end CUDA_PROCESS')
+        time.sleep(0.001)
 
-              # repeat CLR_FREQ record for 2nd period (if executed for 1st)
-              if self.clearFreqRawDataManager.repeat_request_for_2nd_period:
-                 self.logger.debug("Setting outstanding_request for CLR_FREQ for 2nd period.")
-                 self.clearFreqRawDataManager.repeat_request_for_2nd_period = False
-                 self.clearFreqRawDataManager.outstanding_request[jrad] = True
+        for ind, cmd in enumerate(cmd_list):
+           jrad = jrad_list[ind]
+           cmd.client_return()
 
-              # automatic trigger of second period (without ROS:SET_READY)
-              for channel in self.channels[jrad]:
-                 if channel.scanManager.isFirstPeriod:
-                    channel.logger.debug('setting active state (rnum {} cnum {}, swing {}) to CS_TRIGGER to start second period'.format(channel.rnum, channel.cnum, self.swingManager.activeSwing))
-                    channel.active_state = CS_TRIGGER
-                    channel.triggered_swing_list.insert(0, self.swingManager.nextSwingToTrigger)
+           self.logger.debug('end CUDA_PROCESS radar {}'.format(jrad))
 
-                    channel.scanManager.isFirstPeriod = False
+           # repeat CLR_FREQ record for 2nd period (if executed for 1st)
+           if self.clearFreqRawDataManager.repeat_request_for_2nd_period:
+              self.logger.debug("Setting outstanding_request for CLR_FREQ for 2nd period.")
+              self.clearFreqRawDataManager.repeat_request_for_2nd_period = False
+              self.clearFreqRawDataManager.outstanding_request[jrad] = True
 
-           # GET AUTO CLEAR FREQ DATA
+           # automatic trigger of second period (without ROS:SET_READY)
+           for channel in self.channels[jrad]:
+              if channel.scanManager.isFirstPeriod:
+                 channel.logger.debug('setting active state (rnum {} cnum {}, swing {}) to CS_TRIGGER to start second period'.format(channel.rnum, channel.cnum, self.swingManager.activeSwing))
+                 channel.active_state = CS_TRIGGER
+                 channel.triggered_swing_list.insert(0, self.swingManager.nextSwingToTrigger)
+
+                 channel.scanManager.isFirstPeriod = False
+
+        # GET AUTO CLEAR FREQ DATA
+        cmd_list = []
+        jrad_list = []
+        for jrad in range(self.N_RADARs):
            if transmittingChannelAvailable[jrad] and trigger_next_period and self.auto_collect_clrfrq_after_rx:
               #self.clear_search_data_semaphore.acquire()
               nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
               self.logger.debug("Getting auto clear freq data for radar {}. nSamples_clear_freq: {}".format(jrad,nSamples_clear_freq))
               cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad],int(nSamples_clear_freq))
               cmd.transmit()
+              cmd_list.append(cmd)
+              jrad_list.append(jrad)
 
-              try:
-                 # give non-local usrps some extra time to respond
-                 if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-                    time.sleep(0.001)
-                 else:
-                    time.sleep(0.0025)
-              except:
-                 self.logger.error("No USRPs for radar {}".format(jrad))
+              #try:
+              #   # give non-local usrps some extra time to respond
+              #   if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
+              #      time.sleep(0.001)
+              #   else:
+              #      time.sleep(0.0025)
+              #except:
+              #   self.logger.error("No USRPs for radar {}".format(jrad))
 
-              antenna_list, clr_samples = cmd.recv_all()
-              cmd.client_return()
+        time.sleep(0.001)
 
-              self.clear_search_data_semaphore.acquire()
-              try:
-                 self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples[0])))
-                 auto_clear_freq_meta_data['record_time'] = time.time()
-                 self.clearFreqRawDataManager.update_auto_clear_freq_data(jrad, antenna_list, clr_samples, auto_clear_freq_meta_data)
-              except:
-                 self.logger.error("radar {}: auto clear freq error".format(jrad))
-              self.clear_search_data_semaphore.release()
+        for ind, cmd in enumerate(cmd_list):
+           jrad = jrad_list[ind]
+           antenna_list, clr_samples = cmd.recv_all()
+           cmd.client_return()
+
+           self.clear_search_data_semaphore.acquire()
+           try:
+              self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad,antenna_list,len(clr_samples[0])))
+              auto_clear_freq_meta_data['record_time'] = time.time()
+              self.clearFreqRawDataManager.update_auto_clear_freq_data(jrad, antenna_list, clr_samples, auto_clear_freq_meta_data)
+           except:
+              self.logger.error("radar {}: auto clear freq error".format(jrad))
+           self.clear_search_data_semaphore.release()
 
         if not trigger_next_period:
            self.logger.info("This swing has not been triggered, setting processing_swing_invalid.")
