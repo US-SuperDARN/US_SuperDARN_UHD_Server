@@ -780,6 +780,17 @@ int main() {
         }
     }
 
+    // Get Clear Frequency Resolution
+    log_debug( "Reading Avg_ratio from driver_config.ini ...");
+    ini_check = ini_parse(DRIVER_CONFIG_FILEPATH, config_ini_handler, &array_config);
+    if (ini_check < 0) {
+        log_fatal( "Error reading driver configuration file");
+        perror("Error reading driver configuration file");
+        exit(EXIT_FAILURE);
+    }
+    int avg_ratio = array_config.clr_settings.avg_ratio;
+    log_debug( "Done reading Average Ratio...");
+
     // Allocate temp mem for shm varibles
     temp_samples = fftw_alloc_complex(ANTENNA_NUM * SAMPLES_NUM);
     if (temp_samples == NULL) {
@@ -794,18 +805,6 @@ int main() {
         perror("Error allocating memory for spectra_storage");
         exit(EXIT_FAILURE);
     }
-
-    // Get Clear Frequency Resolution
-    log_debug( "Reading Avg_ratio from radar_config_constants.py ...");
-    int avg_ratio = 0;
-    read_radar_config(RADAR_CONST_CONFIG_FILEPATH, &avg_ratio);
-    if (avg_ratio <= 0) {
-        log_debug( "Avg_ratio: %d", avg_ratio);
-        log_fatal( "Error reading radar configuration file");
-        perror("Error reading radar configuration file");
-        exit(EXIT_FAILURE);
-    }
-    log_debug( "Done reading Average Ratio...");
 
     avg_beam_spectrum_sizes[0] = beam_total;
     avg_beam_spectrum_sizes[1] = SAMPLES_NUM / avg_ratio;

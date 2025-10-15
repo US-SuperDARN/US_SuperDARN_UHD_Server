@@ -33,16 +33,16 @@ from phasing_utils import *
 from socket_utils import *
 from rosmsg import *
 from drivermsg_library import *
-from radar_config_constants import *
 from clear_frequency_search import record_clrfreq_raw_samples
 from profiling_tools import *
 import logging_usrp
+
+debug = True
 
 radar_active = np.zeros(2, dtype=bool)
 
 RMSG_PORT = 45000
 USRP_SERVER_HOST = 'localhost'
-#USRP_SERVER_HOST = '192.168.100.1'
 
 MAX_CHANNELS = 4
 USRP_BANDWIDTH_RESTRICTION = 300000 # in Hz. No channels allowed on both edges of the URSP bandwidth to avoid aliasing
@@ -56,7 +56,18 @@ CHANNEL_STATE_TIMEOUT = 120
 # TODO: move this out to a config file
 nSwings = 2
 
-debug = True
+# seconds of delay in usrp clock time at the start of an integration period before the first pulse
+# to allow for the usrp_drivers receive a command..
+INTEGRATION_PERIOD_SYNC_TIME_ONESEC = .2
+INTEGRATION_PERIOD_SYNC_TIME = .2
+
+# padding in seconds between pulse sequences
+# starting from the last transmit pulse within a sequence
+# so, this needs to be long enough to avoid any ambiguity between pulse sequences
+# for assuming a maximum range of 5000 kilometers, this could be about .033 seconds
+# if this is not an integer multiple of the baseband sampling period, the values will be round down
+# the rf baseband sampling period is probably 3.333333... kHz
+PULSE_SEQUENCE_PADDING_TIME = .033
 
 DEFAULT_USRP_MIXING_FREQ = 13000
 
@@ -1823,7 +1834,7 @@ class RadarHardwareManager:
         for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 
-           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(AVG_RATIO * self.usrp_rf_rx_rate / CLRFREQ_RES))
+           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(self.avg_ratio * self.usrp_rf_rx_rate / self.clrfreq_res))
 
            self.send_usrp_setup_command(jrad)
 
@@ -2044,7 +2055,9 @@ class RadarHardwareManager:
         self.ini_network_settings = driver_config['network_settings']
 
         self.min_clrfreq_delay = float(self.ini_clr_settings['min_clrfreq_delay'])
-        self.auto_max_age      =   int(self.ini_clr_settings['auto_max_age'])
+        self.clrfreq_res       = float(self.ini_clr_settings['clrfreq_res'])
+        self.avg_ratio         =   int(self.ini_clr_settings['avg_ratio'])
+        self.auto_max_age      = float(self.ini_clr_settings['auto_max_age'])
         self.auto_pause_time   = float(self.ini_clr_settings['auto_pause_time'])
 
         # READ usrp_config.ini

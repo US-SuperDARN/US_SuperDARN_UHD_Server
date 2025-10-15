@@ -558,8 +558,8 @@ void calc_clear_freq_on_raw_samples(
             );
 
         }
-        log_warn("\'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
-    } else log_warn("\'save_spectra\' not found. Not logging spectra nor clr_frequency.");
+        log_info("\'save_spectra\' found; Logged individual FFT Spectrum and Clear Frequency batches.");
+    } else log_info("\'save_spectra\' not found. Not logging spectra nor clr_frequency.");
 
     log_debug("Finished Clear Freq Search!");
 

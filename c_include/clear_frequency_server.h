@@ -18,9 +18,9 @@
 #define SAVE_CLR_LOG            0                       // 1 to store selected frequencies in CSV log files, 0 to skip
 
 // Filepaths Vars
-#define ARRAY_CONFIG_FILEPATH           "array_config.ini"
-#define RADAR_CONST_CONFIG_FILEPATH     "python_include/radar_config_constants.py"
-#define DEFAULT_SITE_STSTR              "lab"        // Default site config to use if not passed from usrp_server
+#define ARRAY_CONFIG_FILEPATH   "array_config.ini"
+#define DRIVER_CONFIG_FILEPATH  "driver_config.ini"
+#define DEFAULT_SITE_STSTR      "lab"                   // Default site config to use if not passed from usrp_server
 
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500
@@ -115,9 +115,17 @@ typedef struct {
 } GainControl;
 
 typedef struct {
+    double min_clrfreq_delay;
+    double clrfreq_res;
+    int    avg_ratio;
+    double auto_max_age;
+    double auto_pause_time;
+} ClrSettings;
+
+typedef struct {
     ArrayInfo array_info;
     HardwareLimits hardware_limits;
     GainControl gain_control;
+    ClrSettings clr_settings;
 } Config;
-
 
