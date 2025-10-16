@@ -826,10 +826,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     }
 
                     if (verbose) {
-                        std::cout << boost::format("Actual RX Freq: %f MHz...") % (usrp->get_rx_freq()/1e6)  <<  std::endl;
-                        std::cout << boost::format("Actual RX Rate: %f Msps...") % (usrp->get_rx_rate()/1e6) <<  std::endl;
-                        std::cout << boost::format("Actual TX Freq: %f MHz...") % (usrp->get_tx_freq()/1e6)  <<  std::endl;
-                        std::cout << boost::format("Actual TX Rate: %f Msps...") % (usrp->get_tx_rate()/1e6) <<  std::endl;
+                        std::cout << boost::format("Actual RX Freq: %f MHz...") % (usrp->get_rx_freq()/1e6)  << std::endl;
+                        std::cout << boost::format("Actual RX Rate: %f Msps...") % (usrp->get_rx_rate()/1e6) << std::endl;
+                        std::cout << boost::format("Actual TX Freq: %f MHz...") % (usrp->get_tx_freq()/1e6)  << std::endl;
+                        std::cout << boost::format("Actual TX Rate: %f Msps...") % (usrp->get_tx_rate()/1e6) << std::endl;
                     }
 
                     // TODO: set the number of samples in a pulse. this is calculated from the pulse duration and the sampling rate
@@ -843,7 +843,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     size_t num_samples_per_pulse_with_padding = nSamples_tx_pulse + 2*spb;
 
                     // TODO unpack and pad tx sample
-                    for (iSide = 0; iSide<nSides; iSide++) {
+                    for (iSide = 0; iSide < nSides; iSide++) {
                         tx_samples[iSide].resize(number_of_pulses * (num_samples_per_pulse_with_padding));
 
                         for (uint32_t p_i = 0; p_i < number_of_pulses; p_i++) {
@@ -855,7 +855,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     if (SAVE_RAW_SAMPLES_DEBUG) {
                         FILE *raw_dump_fp;
                         char raw_dump_name[80];
-                        for (iSide =0; iSide < nSides; iSide++) {
+                        for (iSide = 0; iSide < nSides; iSide++) {
                             sprintf(raw_dump_name, "%s/raw_samples_tx_ant_%d.cint16", diag_dir, antennaVector[iSide]);
                             raw_dump_fp = fopen(raw_dump_name, "wb");
                             fwrite(&tx_samples[iSide][0], sizeof(std::complex<int16_t>),num_samples_per_pulse_with_padding*number_of_pulses, raw_dump_fp);
@@ -942,7 +942,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                             sprintf(PTfname, "%s%04d%02d%02d%02d-PulseTimeLog",PTLogPath, 1900+gmt->tm_year, gmt->tm_mon+1, gmt->tm_mday, gmt->tm_hour);
                             FILE* fd = fopen(PTfname, "a");
                             if (fd == NULL) {
-                                std::cerr << "Could not open file:  " << PTfname   << "\n";
+                                std::cerr << "Could not open file:  " << PTfname << "\n";
                                 break;
                             }
                             fprintf(fd, "%s ", get_log_time());
@@ -1037,7 +1037,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
                     // read FAULT status
                     bool fault;
-                    for (iSide =0; iSide<nSides; iSide++) {
+                    for (iSide = 0; iSide < nSides; iSide++) {
                         fault = read_FAULT_status_from_control_board(usrp, iSide);
                     }
                     // TODO move this in loop as soon as usrp_server receives both sides
@@ -1046,7 +1046,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     if (mute_output) {
                         DEBUG_PRINT("%s: READY_DATA: Filling SHM with zeros (because of rx_worker error)\n", get_log_time());
 
-                        for (iSide = 0; iSide<nSides; iSide++) {
+                        for (iSide = 0; iSide < nSides; iSide++) {
                             memset(shm_rx_vec[iSide][swing], 0, rxshm_size);
                             std::fill(rx_auto_clear_freq[iSide].begin(), rx_auto_clear_freq[iSide].end(), 0);
                         }
@@ -1055,12 +1055,12 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         debugt = usrp->get_time_now().get_real_secs();
                         DEBUG_PRINT("%s: READY_DATA starting copying rx data buffer to shared memory at %2.5f\n", get_log_time(), debugt);
                         // regural rx data
-                        for (iSide = 0; iSide<nSides; iSide++) {
+                        for (iSide = 0; iSide < nSides; iSide++) {
                             // DEBUG_PRINT("usrp_drivercopy to rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][swing], iSide, iSwing);
                             memcpy(shm_rx_vec[iSide][swing], &rx_data_buffer[iSide][0], sizeof(std::complex<int16_t>) * nSamples_rx);
                         }
                         // auto clear freq samples
-                        for (iSide = 0; iSide<nSides; iSide++) {
+                        for (iSide = 0; iSide < nSides; iSide++) {
                             for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
                                 rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx + nSamples_pause_after_rx + iSample];
                             }
@@ -1070,7 +1070,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     if (SAVE_RAW_SAMPLES_DEBUG) {
                         FILE *raw_dump_fp;
                         char raw_dump_name[80];
-                        for (iSide=0; iSide<nSides; iSide++) {
+                        for (iSide=0; iSide < nSides; iSide++) {
                             sprintf(raw_dump_name, "%s/raw_samples_rx_ant_%d.cint16", diag_dir, antennaVector[iSide]);
                             raw_dump_fp = fopen(raw_dump_name, "wb");
                             fwrite(&rx_data_buffer[iSide], sizeof(std::complex<int16_t>), nSamples_rx_total, raw_dump_fp);
@@ -1159,7 +1159,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     if (auto_clear_freq_available) {
                         sock_send_int32(driverconn, (int32_t) nSides);
 
-                        for (int jSide=0; jSide<(int)nSides; jSide++) {
+                        for (int jSide=0; jSide < (int)nSides; jSide++) {
                             DEBUG_PRINT("%s: AUTOCLRFREQ samples sending %d samples for antenna %d usrp side %d...\n", get_log_time(), num_clrfreq_samples,antennaVector[jSide],jSide);
 
                             sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
