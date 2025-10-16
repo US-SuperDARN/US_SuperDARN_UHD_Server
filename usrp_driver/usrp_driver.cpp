@@ -767,9 +767,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                                 rx_data_buffer[iSide].resize(nSamples_rx_total);
                             } catch (const std::bad_alloc& e) {
                                 std::cout << "Allocation failed: " << e.what() << '\n';
-                            } catch(const std::exception& x) {
+                            } catch (const std::exception& x) {
                                 std::cerr << typeid(x).name() << std::endl;
-                            } catch(...) {
+                            } catch (...) {
                                 std::cerr << "unknown exception" << std::endl;
                             }
                         }
@@ -782,9 +782,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                                 rx_auto_clear_freq[iSide].resize(nSamples_auto_clear_freq);
                             } catch (const std::bad_alloc& e) {
                                 std::cout << "Allocation failed: " << e.what() << '\n';
-                            } catch(const std::exception& x) {
+                            } catch (const std::exception& x) {
                                 std::cerr << typeid(x).name() << std::endl;
-                            } catch(...) {
+                            } catch (...) {
                                 std::cerr << "unknown exception" << std::endl;
                             }
                         }
@@ -991,7 +991,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                 }
 
                 case READY_DATA: {
-                    swing = sock_get_int16(  driverconn);
+                    swing = sock_get_int16(driverconn);
                     DEBUG_PRINT("%s: READY_DATA command (swing %d), waiting for uhd threads to join back\n", get_log_time(), swing);
 
                     float debugt = usrp->get_time_now().get_real_secs();
@@ -1062,7 +1062,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         // auto clear freq samples
                         for (iSide = 0; iSide<nSides; iSide++) {
                             for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
-                                rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx+nSamples_pause_after_rx+ iSample];
+                                rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx + nSamples_pause_after_rx + iSample];
                             }
                         }
                     }
