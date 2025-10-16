@@ -13,13 +13,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <utime.h>
- 
+
 #include <iostream>
 #include <string>
- 
+
 #include <cstdlib>
 
 char tstr[128];
+
 
 char *get_log_time() {
     struct tm *gmt;
@@ -37,19 +38,17 @@ char *get_log_time() {
     return tstr;
 }
 
-//
-void touch_file(const std::string& fileName)
-{
+
+void touch_file(const std::string& fileName) {
     int fd = open(fileName.c_str(), O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666);
-    if (fd<0) 
-    {
-        std::cerr << "Could not open file:  " << fileName   << "\n";
+    if (fd < 0) {
+        std::cerr << "Could not open file:  " << fileName << "\n";
         return;
     }
+
     int utime_return = utimensat(AT_FDCWD, fileName.c_str(), nullptr, 0);
-    if (utime_return)
-    {
-       std::cerr  << "utimensat() failed \n";
+    if (utime_return) {
+       std::cerr << "utimensat() failed \n";
        return;
     }
 }
@@ -57,20 +56,19 @@ void touch_file(const std::string& fileName)
 
 // adds a double offset to a uhd::time_spec_t
 // useful for calculating pulse times for a pulse sequence
-uhd::time_spec_t offset_time_spec(uhd::time_spec_t t0, double toffset)
-{
+uhd::time_spec_t offset_time_spec(uhd::time_spec_t t0, double toffset) {
     uhd::time_spec_t t1;
-    
+
     int64_t full_sec = t0.get_full_secs();
     double frac_sec = t0.get_frac_secs();
 
     frac_sec += toffset;
-    
+
     full_sec += (int64_t)floor(frac_sec);
     frac_sec -= (double)floor(frac_sec);
 
 
     t1 = uhd::time_spec_t(full_sec, frac_sec);
-    
+
     return t1;
 }

@@ -1,18 +1,18 @@
 // Function uses GPIO of USRP to generate timing signals and control RXFE
 //  On Kodiak, Outputs are:
-//     
+//
 //  To control board
-//     io_tx[00] 
-//     io_tx[01] NOT_FAULT
+//     io_tx[00]
+//     io_tx[01]  NOT_FAULT
 //     io_tx[02]
-//     io_tx[03]   TR_TX
-//     io_tx[04]   TR_RX
+//     io_tx[03]  TR_TX
+//     io_tx[04]  TR_RX
 //     io_tx[05]
 //     io_tx[06]
 //     Io_tx[07]
-//      
+//
 //  Not connected
-//     io_tx[08]   SYNC
+//     io_tx[08]  SYNC
 //     io_tx[09]
 //     io_tx[10]
 //     io_tx[11]  MIMIC_TX
@@ -20,18 +20,18 @@
 //     io_tx[13]
 //     io_tx[14]
 //     io_tx[15]
-//      
+//
 //  To RXFE
-//     io_rx[00] ATT_D5    // -16  dB
-//     io_rx[01] ATT_D4    // - 8  dB
-//     io_rx[02] ATT_D3    // - 4  dB
-//     io_rx[03] ATT_D2    // - 2  dB
-//     io_rx[04] ATT_D1    // - 1  dB
+//     io_rx[00] ATT_D5    // - 16 dB
+//     io_rx[01] ATT_D4    // -  8 dB
+//     io_rx[02] ATT_D3    // -  4 dB
+//     io_rx[03] ATT_D2    // -  2 dB
+//     io_rx[04] ATT_D1    // -  1 dB
 //     io_rx[05] ATT_D0    // -0.5 dB
 //     io_rx[06] AMP_2     // + 15 dB
 //     io_rx[07] AMP_1     // + 15 dB
 //
-//   for newer style phasing cards, outputs are:
+//  for newer style phasing cards, outputs are:
 // 06 - MCM_SYNC
 // 05 - MCM_TR
 // 04 - AMP_A1
@@ -44,7 +44,7 @@
 // 08 - ATT_B_LE
 // 00 - ATT_SDI
 // 07 - ATT_SCK
-//     
+//
 // Functions to handle timing card/dio card on USRP
 // broken out and expanded from Alex's recv_and_hold.cpp timing card code
 // added rxfe dio and command issue time sorting
@@ -70,14 +70,14 @@
 
 #include "dio.h"
 #include "usrp_utils.h"
- 
+
 // dio pin names to binary
 #define IO_PIN_00 0x0001
 #define IO_PIN_01 0x0002
 #define IO_PIN_02 0x0004
 #define IO_PIN_03 0x0008
 #define IO_PIN_04 0x0010
-#define IO_PIN_05 0x0020 
+#define IO_PIN_05 0x0020
 #define IO_PIN_06 0x0040
 #define IO_PIN_07 0x0080
 
@@ -88,18 +88,17 @@
 #define IO_PIN_12 0x1000
 #define IO_PIN_13 0x2000
 #define IO_PIN_14 0x4000
-#define IO_PIN_15 0x8000 
-
+#define IO_PIN_15 0x8000
 
 
 #define MANUAL_CONTROL 0x00
 
 
-// TIMING: LFTX to control board (agc) 
+// TIMING: LFTX to control board (agc)
 // mapping timing TX RX signals pins
 #define TR_TX     IO_PIN_05
 #define TR_RX     IO_PIN_09
-#define TR_PINS   (TR_TX +TR_RX) 
+#define TR_PINS   (TR_TX +TR_RX)
 
 #define NOT_FAULT_PIN  IO_PIN_01
 
@@ -122,11 +121,11 @@
 #define AMP_1  IO_PIN_07   // + 15 dB
 #define AMP_2  IO_PIN_06   // + 15 dB
 #define ATT_D0 IO_PIN_05   // -0.5 dB
-#define ATT_D1 IO_PIN_04   // - 1  dB
-#define ATT_D2 IO_PIN_03   // - 2  dB
-#define ATT_D3 IO_PIN_02   // - 4  dB
-#define ATT_D4 IO_PIN_01   // - 8  dB
-#define ATT_D5 IO_PIN_00   // -16  dB
+#define ATT_D1 IO_PIN_04   // -  1 dB
+#define ATT_D2 IO_PIN_03   // -  2 dB
+#define ATT_D3 IO_PIN_02   // -  4 dB
+#define ATT_D4 IO_PIN_01   // -  8 dB
+#define ATT_D5 IO_PIN_00   // - 16 dB
 
 // define rxfe masks
 #define RXFE_AMP_MASK  (AMP_1 + AMP_2)
@@ -174,51 +173,48 @@ void init_timing_signals(
 
     double debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("%s: DIO queing GPIO commands at usrp_time %2.4f\n", get_log_time(), debugt);
-    
+
     if (MCM_STYLE) {
-        usrp->set_gpio_attr("FP0","CTRL",MANUAL_CONTROL, MCM_SYNC);
-        usrp->set_gpio_attr("FP0","CTRL",MANUAL_CONTROL, MCM_TR);
+        usrp->set_gpio_attr("FP0", "CTRL", MANUAL_CONTROL, MCM_SYNC);
+        usrp->set_gpio_attr("FP0", "CTRL", MANUAL_CONTROL, MCM_TR);
 
-        usrp->set_gpio_attr("FP0","CTRL",MANUAL_CONTROL, MCM_AUX_IO_A);
-        usrp->set_gpio_attr("FP0","CTRL",MANUAL_CONTROL, MCM_AUX_IO_B);
+        usrp->set_gpio_attr("FP0", "CTRL", MANUAL_CONTROL, MCM_AUX_IO_A);
+        usrp->set_gpio_attr("FP0", "CTRL", MANUAL_CONTROL, MCM_AUX_IO_B);
 
-        usrp->set_gpio_attr("FP0","DDR", MCM_SYNC, MCM_SYNC);
-        usrp->set_gpio_attr("FP0","DDR", MCM_TR,   MCM_TR);
-    }
-
-    else {
+        usrp->set_gpio_attr("FP0", "DDR", MCM_SYNC, MCM_SYNC);
+        usrp->set_gpio_attr("FP0", "DDR", MCM_TR,   MCM_TR);
+    } else {
         // setup gpio to manual control and direction (output)
         for (iSide=0; iSide<nSides; iSide++) {
-           sprintf(bank_name, "TX%c",65 + iSide);
-           fprintf( stderr, "Bank name: %s\n",bank_name ); 
-           
-           usrp->set_gpio_attr(bank_name,"CTRL",MANUAL_CONTROL, SYNC_PINS);
-           usrp->set_gpio_attr(bank_name,"CTRL",MANUAL_CONTROL, TR_PINS);
-           usrp->set_gpio_attr(bank_name,"CTRL",MANUAL_CONTROL, NOT_FAULT_PIN);
+            sprintf(bank_name, "TX%c", 65 + iSide);
+            fprintf(stderr, "Bank name: %s\n", bank_name);
 
-           usrp->set_gpio_attr(bank_name,"DDR" ,SYNC_PINS, SYNC_PINS);
-           usrp->set_gpio_attr(bank_name,"DDR" ,TR_PINS,   TR_PINS);
-           usrp->set_gpio_attr(bank_name,"DDR" ,      0,   NOT_FAULT_PIN); // NOT_FAULT as input
+            usrp->set_gpio_attr(bank_name, "CTRL", MANUAL_CONTROL, SYNC_PINS);
+            usrp->set_gpio_attr(bank_name, "CTRL", MANUAL_CONTROL, TR_PINS);
+            usrp->set_gpio_attr(bank_name, "CTRL", MANUAL_CONTROL, NOT_FAULT_PIN);
+
+            usrp->set_gpio_attr(bank_name, "DDR" , SYNC_PINS, SYNC_PINS);
+            usrp->set_gpio_attr(bank_name, "DDR" , TR_PINS,   TR_PINS);
+            usrp->set_gpio_attr(bank_name, "DDR" ,       0,   NOT_FAULT_PIN); // NOT_FAULT as input
         }
 
-       if (mimic_active) {
-           usrp->set_gpio_attr("TXA","CTRL",MANUAL_CONTROL,MIMIC_PINS);
-           usrp->set_gpio_attr("TXA","DDR" ,MIMIC_PINS, MIMIC_PINS);
-           DEBUG_PRINT("%s: DIO.cpp: init MIMIC target\n", get_log_time());
-       }
+        if (mimic_active) {
+            usrp->set_gpio_attr("TXA", "CTRL", MANUAL_CONTROL, MIMIC_PINS);
+            usrp->set_gpio_attr("TXA", "DDR" , MIMIC_PINS, MIMIC_PINS);
+            DEBUG_PRINT("%s: DIO.cpp: init MIMIC target\n", get_log_time());
+        }
     }
-
 
     debugt = usrp->get_time_now().get_real_secs();
     DEBUG_PRINT("%s: DIO: set gpio attrs at usrp_time %2.4f\n", get_log_time(), debugt);
-
 }
+
 
 bool read_FAULT_status_from_control_board(
     uhd::usrp::multi_usrp::sptr usrp,
     int iSide
 ) {
-    if(MCM_STYLE) {
+    if (MCM_STYLE) {
         // mcmurdo transmitters do not relay a fault signal
         return 0;
     }
@@ -233,7 +229,6 @@ bool read_FAULT_status_from_control_board(
 }
 
 
-
 struct GPIOCommand {
     uhd::time_spec_t cmd_time;
     std::string port;
@@ -245,9 +240,8 @@ struct GPIOCommand {
 
 class CompareTime {
 public:
-    bool operator()(GPIOCommand& t1, GPIOCommand& t2)
-    {  
-       return (t1.cmd_time > t2.cmd_time);
+    bool operator()(GPIOCommand& t1, GPIOCommand& t2) {
+        return (t1.cmd_time > t2.cmd_time);
     }
 };
 
@@ -273,9 +267,11 @@ void send_timing_for_sequence(
     bool realtime=true;
     uhd::set_thread_priority_safe(priority,realtime);
 
-    GPIOCommand c; // struct to hold command information so gpio commands can be created out of temporal order, sorted, and issued in order
+    // struct to hold command information so gpio commands can be created out
+    // of temporal order, sorted, and issued in order
+    GPIOCommand c;
     std::priority_queue<GPIOCommand, std::vector<GPIOCommand>, CompareTime> cmdq;
-    
+
     // set SYNC to high
     c.gpiocmd  = "OUT";
     c.mask     = SYNC_PINS;
@@ -289,17 +285,16 @@ void send_timing_for_sequence(
     c.cmd_time = offset_time_spec(start_time, SYNC_OFFSET_END);
     c.port     = bank_name;
     cmdq.push(c);
-    
-    //debug
-    fprintf( stderr, "DIO setting start of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_START).get_real_secs() ); 
-    fprintf( stderr, "DIO setting end   of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_END).get_real_secs() ); 
 
+    //debug
+    fprintf(stderr, "DIO setting start of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_START).get_real_secs() );
+    fprintf(stderr, "DIO setting end   of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_END).get_real_secs() );
 
     // set TX and RX line for each pulse
-    for(size_t iPulse = 0; iPulse < pulse_times.size() ; iPulse++) {
-        // set TX high, RX low    
+    for (size_t iPulse = 0; iPulse < pulse_times.size(); iPulse++) {
+        // set TX high, RX low
         c.mask     = TR_PINS;
-        c.value    = TR_TX;   
+        c.value    = TR_TX;
         c.cmd_time = pulse_times[iPulse];
         c.port     = bank_name;
         cmdq.push(c);
@@ -312,11 +307,11 @@ void send_timing_for_sequence(
 
         // if (mimic_active) {
         if (0) {
-           // DEBUG_PRINT("DIO.cpp: using mimic target with %2.4f ms delay\n", mimic_delay*1000);
-            // set mimic TX high, mimic RX low   
+            // DEBUG_PRINT("DIO.cpp: using mimic target with %2.4f ms delay\n", mimic_delay*1000);
+            // set mimic TX high, mimic RX low
             c.port     = "TXA";
             c.mask     = MIMIC_PINS;
-            c.value    = MIMIC_TX;   
+            c.value    = MIMIC_TX;
             c.cmd_time = offset_time_spec(pulse_times[iPulse], mimic_delay);
             cmdq.push(c);
 
@@ -324,34 +319,32 @@ void send_timing_for_sequence(
             c.value    = MIMIC_RX;
             c.cmd_time = offset_time_spec(pulse_times[iPulse], mimic_delay + pulseLength);
             cmdq.push(c);
-
         }
-
     }
-
 
     float debugt = usrp->get_time_now().get_real_secs();
 
-
-    /*    boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
+    /* boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
     std::cout << "GPIO command issue start time is: "<< to_iso_extended_string(now)<< std::endl;
     */
-    
+
     current_time = time(NULL);
     gmt = gmtime(&current_time);
     fprintf(stderr,"GPIO command issue start time is: %s", asctime(gmt));
 
     DEBUG_PRINT("%s: DIO: pushed gpio commands at usrp_time %2.4f\n", get_log_time(), debugt);
-    // issue gpio commands in time sorted order 
-    // set_command_time must be sent in temporal order, they are sent into a fifo queue on the usrp and will block until executed
+
+    // issue gpio commands in time sorted order
+    // set_command_time must be sent in temporal order, they are sent
+    // into a fifo queue on the usrp and will block until executed
     // clear_command_time does not clear or bypass the buffer as of 10/2014..
     while (!cmdq.empty()) {
         c = cmdq.top();
         usrp->set_command_time(c.cmd_time);
-        usrp->set_gpio_attr(c.port,c.gpiocmd,c.value,c.mask);
+        usrp->set_gpio_attr(c.port, c.gpiocmd, c.value, c.mask);
 
         //debugt = usrp->get_time_now().get_real_secs();
-        //DEBUG_PRINT("DIO: sending queue: val:%2.6u mask: %2.6u at usrp_time %2.6f (%2.4f) \n", c.value, c.mask,  c.cmd_time.get_real_secs(), debugt);
+        //DEBUG_PRINT("DIO: sending queue: val:%2.6u mask: %2.6u at usrp_time %2.6f (%2.4f) \n", c.value, c.mask, c.cmd_time.get_real_secs(), debugt);
 
         cmdq.pop();
     }
@@ -369,19 +362,15 @@ void send_timing_for_sequence(
 
     usrp->clear_command_time();
 
-
-
-
     /*
     // commands to the USRP are now blocked until the pulse sequence is completed
     // usrp_set_command_time will delay any future commands until the command queue is empty (once the pulse sequence including any diagnostic targets is completed)
-    
+
     // the maximum size of the queue is 64
     // a dual polarization radar with timing on separate daughtercards and a 7 pulse sequence plus sync and two mimic targets
     // would have 2 * 2 * 2 * 7 + 2 = 60 entries in the buffer..
-    // for more complicated pulse sequences, we may need to fill the buffer partway through the pulse sequence.. 
+    // for more complicated pulse sequences, we may need to fill the buffer partway through the pulse sequence..
     //
-
     */
 }
 
@@ -392,9 +381,9 @@ void kodiak_set_rxfe(
     int nSides
 ) {
     // load up rxfe_dio with rf_setting struct
-    uint16_t rxfe_dio = 0; 
+    uint16_t rxfe_dio = 0;
     rxfe_dio |= AMP_1  * (rf_settings.amp1      != 0);
-    rxfe_dio |= AMP_2  * (rf_settings.amp2      != 0); 
+    rxfe_dio |= AMP_2  * (rf_settings.amp2      != 0);
     rxfe_dio |= ATT_D0 * (rf_settings.att_05_dB != 0);
     rxfe_dio |= ATT_D1 * (rf_settings.att_1_dB  != 0);
     rxfe_dio |= ATT_D2 * (rf_settings.att_2_dB  != 0);
@@ -404,41 +393,36 @@ void kodiak_set_rxfe(
 
     rxfe_dio = (~rxfe_dio) & 0xFF; // invert all, since high means amp  and att off
 
-
     DEBUG_PRINT("%s: DIO.cpp: received rf_settings: \n   amp1: %d\n   amp2: %d\n   att 0.5 dB: %d\n   att 1 dB  : %d\n   att 2 dB  : %d\n   att 4 dB  : %d\n   att 8 dB  : %d\n   att 16 dB : %d\n", get_log_time(), rf_settings.amp1, rf_settings.amp2, rf_settings.att_05_dB, rf_settings.att_1_dB, rf_settings.att_2_dB, rf_settings.att_4_dB, rf_settings.att_8_dB, rf_settings.att_16_dB );
     DEBUG_PRINT("%s: DIO.cpp: sending rxfe_dio:  %d\n", get_log_time(), rxfe_dio);
 
     usrp->set_gpio_attr("RXA", "OUT", rxfe_dio, RXFE_MASK);
-    if (nSides ==2) {
+    if (nSides == 2) {
         usrp->set_gpio_attr("RXB", "OUT", rxfe_dio, RXFE_MASK);
     }
-
 }
 
 
-void kodiak_init_rxfe(uhd::usrp::multi_usrp::sptr usrp, int nSides)
-{
+void kodiak_init_rxfe(uhd::usrp::multi_usrp::sptr usrp, int nSides) {
     char bank_name[4];
 
     for (int iSide=0; iSide<nSides; iSide++) {
+        sprintf(bank_name, "RX%c",65 + iSide);
+        // hardcode RXFE settings...
+        usrp->set_gpio_attr(bank_name, "CTRL", MANUAL_CONTROL, RXFE_MASK); // set GPIO to manual control
+        usrp->set_gpio_attr(bank_name, "DDR", RXFE_MASK, RXFE_MASK);       // set everybody as outputs
 
-         sprintf(bank_name, "RX%c",65 + iSide);
-         // hardcode RXFE settings...
-         usrp->set_gpio_attr(bank_name, "CTRL", MANUAL_CONTROL, RXFE_MASK); // set GPIO to manual control
-         usrp->set_gpio_attr(bank_name, "DDR", RXFE_MASK, RXFE_MASK); // set everybody as outputs
+        // start up with rxfe disabled, rx mode
+        usrp->set_gpio_attr(bank_name, "OUT", 0xFF, RXFE_AMP_MASK);
+        usrp->set_gpio_attr(bank_name, "OUT", 0xFF, RXFE_ATT_MASK);
 
-         // start up with rxfe disabled, rx mode
-         usrp->set_gpio_attr(bank_name, "OUT", 0xFF, RXFE_AMP_MASK);
-         usrp->set_gpio_attr(bank_name, "OUT", 0xFF, RXFE_ATT_MASK);
-
-         // set to 1/2 full attenuation, both amps online 
-         usrp->set_gpio_attr(bank_name, "OUT", (255 - (AMP_1 + AMP_2 + ATT_D5)), RXFE_MASK);
+        // set to 1/2 full attenuation, both amps online
+        usrp->set_gpio_attr(bank_name, "OUT", (255 - (AMP_1 + AMP_2 + ATT_D5)), RXFE_MASK);
     }
 }
 
 
-void mcm_init_rxfe(uhd::usrp::multi_usrp::sptr usrp)
-{
+void mcm_init_rxfe(uhd::usrp::multi_usrp::sptr usrp) {
     // use set FP0 (front panel dsub15) as outputs with manual control
     usrp->set_gpio_attr("FP0", "CTRL", MANUAL_CONTROL, MCM_RXFE_MASK);
     usrp->set_gpio_attr("FP0", "DDR", MCM_RXFE_MASK, MCM_RXFE_MASK);
@@ -453,20 +437,21 @@ void mcm_init_rxfe(uhd::usrp::multi_usrp::sptr usrp)
     usrp->set_gpio_attr("FP0", "OUT", 0, MCM_ATT_SCK);
 
     usrp->set_gpio_attr("FP0", "OUT", 0, MCM_TR);
-    
+
     // initialize rxfe with no amplifiers or added attenuation
     rxfe_init_settings.amp1 = 0;
     rxfe_init_settings.amp2 = 0;
-    
+
     rxfe_init_settings.att_05_dB = 0;
     rxfe_init_settings.att_1_dB = 0;
     rxfe_init_settings.att_2_dB = 0;
     rxfe_init_settings.att_4_dB = 0;
     rxfe_init_settings.att_8_dB = 0;
     rxfe_init_settings.att_16_dB = 0;
-    
-    mcm_set_rxfe(usrp, rxfe_init_settings); 
+
+    mcm_set_rxfe(usrp, rxfe_init_settings);
 }
+
 
 void mcm_set_rxfe(
     uhd::usrp::multi_usrp::sptr usrp,
@@ -484,7 +469,6 @@ void mcm_set_rxfe(
         rxfe_dio |= MCM_AMP_A2;
         rxfe_dio |= MCM_AMP_B2;
     }
-    
 
     uint8_t att_payload = rf_settings.att_05_dB | \
                           rf_settings.att_1_dB << 1 | \
@@ -498,23 +482,21 @@ void mcm_set_rxfe(
     // return LE
     usrp->set_gpio_attr("FP0", "OUT", 0, MCM_ATT_A_LE);
     usrp->set_gpio_attr("FP0", "OUT", 0, MCM_ATT_B_LE);
-   
+
     // shift attenuator settings into PE4312 shift register
     // MSB first, 6 bits
     // max SPI clock frequency is 10 MHz
     // TODO: check if delay is needed in bit banging
-    for(int i = 5; i >= 0; i--) {
+    for (int i = 5; i >= 0; i--) {
         usrp->set_gpio_attr("FP0", "OUT", 0, MCM_ATT_SCK);
 
-        if(att_payload & (1 << i)) {
+        if (att_payload & (1 << i)) {
             usrp->set_gpio_attr("FP0", "OUT", MCM_ATT_SDI, MCM_ATT_SDI);
-        }
-        else {
+        } else {
             usrp->set_gpio_attr("FP0", "OUT", 0, MCM_ATT_SDI);
         }
 
         usrp->set_gpio_attr("FP0", "OUT", MCM_ATT_SCK, MCM_ATT_SCK);
-
     }
 
     usrp->set_gpio_attr("FP0", "OUT", MCM_ATT_A_LE, MCM_ATT_A_LE);
@@ -525,10 +507,5 @@ void mcm_set_rxfe(
     usrp->set_gpio_attr("FP0", "OUT", 0, MCM_ATT_B_LE);
 
     usrp->set_gpio_attr("FP0", "OUT", rxfe_dio, rxfe_dio_mask);
-
-
-    
-    
-
 }
 
