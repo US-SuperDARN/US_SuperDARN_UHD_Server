@@ -430,21 +430,17 @@ class usrp_get_auto_clear_freq_command(driver_command):
                 time.sleep(0.002)
 
             antenna_no_side = recv_dtype(sock, np.int32)
-            if antenna_no_side == -1:
-                sample_buf_side = []
-            else:
-                nSamples = recv_dtype(sock, np.int32)
-                # self.logger.debug("clear search return number of samples:{}".format(nSamples))
 
-                time.sleep(0.001)
-                try:
-                    sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
-                except:
-                    self.logger.error("Error receiving auto clear freq samples for antenna {}".format(antenna_no_side))
-                    return nSides, -1, sample_buf
-                    # sample_buf_side = [np.int16(0) for j in range(2*nSamples)]
+            nSamples = recv_dtype(sock, np.int32)
 
+            time.sleep(0.001)
+            try:
+                sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
+            except:
+                self.logger.error("Error receiving auto clear freq samples for antenna {}".format(antenna_no_side))
+                antenna_no_side = -1
+                sample_buf_side = []
 
             antenna_no.append(antenna_no_side)
             sample_buf.append(sample_buf_side)
@@ -457,8 +453,8 @@ class usrp_get_auto_clear_freq_command(driver_command):
         all_samples = []
         for sock in self.clients:
             nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock)
-            if tmp_ant != -1:
-                for jside in range(nSides):
+            for jside in range(nSides):
+                if tmp_ant[jside] != -1:
                     antenna_list.append(tmp_ant[jside])
                     all_samples.append(tmp_samples[jside])
 
@@ -499,19 +495,17 @@ class usrp_clrfreq_command(driver_command):
                 time.sleep(0.002)
 
             antenna_no_side = recv_dtype(sock, np.int32)
-            if antenna_no_side == -1:
-                sample_buf_side = []
-            else:
-                clrfreq_rate_actual = recv_dtype(sock, np.float64)
 
-                time.sleep(0.001)
-                try:
-                    sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
-                except:
-                    self.logger.error("Error receiving clear search samples for antenna {}".format(antenna_no_side))
-                    return nSides, -1, sample_buf
+            clrfreq_rate_actual = recv_dtype(sock, np.float64)
 
+            time.sleep(0.001)
+            try:
+                sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
+            except:
+                self.logger.error("Error receiving clear freq samples for antenna {}".format(antenna_no_side))
+                antenna_no_side = -1
+                sample_buf_side = []
 
             antenna_no.append(antenna_no_side)
             sample_buf.append(sample_buf_side)
@@ -524,8 +518,8 @@ class usrp_clrfreq_command(driver_command):
         all_samples = []
         for sock in self.clients:
             nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock, nSamples)
-            if tmp_ant != -1:
-                for jside in range(nSides):
+            for jside in range(nSides):
+                if tmp_ant[jside] != -1:
                     antenna_list.append(tmp_ant[jside])
                     all_samples.append(tmp_samples[jside])
 
