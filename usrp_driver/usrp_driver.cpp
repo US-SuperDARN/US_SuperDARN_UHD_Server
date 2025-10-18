@@ -417,7 +417,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     size_t nSamples_rx, nSamples_tx_pulse, nSamples_pause_after_rx, nSamples_auto_clear_freq, nSamples_rx_total;
     size_t auto_clear_freq_available = 0;
 
-
     uint32_t npulses, nerrors;
     ssize_t cmd_status;
     uint32_t usrp_driver_base_port, ip_part;
@@ -1234,15 +1233,19 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         exit_driver = 1;
                     }
 
-                    sock_send_int32(driverconn, (int32_t) nSides);
-                    DEBUG_PRINT("%s: CLRFREQ received samples, relaying %d samples back...\n", get_log_time(), num_clrfreq_samples);
-                    for (int jSide = 0; jSide < (int) nSides; jSide++) {
-                        sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
-                        sock_send_float64(driverconn, clrfreq_rate);
+                    if (clrfreq_rx_worker_status) {
+                        sock_send_int32(driverconn, (int32_t) -1);
+                    } else {
+                        sock_send_int32(driverconn, (int32_t) nSides);
+                        DEBUG_PRINT("%s: CLRFREQ received samples, relaying %d samples back...\n", get_log_time(), num_clrfreq_samples);
+                        for (int jSide = 0; jSide < (int) nSides; jSide++) {
+                            sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
+                            sock_send_float64(driverconn, clrfreq_rate);
 
-                        // send back samples
-                        send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-                        DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
+                            // send back samples
+                            send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                            DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
+                        }
                     }
 
                     // restore usrp rates
