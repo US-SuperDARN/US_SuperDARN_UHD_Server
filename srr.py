@@ -92,7 +92,7 @@ USE_USRP_DRIVER_WRAPPER = True
 nSecs_restart_pause = 10
 delay_between_driver_and_server = 10
 
-editors = ['emacs','gedit','nano','vi','vim']
+editors = ['git','emacs','gedit','nano','vi','vim']
 
 def myPrint(msg):
    print("||>  {}".format(msg))
