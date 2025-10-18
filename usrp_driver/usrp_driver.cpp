@@ -1159,7 +1159,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     if (auto_clear_freq_available) {
                         sock_send_int32(driverconn, (int32_t) nSides);
 
-                        for (int jSide=0; jSide < (int)nSides; jSide++) {
+                        for (int jSide=0; jSide < (int) nSides; jSide++) {
                             DEBUG_PRINT("%s: AUTOCLRFREQ samples sending %d samples for antenna %d usrp side %d...\n", get_log_time(), num_clrfreq_samples,antennaVector[jSide],jSide);
 
                             sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
@@ -1184,7 +1184,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     double clrfreq_rate          = sock_get_float64(driverconn);
 
                     if (num_clrfreq_samples != 0 and clrfreq_data_buffer[0].size() < num_clrfreq_samples) {
-                        DEBUG_PRINT("%s: USRP_SETUP resize clear freq buff. old: %ld, new: %u\n", get_log_time(), clrfreq_data_buffer[0].size(), num_clrfreq_samples);
+                        DEBUG_PRINT("%s: CLRFREQ resize clear freq buff. old: %ld, new: %u\n", get_log_time(), clrfreq_data_buffer[0].size(), num_clrfreq_samples);
                         for (iSide = 0; iSide < nSides; iSide++) {
                             clrfreq_data_buffer[iSide].resize(num_clrfreq_samples);
                         }
@@ -1200,17 +1200,17 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     frac_time = clrfreq_start_time.get_frac_secs();
                     DEBUG_PRINT("%s: CLRFREQ UHD clrfreq target time: %d %.2f \n", get_log_time(), real_time, frac_time);
 
-
-                    // TODO: only set rate if it is different!
                     if (rxrate != clrfreq_rate) {
+                        DEBUG_PRINT("%s: CLRFREQ resetting rxrate from %f to %f\n", get_log_time(), rxrate, clrfreq_rate);
                         usrp->set_rx_rate(clrfreq_rate);
                         clrfreq_rate = usrp->get_rx_rate();
                     }
                     DEBUG_PRINT("%s: CLRFREQ actual rate: %.2f\n", get_log_time(), clrfreq_rate);
 
                     if (fabs(rxfreq - clrfreq_cfreq) > 1) {
+                        DEBUG_PRINT("%s: CLRFREQ resetting rxfreq from %f to %f\n", get_log_time(), rxfreq, clrfreq_cfreq);
                         for (iSide = 0; iSide < nSides; iSide++) {
-                            usrp->set_rx_freq(clrfreq_cfreq,iSide);
+                            usrp->set_rx_freq(clrfreq_cfreq, iSide);
                         }
                         clrfreq_cfreq = usrp->get_rx_freq(1);
                     }
@@ -1247,16 +1247,13 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
                     // restore usrp rates
                     if (rxrate != clrfreq_rate) {
-                        for (iSide = 0; iSide < nSides; iSide++) {
-                            usrp->set_rx_rate(rxrate,iSide);
-                        }
-                        rxrate = usrp->get_rx_rate(1);
+                        rxrate = usrp->get_rx_rate();
                         DEBUG_PRINT("%s: CLRFREQ reset actual rxrate: %.2f\n", get_log_time(), rxrate);
                     }
 
                     if (fabs(rxfreq - clrfreq_cfreq) > 1) {
                         for (iSide = 0; iSide < nSides; iSide++) {
-                            usrp->set_rx_freq(rxfreq,iSide);
+                            usrp->set_rx_freq(rxfreq, iSide);
                         }
                         rxfreq = usrp->get_rx_freq(1);
                         DEBUG_PRINT("%s: CLRFREQ reset actual rxfreq: %.2f\n", get_log_time(), rxfreq);
