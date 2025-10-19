@@ -498,7 +498,7 @@ class usrp_clrfreq_command(driver_command):
 
             clrfreq_rate_actual = recv_dtype(sock, np.float64)
 
-            time.sleep(0.001)
+            time.sleep(0.002)
             try:
                 sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]

@@ -33,7 +33,6 @@ from phasing_utils import *
 from socket_utils import *
 from rosmsg import *
 from drivermsg_library import *
-from clear_frequency_search import record_clrfreq_raw_samples
 from profiling_tools import *
 import logging_usrp
 
@@ -1477,6 +1476,42 @@ class clearFrequencyRawDataManager():
         self.usrpManager.RHM.mute_antenna_list[jrad] = self.CFS.get_muted_antenna_list()
 
 
+    def record_clrfreq_raw_samples(self, jrad):
+        self.logger.debug("enter record_clrfreq_raw_samples")
+        output_samples_list     = []
+        output_antenna_idx_list = []
+
+        # gather current UHD time from one usrp_driver
+        self.logger.debug("send usrp_get_time")
+        cmd = usrp_get_time_command(self.usrpManager.socks[jrad][0])
+        cmd.transmit()
+        time.sleep(0.001)
+
+        usrptime = cmd.recv_time(self.usrpManager.socks[jrad][0])
+
+        cmd.client_return()
+
+        # schedule clear frequency search in MIN_CLRFREQ_DELAY seconds
+        clrfreq_time = usrptime + self.usrpManager.RHM.min_clrfreq_delay
+
+        self.logger.debug("current UHD time: {}, scheduling clrfreq for: {}".format(usrptime, clrfreq_time))
+
+        clrfreq_cmd = usrp_clrfreq_command(self.usrpManager.socks[jrad], int(self.number_of_samples), \
+                                           clrfreq_time, self.center_freq[jrad]*1000, self.sampling_rate)
+        clrfreq_cmd.transmit()
+        time.sleep(0.001)
+
+        output_antenna_idx_list, output_samples_list = clrfreq_cmd.recv_all(int(self.number_of_samples))
+
+        try:
+            clrfreq_cmd.client_return()
+            self.logger.debug("record sample command completed")
+        except:
+            self.logger.error("CLRFREQ, communication with at least one USRP failed")
+
+        return output_samples_list, output_antenna_idx_list
+
+
     def record_new_data(self, jrad):
         assert self.usrp_socks[jrad] != None, "no usrp drivers assigned to clear frequency search data manager"
         assert self.center_freq[jrad] != None, "no center frequency assigned to clear frequency search manager"
@@ -1491,9 +1526,7 @@ class clearFrequencyRawDataManager():
         if rec_new_samples:
             self.logger.debug("clearFreqRawData: age of data is {:2.2f} s. Recording new data".format(data_age))
             self.logger.debug('start record_clrfreq_raw_samples on radar {}'.format(jrad))
-            self.rawData[jrad], self.antennaList[jrad] = record_clrfreq_raw_samples(self.usrpManager.get_all_main_antenna_socks(jrad), \
-                                                                                    self.number_of_samples, self.center_freq[jrad]*1000, \
-                                                                                    self.sampling_rate, self.usrpManager.RHM.min_clrfreq_delay)
+            self.rawData[jrad], self.antennaList[jrad] = self.record_clrfreq_raw_samples(jrad)
             self.logger.debug('end record_clrfreq_raw_samples')
 
             self.metaData[jrad]['antenna_list'] = self.antennaList[jrad]
