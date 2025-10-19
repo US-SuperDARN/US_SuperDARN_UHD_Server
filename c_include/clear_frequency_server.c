@@ -1050,7 +1050,7 @@ int main() {
                 for (int r_idx = 0; r_idx < radar_num; r_idx++) {
                     valid_sample_cycles[r_idx] = 0;
                     ccn_invalid_sample_cyles[r_idx] = 0;
-                    for(int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
+                    for (int ant_idx = 0; ant_idx < STATIC_ANTENNA_NUM; ant_idx++) {
                         accu_avg_ant_pwr[r_idx][ant_idx] = 0;
                         ant_active_ct[r_idx][ant_idx] = 0;
                     }

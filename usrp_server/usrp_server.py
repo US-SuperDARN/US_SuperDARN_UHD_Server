@@ -1971,7 +1971,7 @@ class RadarHardwareManager:
                             self.logger.info("Waiting for radar {} ch {} to be added to newChannelList".format(jrad, active_ch.cnum))
                             time.sleep(0.01)
 
-                   while(self.n_SetParameterHandlers_active):
+                   while (self.n_SetParameterHandlers_active):
                       self.logger.debug("Waiting for all {} SetParameterHandlers to finish before initializing new channels".format(self.n_SetParameterHandlers_active))
                       time.sleep(0.001)
                    controlLoop_logger.info('initializing channel')
