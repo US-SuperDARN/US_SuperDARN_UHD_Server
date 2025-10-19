@@ -297,8 +297,7 @@ class cuda_remove_channel_handler(cudamsg_handler):
         cmd.receive(self.sock)
         swing = cmd.payload['swing']
 
-        sequence = cmd.sequence
-        channelNumber = sequence.ctrlprm['channel']
+        channelNumber = cmd.payload['channel']
 
         if channelNumber in self.gpu.channelNumbers[swing]:
             chIdx = self.gpu.channelNumbers[swing].index(channelNumber)

@@ -2417,7 +2417,7 @@ class RadarHardwareManager:
             self.logger.debug('send CUDA_REMOVE_CHANNEL')
             for iSwing in range(nSwings):
                try:
-                   cmd = cuda_remove_channel_command(self.cudasocks[channelObject.rnum], sequence=channelObject.get_current_sequence(remove_channel=True), swing = iSwing)
+                   cmd = cuda_remove_channel_command(self.cudasocks[channelObject.rnum], channel=channelObject.cnum, swing=iSwing)
                    cmd.transmit()
                    time.sleep(0.001)
                    cmd.client_return()
@@ -2940,7 +2940,7 @@ class RadarHardwareManager:
            if channel.scanManager.isLastPeriod: # or channel.scanManager.isForelastPeriod:
                self.last_period[channel.rnum] = True
                self.logger.debug("start CUDA_REMOVE_CHANNEL")
-               cmd = cuda_remove_channel_command(self.cudasocks[channel.rnum], sequence=channel.get_current_sequence(remove_channel=True), swing = self.swingManager.processingSwing)
+               cmd = cuda_remove_channel_command(self.cudasocks[channel.rnum], channel=channel.cnum, swing=self.swingManager.processingSwing)
                self.logger.debug('send CUDA_REMOVE_CHANNEL (rnum {} cnum {}, swing {})'.format(channel.rnum, channel.cnum, self.swingManager.processingSwing))
                cmd.transmit()
                cmd.client_return()

@@ -242,7 +242,7 @@ class cuda_process_command(driver_command):
 
 
 class cuda_setup_command(driver_command):
-    def __init__(self, cudas, upsampleRate = 0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0):
+    def __init__(self, cudas, upsampleRate=0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0):
         driver_command.__init__(self, cudas, CUDA_SETUP)
         self.queue(upsampleRate, np.uint32, 'upsampleRate')
         self.queue(downsampleRate_rf2if, np.uint32, 'downsampleRate_rf2if')
@@ -274,28 +274,12 @@ class cuda_add_channel_command(driver_command):
             pickle_send(sock, self.sequence)
 
 
-# clear one channels from gpu
-# TODO: just transmit channel number to save time?
+# clear one channel from gpu
 class cuda_remove_channel_command(driver_command):
-    def __init__(self, cudas, sequence = None, swing = -1):
+    def __init__(self, cudas, channel = -1, swing = -1):
         driver_command.__init__(self, cudas, CUDA_REMOVE_CHANNEL)
         self.queue(swing, np.uint32, 'swing')
-        self.sequence = sequence
-
-
-    def receive(self, sock):
-        super().receive(sock)
-        self.sequence = pickle_recv(sock)
-
-
-    def transmit(self):
-        if self.sequence == None:
-            print('cannot send undefined sequence to channel')
-            self.logger.error("Cannot send undefined sequence to channel (CUDA_REMOVE_CHANNEL)")
-            pdb.set_trace()
-        super().transmit()
-        for sock in self.clients:
-            pickle_send(sock, self.sequence)
+        self.queue(channel, np.uint32, 'channel')
 
 
 # generate rf samples for a pulse sequence
