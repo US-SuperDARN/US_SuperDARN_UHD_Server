@@ -1240,7 +1240,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         DEBUG_PRINT("%s: CLRFREQ received samples, relaying %d samples back...\n", get_log_time(), num_clrfreq_samples);
                         for (int jSide = 0; jSide < (int) nSides; jSide++) {
                             sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
-                            sock_send_float64(driverconn, clrfreq_rate);
+                            sock_send_uint32(driverconn, (int32_t) num_clrfreq_samples);
 
                             // send back samples
                             send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);

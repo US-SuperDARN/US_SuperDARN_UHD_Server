@@ -1501,7 +1501,7 @@ class clearFrequencyRawDataManager():
         clrfreq_cmd.transmit()
         time.sleep(0.001)
 
-        output_antenna_idx_list, output_samples_list = clrfreq_cmd.recv_all(int(self.number_of_samples))
+        output_antenna_idx_list, output_samples_list = clrfreq_cmd.recv_all()
 
         try:
             clrfreq_cmd.client_return()

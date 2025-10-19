@@ -456,14 +456,14 @@ class usrp_clrfreq_command(driver_command):
     def __init__(self, usrps, num_clrfreq_samples, clrfreq_uhd_time, clrfreq_freq, clrfreq_rate):
         driver_command.__init__(self, usrps, UHD_CLRFREQ)
         self.logger.debug("num_clrfreq_samples: {}".format(num_clrfreq_samples))
-        self.queue(num_clrfreq_samples, np.int32, 'num_clrfreq_samples')
+        self.queue(np.int32(num_clrfreq_samples), np.int32, 'num_clrfreq_samples')
         self.queue(np.int32(np.int32(clrfreq_uhd_time)), np.int32, 'clrfreq_uhd_time_int')
         self.queue(np.float64(np.mod(clrfreq_uhd_time,1)), np.float64, 'clrfreq_uhd_time_frac')
         self.queue(clrfreq_freq, np.float64, 'clrfreq_freq')
         self.queue(clrfreq_rate, np.float64, 'clrfreq_rate')
 
 
-    def recv_samples_from_one_usrp(self, sock, nSamples):
+    def recv_samples_from_one_usrp(self, sock):
         antenna_no = []
         sample_buf = []
 
@@ -480,7 +480,7 @@ class usrp_clrfreq_command(driver_command):
 
             antenna_no_side = recv_dtype(sock, np.int32)
 
-            clrfreq_rate_actual = recv_dtype(sock, np.float64)
+            nSamples = recv_dtype(sock, np.int32)
 
             time.sleep(0.002)
             try:
@@ -497,11 +497,11 @@ class usrp_clrfreq_command(driver_command):
         return nSides, antenna_no, sample_buf
 
 
-    def recv_all(self, nSamples):
+    def recv_all(self):
         antenna_list = []
         all_samples = []
         for sock in self.clients:
-            nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock, nSamples)
+            nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock)
             for jside in range(nSides):
                 if tmp_ant[jside] != -1:
                     antenna_list.append(tmp_ant[jside])
