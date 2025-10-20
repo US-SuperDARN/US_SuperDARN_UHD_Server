@@ -132,14 +132,14 @@
 #define RXFE_ATT_MASK  (ATT_D0 + ATT_D1 + ATT_D2 + ATT_D3 + ATT_D4 + ATT_D5)
 #define RXFE_MASK      (RXFE_ATT_MASK + RXFE_AMP_MASK)
 
-#define MCM_SYNC            IO_PIN_06
-#define MCM_TR              IO_PIN_05
-#define MCM_AMP_A1          IO_PIN_04
-#define MCM_AMP_A2          IO_PIN_11
-#define MCM_AMP_B1          IO_PIN_03
-#define MCM_AMP_B2          IO_PIN_10
-#define MCM_AUX_IO_A        IO_PIN_02
-#define MCM_AUX_IO_B        IO_PIN_09
+#define MCM_SYNC        IO_PIN_06
+#define MCM_TR          IO_PIN_05
+#define MCM_AMP_A1      IO_PIN_04
+#define MCM_AMP_A2      IO_PIN_11
+#define MCM_AMP_B1      IO_PIN_03
+#define MCM_AMP_B2      IO_PIN_10
+#define MCM_AUX_IO_A    IO_PIN_02
+#define MCM_AUX_IO_B    IO_PIN_09
 #define MCM_ATT_A_LE    IO_PIN_01
 #define MCM_ATT_B_LE    IO_PIN_08
 #define MCM_ATT_SDI     IO_PIN_00
