@@ -78,7 +78,7 @@ void usrp_rx_worker(
     rx_usrp_pre_stream_time = usrp->get_time_now();
     time_to_start = start_time.get_real_secs() - rx_usrp_pre_stream_time.get_real_secs();
     fprintf(stderr,"#timing: time left for rx_worker  %f ms\n", time_to_start*1000);
-    DEBUG_PRINT("%s: rx_worker: samples_to stream: %ld\n", get_log_time(), samples_to_stream);
+    DEBUG_PRINT("%s: rx_worker: samples_to_stream: %ld\n", get_log_time(), samples_to_stream);
 
     uhd::stream_cmd_t stream_cmd = uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_DONE;
     stream_cmd.stream_now = false;
