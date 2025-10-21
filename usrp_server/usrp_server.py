@@ -3543,8 +3543,9 @@ class RadarChannelHandler:
         RHM = self.parent_RadarHardwareManager
         RHM.unregister_channel_from_HardwareManager(self)
         cnum = self.cnum
+        rnum = self.rnum
         del self # TODO close thread ?!?
-        RHM.logger.info('Deleted radar {} channel {}.'.format(self.rnum, cnum))
+        RHM.logger.info('Deleted radar {} channel {}.'.format(rnum, cnum))
 
 
     # busy wait until state enters desired state
