@@ -125,7 +125,7 @@ class cuda_generate_pulse_handler(cudamsg_handler):
                 bb_signal[chIndex] = self.generate_bb_signal(currentSequence, swing, shapefilter = dsp_filters.gaussian_pulse)
 
         # synthesize rf waveform (up mixing in cuda)
-        self.logger.warning('TODO: refactor cuda_generate_pulse_handler to fix accessing rx bb samples per integration period by hardcoded first sequence')
+        self.logger.info('TODO: refactor cuda_generate_pulse_handler to fix accessing rx bb samples per integration period by hardcoded first sequence')
         self.gpu.synth_channels(bb_signal, swing)
 
 
