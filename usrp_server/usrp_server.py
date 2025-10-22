@@ -1980,10 +1980,10 @@ class RadarHardwareManager:
                    # wait for all channels to be in TRIGGER state
                    executeTrigger = True
                    for ch in np.concatenate(self.channels).tolist():
-                         if ch.active_state not in [CS_TRIGGER, CS_INACTIVE]:
-                            controlLoop_logger.debug('remaining in TRIGGER because radar {} channel {} state is {} (active swing is {})'.format(ch.rnum, ch.cnum, ch.active_state, ch.swingManager.activeSwing))
-                            time.sleep(sleepTime)
-                            executeTrigger = False
+                      if ch.active_state not in [CS_TRIGGER, CS_INACTIVE]:
+                         controlLoop_logger.debug('remaining in TRIGGER because radar {} channel {} state is {} (active swing is {})'.format(ch.rnum, ch.cnum, ch.active_state, ch.swingManager.activeSwing))
+                         time.sleep(sleepTime)
+                         executeTrigger = False
 
                    # if all channels are TRIGGER, then TRIGGER
                    if executeTrigger:
