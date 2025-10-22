@@ -3476,26 +3476,15 @@ class RadarChannelHandler:
             SET_INACTIVE         : self.SetInactiveHandler,\
             SET_ACTIVE           : self.SetActiveHandler,\
             QUERY_INI_SETTINGS   : self.QueryIniSettingsHandler,\
-        #   GET_SITE_SETTINGS    : self.GetSiteSettingsHandler, \
-        #   UPDATE_SITE_SETTINGS : self.UpdateSiteSettingsHandler,\
             GET_PARAMETERS       : self.GetParametersHandler,\
             SET_PARAMETERS       : self.SetParametersHandler,\
-            SET_PARAMETERS_I     : self.SetParametersHandler,\
             PING                 : self.PingHandler,\
-        #   OKAY                 : self.OkayHandler,\
-        #   NOOP                 : self.NoopHandler,\
             QUIT                 : self.QuitHandler,\
             ExitServer           : self.ExitServerHandler,\
             REGISTER_SEQ         : self.RegisterSeqHandler,\
-        #   REMOVE_SEQ           : self.RemoveSeqHandler,\
             REQUEST_ASSIGNED_FREQ: self.RequestAssignedFreqHandler,\
             REQUEST_CLEAR_FREQ_SEARCH: self.RequestClearFreqSearchHandler,\
-            LINK_RADAR_CHAN      : self.LinkRadarChanHandler,\
             SET_READY_FLAG       : self.SetReadyFlagHandler,\
-            UNSET_READY_FLAG     : self.UnsetReadyFlagHandler,\
-        #   SET_PROCESSING_FLAG  : self.SetProcessingFlagHandler,\
-        #   UNSET_PROCESSING_FLAG: self.UnsetProcessingFlagHandler,\
-        #   WAIT_FOR_DATA        : self.WaitForDataHandler,\
             GET_DATA             : self.GetDataHandler}
 
         while True:
@@ -3652,7 +3641,7 @@ class RadarChannelHandler:
     def RequestClearFreqSearchHandler(self, rmsg):
         self.clrfreq_struct.receive(self.conn)
         if self.scanManager.fixFreq <= 0:
-            # set request flat from RadarHardwareManager:clearFreqRawDatamanager
+            # set request flag from RadarHardwareManager:clearFreqRawDatamanager
             self.parent_RadarHardwareManager.clearFreqRawDataManager.outstanding_request[self.rnum] = True
             self.logger.debug("RequestClearFreqSearchHandler: setting request CLR_FREQ flag in clearFreqRawDataManager (caused by radar {} ch {})".format(self.rnum, self.cnum))
         else:
@@ -3661,15 +3650,10 @@ class RadarChannelHandler:
         return RMSG_SUCCESS
 
 
-    def UnsetReadyFlagHandler(self, rmsg):
-        return RMSG_SUCCESS
-
-
     def SetReadyFlagHandler(self, rmsg):
         # ROS calls it ready, we call it trigger
         self.logger.debug("radar {} ch {}: SetReadyFlagHandler: waiting for nextSwingToTrigger (swing {}) to become CS_READY or CS_LAST_SWING".format(self.rnum, self.cnum, self.swingManager.nextSwingToTrigger))
         self._waitForState(self.swingManager.nextSwingToTrigger, [CS_READY, CS_LAST_SWING])
- #       transmit_dtype(self.conn, self.nSequences_per_period, np.uint32) # TODO mgu transmit here nSeq ?
         self.logger.debug("radar {} ch {}: SetReadyFlagHandler: setting nextSwingToTrigger state (swing {}) to CS_TRIGGER".format(self.rnum, self.cnum, self.swingManager.nextSwingToTrigger))
         self.state[self.swingManager.nextSwingToTrigger] = CS_TRIGGER
         self.triggered_swing_list.insert(0, self.swingManager.nextSwingToTrigger)
@@ -4193,7 +4177,7 @@ class RadarChannelHandler:
         self.update_ctrlprm_class("current")
         self.dataprm_struct.set_data('samples', self.ctrlprm_struct.payload['number_of_samples'])
 
-        self.dataprm_struct.transmit() # only 'samples' of dataprm is ever changed TODO check other parameter such as event_secs....
+        self.dataprm_struct.transmit() # only 'samples' of dataprm is ever changed
         self.logger.debug('radar {} ch {}: sending dprm struct'.format(self.rnum, self.cnum))
 
         if self.rnum < 0 or self.cnum < 0:
@@ -4311,7 +4295,7 @@ class RadarChannelHandler:
         self.cnum = recv_dtype(self.conn, np.int32)
 
         if [self.rnum, self.cnum] in [[[ch.rnum, ch.cnum]] for ch in np.concatenate(self.parent_RadarHardwareManager.channels).tolist() if ch is not None and ch is not self]:
-           self.logger.error("New channel (cnum {}) can not be added on radar {} beause channel with this cnum already active.".format(self.cnum, self.rnum))
+           self.logger.error("New channel (cnum {}) can not be added on radar {} because channel with this cnum already active.".format(self.cnum, self.rnum))
            return RMSG_FAILURE
 
         self.ctrlprm_struct.set_data('channel', self.cnum)
@@ -4319,20 +4303,8 @@ class RadarChannelHandler:
 
         self.scanManager = scanManager(self)
 
-        # TODO: how to handle channel contention?
         # self.logger.name = "ChManager {}".format(self.cnum)
         self.logger.debug('radar num: {}, radar chan: {}'.format(self.rnum, self.cnum))
-
-        # TODO: set RMSG_FAILURE if radar channel is unavailable
-        # rmsg.set_data('status', RMSG_FAILURE)
-        return RMSG_SUCCESS
-
-
-    def LinkRadarChanHandler(self, rmsg):
-        rnum = recv_dtype(self.conn, np.int32)
-        cnum = recv_dtype(self.conn, np.int32)
-        self.logger.error('link radar chan is unimplemented!')
-        pdb.set_trace()
         return RMSG_SUCCESS
 
 

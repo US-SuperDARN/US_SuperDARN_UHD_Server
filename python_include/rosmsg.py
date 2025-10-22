@@ -12,7 +12,6 @@ UPDATE_SITE_SETTINGS = 'S'
 
 GET_PARAMETERS = 'c'
 SET_PARAMETERS = 'C'
-SET_PARAMETERS_I = 'D'
 
 PING = '='
 OKAY = '^'
@@ -34,13 +33,8 @@ UNSET_PROCESSING_FLAG = '@'
 
 GET_DATA = 'd'
 
-WAIT_FOR_DATA = 'w'
-
-RMSG_SUCCESS = True
-MSG_FAILURE = False
-
 RMSG_COMMAND_NAMES = {'SET_RADAR_CHAN' : 'R', 'SET_INACTIVE' : 'a', 'SET_ACTIVE' : 'A', 'QUERY_INI_SETTINGS' : 'i', \
-        'GET_SITE_SETTINGS' : 's', 'UPDATE_SITE_SETTINGS' : 'S', 'GET_PARAMETERS' : 'c', 'SET_PARAMETERS' : 'C', 'SET_PARAMETERS_I' : 'D', \
+        'GET_SITE_SETTINGS' : 's', 'UPDATE_SITE_SETTINGS' : 'S', 'GET_PARAMETERS' : 'c', 'SET_PARAMETERS' : 'C', \
         'PING' : '=', 'OKAY' : '^', 'NOOP' : '~', 'QUIT' : '.', 'ExitServer' : ExitServer, 'REGISTER_SEQ' : '+', 'REMOVE_SEQ' : '-', \
         'REQUEST_ASSIGNED_FREQ' : '>', 'REQUEST_CLEAR_FREQ_SEARCH' : '<', 'LINK_RADAR_CHAN' : 'L', 'SET_READY_FLAG' : '1',\
         'UNSET_READY_FLAG' : '!', 'SET_PROCESSING_FLAG' : '2', 'UNSET_PROCESSING_FLAG' : '@', 'GET_DATA' : 'd'}
@@ -119,15 +113,14 @@ class dataprm_struct(driver_command):
 
         prm_dict = {}
 
-        # todo: populate event_secs and event_usecs from GPS time (or USRP time?)
-        prm_dict['event_secs'] = 0      # uint32, start of pulse sequence, seconds, filled by site library if zero
-        prm_dict['event_usecs'] = 0     # uint32, start of pulse sequence, microseconds (used only for seqlog?)
-        prm_dict['event_capture'] = 0   # flag used for seqlog
+        prm_dict['event_secs'] = 0      # uint32, start of pulse sequence, seconds (not used)
+        prm_dict['event_usecs'] = 0     # uint32, start of pulse sequence, microseconds (not used)
+        prm_dict['event_capture'] = 0   # not used
         prm_dict['samples'] = 0         # number of baseband rx samples
-        prm_dict['shm_memory'] = 0      # ?
+        prm_dict['shm_memory'] = 0      # not used
         prm_dict['status'] = 0          # status, 0 is good
-        prm_dict['frame_header'] = 0    # ?
-        prm_dict['bufnum'] = 0          # ?
+        prm_dict['frame_header'] = 0    # not used
+        prm_dict['bufnum'] = 0          # not used
 
         self.queue(prm_dict['event_secs'], np.uint32, 'event_secs')
         self.queue(prm_dict['event_usecs'], np.uint32, 'event_usecs')
