@@ -1781,11 +1781,11 @@ class scanManager():
         clear_freq_range = []
         for freq in self.clear_freq_range_list[iPeriod]:
            clear_freq_range.append(int(freq))
-        print(f"smsep:      {int(self.channel.raw_export_data['smsep'])}")
-        print(f"fcenter:    {int(metaData['usrp_fcenter'])}")
-        print(f"beamNo:     {int(beamNo)}")
-        print(f"antenna sample sets: { len(rawData) }")
-        print(f"samples: {rawData[:2][:10]}")
+        # print(f"smsep:      {int(self.channel.raw_export_data['smsep'])}")
+        # print(f"fcenter:    {int(metaData['usrp_fcenter'])}")
+        # print(f"beamNo:     {int(beamNo)}")
+        # print(f"antenna sample sets: { len(rawData) }")
+        # print(f"samples: {rawData[:2][:10]}")
         if len(rawData) != len(metaData['antenna_list']):
             self.logger.error("Mismatch in number of ant samples and ant length. len(rawData)= {} antenna_list: {}".format(len(rawData), metaData['antenna_list']))
         self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
@@ -3201,7 +3201,7 @@ class RadarHardwareManager:
         antenna_scale_factors = [antenna_scale_factors for i in range(len(np.concatenate(RHM.channels).tolist()))]
 
         if RHM.apply_normalization[jrad]:
-            RHM.logger.info("start normalizing rx samples")
+            RHM.logger.debug("start normalizing rx samples")
             debugPlot = False
             nChannels, nAntennas_main, nSamples = main_samples.shape
             nAntennas_back = back_samples.shape[1]
@@ -3244,19 +3244,19 @@ class RadarHardwareManager:
 
                 max_var= max(var_list)
                 var_threshold = max_var * 10 ** (-30/10)
-                RHM.logger.info("max var = {:2.3f} = {:2.3f} **2, var_threshold = {} (-30 dB)".format(max_var, np.sqrt(max_var), var_threshold))
+                RHM.logger.debug("max var = {:2.3f} = {:2.3f} **2, var_threshold = {} (-30 dB)".format(max_var, np.sqrt(max_var), var_threshold))
                 for iAntenna in range(nAntennas_main):
                     if antenna_scale_factors[iChannel][RHM.antenna_idx_list_main[jrad][iAntenna]]:
                         if var_list[iAntenna] > var_threshold:
                             scale_factor = np.sqrt(max_var/var_list[iAntenna]) * antenna_scale_factors[iChannel][RHM.antenna_idx_list_main[jrad][iAntenna]]
 
                             antenna_scale_factors[iChannel][RHM.antenna_idx_list_main[jrad][iAntenna]] = scale_factor
-                            RHM.logger.info("scaling antenna {} with factor {:}".format(RHM.antenna_idx_list_main[jrad][iAntenna], scale_factor))
+                            RHM.logger.debug("scaling antenna {} with factor {:}".format(RHM.antenna_idx_list_main[jrad][iAntenna], scale_factor))
                         else:
-                            RHM.logger.info("not scaling antenna {} because of small variance: {} (< threshold)".format(RHM.antenna_idx_list_main[jrad][iAntenna], var_list[iAntenna]))
+                            RHM.logger.debug("not scaling antenna {} because of small variance: {} (< threshold)".format(RHM.antenna_idx_list_main[jrad][iAntenna], var_list[iAntenna]))
                             scale_factor = 1
                     else:
-                        RHM.logger.info("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_main[jrad][iAntenna]))
+                        RHM.logger.debug("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_main[jrad][iAntenna]))
 
                     if debugPlot and iAntenna < 8:
                         plt.subplot(8,2,iAntenna*2+2)
@@ -3272,15 +3272,15 @@ class RadarHardwareManager:
                             scale_factor = np.sqrt(max_var/var_list[iAntenna+nAntennas_main]) * antenna_scale_factors[iChannel][RHM.antenna_idx_list_back[jrad][iAntenna]]
 
                             antenna_scale_factors[iChannel][RHM.antenna_idx_list_back[jrad][iAntenna]] = scale_factor
-                            RHM.logger.info("scaling antenna {} with factor {:}".format(RHM.antenna_idx_list_back[jrad][iAntenna], scale_factor))
+                            RHM.logger.debug("scaling antenna {} with factor {:}".format(RHM.antenna_idx_list_back[jrad][iAntenna], scale_factor))
                         else:
-                            RHM.logger.info("not scaling antenna {} because of small variance: {} (< threshold)".format(RHM.antenna_idx_list_back[jrad][iAntenna], var_list[iAntenna+nAntennas_main]))
+                            RHM.logger.debug("not scaling antenna {} because of small variance: {} (< threshold)".format(RHM.antenna_idx_list_back[jrad][iAntenna], var_list[iAntenna+nAntennas_main]))
                             scale_factor = 1
                     else:
-                        RHM.logger.info("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_back[jrad][iAntenna], var_list[iAntenna+nAntennas_main]))
+                        RHM.logger.debug("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_back[jrad][iAntenna], var_list[iAntenna+nAntennas_main]))
 
 #                print("list var: {}".format(np.sqrt(var_list)))
-            RHM.logger.info("end normalizing rx samples")
+            RHM.logger.debug("end normalizing rx samples")
 
         return antenna_scale_factors
 
@@ -3314,8 +3314,8 @@ class RadarHardwareManager:
 
                 # calculate a complex number representing the phase shift for each antenna
                 phasing_matrix = np.matrix([rad_to_rect(ant_idx * pshift)*antenna_scale_factors[iChannel][ant_idx] for ant_idx in first_pol_ant_idx])
-                print("main")
-                print(phasing_matrix)
+                # print("main")
+                # print(phasing_matrix)
 
                 # # create a matrix of the antenna scale factors (debug only)
                 # s_matrix = np.matrix([antenna_scale_factors[iChannel][ant_idx] for ant_idx in first_pol_ant_idx])
@@ -3325,7 +3325,7 @@ class RadarHardwareManager:
                 real_mat = np.real(complex_float_samples)
                 imag_mat = np.imag(complex_float_samples)
                 abs_max_value = max(abs(real_mat).max(), abs(imag_mat).max())
-                RHM.logger.info("Main array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
+                RHM.logger.debug("Main array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
 
                 real_mx = np.max(np.abs(real_mat))
                 imag_mx = np.max(np.abs(imag_mat))
@@ -3360,8 +3360,9 @@ class RadarHardwareManager:
                 # BACK ARRAY (same as middle of main array, ant 16 = ant 6, ...)
                 # calculate a complex number representing the phase shift for each antenna
                 phasing_matrix = np.matrix([rad_to_rect((ant_idx-10) * pshift)* antenna_scale_factors[iChannel][ant_idx] for ant_idx in RHM.antenna_idx_list_back[jrad]])
-                print("back")
-                print(phasing_matrix)
+
+                # print("back")
+                # print(phasing_matrix)
 
                 # # create a matrix of the antenna scale factors (debug only)
                 # s_matrix = np.matrix([antenna_scale_factors[iChannel][ant_idx] for ant_idx in RHM.antenna_idx_list_back[jrad]])
@@ -3371,7 +3372,7 @@ class RadarHardwareManager:
                 real_mat = np.real(complex_float_samples)
                 imag_mat = np.imag(complex_float_samples)
                 abs_max_value = max(abs(real_mat).max(), abs(imag_mat).max())
-                RHM.logger.info("Back array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
+                RHM.logger.debug("Back array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
 
                 real_mx = np.max(np.abs(real_mat))
                 imag_mx = np.max(np.abs(imag_mat))
@@ -3633,7 +3634,7 @@ class RadarChannelHandler:
         transmit_dtype(self.conn, clrFreqResult[0], np.int32)
         transmit_dtype(self.conn, clrFreqResult[1], np.float32)
 
-        self.logger.info('radar {} ch {}: clr frequency search raw data age: {:2.1f} s'.format(self.rnum, self.cnum, time.time() - clrFreqResult[2]))
+        self.logger.debug('radar {} ch {}: clr frequency search raw data age: {:2.1f} s'.format(self.rnum, self.cnum, time.time() - clrFreqResult[2]))
         return RMSG_SUCCESS
 
 
@@ -4417,8 +4418,8 @@ class RadarChannelHandler:
 
     def SetInactiveHandler(channelObject, rmsg):
         RHM = channelObject.parent_RadarHardwareManager
-        RHM.logger.info('ROS:SET_INACTIVE received for radar {} channel {}'.format(channelObject.rnum, channelObject.cnum))
-        RHM.logger.info('radar {} ch {}: RHM active channels objects: {}'.format(channelObject.rnum, channelObject.cnum, RHM.active_channels[channelObject.rnum]))
+        RHM.logger.debug('ROS:SET_INACTIVE received for radar {} channel {}'.format(channelObject.rnum, channelObject.cnum))
+        RHM.logger.debug('radar {} ch {}: RHM active channels objects: {}'.format(channelObject.rnum, channelObject.cnum, RHM.active_channels[channelObject.rnum]))
 
         if channelObject in RHM.active_channels[channelObject.rnum]:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE trying to remove channel {} from RHM.active_channels'.format(channelObject.rnum, channelObject.cnum, RHM.channels[channelObject.rnum].index(channelObject)))
