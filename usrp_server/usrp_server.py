@@ -36,8 +36,6 @@ from drivermsg_library import *
 from profiling_tools import *
 import logging_usrp
 
-debug = True
-
 radar_active = np.zeros(2, dtype=bool)
 
 RMSG_PORT = 45000
@@ -712,7 +710,7 @@ class ClearFrequencyService():
 
             ClearFrequencyService.active_clients_fd = None
             self.initialize_active_clients_counter()
-            print("[clearFrequencyService] Done Initializing...\n\n")
+            # print("[clearFrequencyService] Done Initializing...\n\n")
             self.log.debug("clearFrequencyService initialized")
 
         except ValueError:
@@ -768,9 +766,9 @@ class ClearFrequencyService():
         attempts = 0
         while attempts < self.RETRY_ATTEMPTS:
             try:
-                print(f"[clearFrequencyService] Attempting to initialize {shm_name} Shared Memory Object (Attempt {attempts + 1}/{self.RETRY_ATTEMPTS})...")
+                # print(f"[clearFrequencyService] Attempting to initialize {shm_name} Shared Memory Object (Attempt {attempts + 1}/{self.RETRY_ATTEMPTS})...")
                 shm_fd = os.open(f"/dev/shm{shm_name}", os.O_RDWR)
-                print(f"[clearFrequencyService] Created {shm_name} Shared Memory Object...")
+                # print(f"[clearFrequencyService] Created {shm_name} Shared Memory Object...")
                 return shm_fd
             except FileNotFoundError:
                 print("[clearFrequencyService] Shared Memory Object not found. Retrying...")
@@ -790,9 +788,9 @@ class ClearFrequencyService():
         attempts = 0
         while attempts < self.RETRY_ATTEMPTS:
             try:
-                print(f"[clearFrequencyService] Attempting to initialize Semaphore {name} (Attempt {attempts + 1}/{self.RETRY_ATTEMPTS})...")
+                # print(f"[clearFrequencyService] Attempting to initialize Semaphore {name} (Attempt {attempts + 1}/{self.RETRY_ATTEMPTS})...")
                 semaphore = posix_ipc.Semaphore(name)
-                print(f"[clearFrequencyService] Semaphore {name} ready...")
+                # print(f"[clearFrequencyService] Semaphore {name} ready...")
                 return semaphore
             except posix_ipc.ExistentialError:
                 print("[clearFrequencyService] Semaphore not found. Retrying...")
@@ -808,7 +806,7 @@ class ClearFrequencyService():
         while attempts < self.RETRY_ATTEMPTS:
             try:
                 # Init counter
-                print(f"[clearFrequencyService] Attempting to initialize Active Clients Counter (Attempt {attempts + 1}/{self.RETRY_ATTEMPTS})...")
+                # print(f"[clearFrequencyService] Attempting to initialize Active Clients Counter (Attempt {attempts + 1}/{self.RETRY_ATTEMPTS})...")
                 self.active_clients_fd = os.open(f"/dev/shm", os.O_RDWR | os.O_TMPFILE, 0o666)
                 os.ftruncate(self.active_clients_fd, struct.calcsize('i'))  # Ensure the size of the shared memory object is large enough for an integer
                 # If abnormal num of clients, set to 0
@@ -820,7 +818,7 @@ class ClearFrequencyService():
                         m.write(struct.pack('i', 0))
                     m.seek(0)
                     current_value = struct.unpack('i', m.read(struct.calcsize('i')))[0]
-                print("[clearFrequencyService] Created Active Clients Counter... @ ", current_value)
+                # print("[clearFrequencyService] Created Active Clients Counter... @ ", current_value)
                 return
             except FileNotFoundError:
                 print("[clearFrequencyService] Active Clients Counter not found. Retrying...")
@@ -841,7 +839,7 @@ class ClearFrequencyService():
             active_clients += 1
             m.seek(0)
             m.write(struct.pack('i', active_clients))
-            print(f"[clearFrequencyService] Incremented Active Clients Counter: {active_clients}")
+            # print(f"[clearFrequencyService] Incremented Active Clients Counter: {active_clients}")
             return active_clients
 
 
@@ -852,7 +850,7 @@ class ClearFrequencyService():
             active_clients -= 1
             m.seek(0)
             m.write(struct.pack('i', active_clients))
-            print(f"[clearFrequencyService] Decremented Active Clients Counter: {active_clients}\n")
+            # print(f"[clearFrequencyService] Decremented Active Clients Counter: {active_clients}\n")
             return active_clients
 
 
@@ -944,9 +942,9 @@ class ClearFrequencyService():
                 interleaved_data[0::2] = array_data_np.real.astype(np.int32).ravel()
                 interleaved_data[1::2] = array_data_np.imag.astype(np.int32).ravel()
 
-                # Print set per 2500 elements (till 3 sets) in interleaved_data to verify
-                for i in range(0, interleaved_data.size // 5000):
-                    if (i < 3): print(f"[Frequency Client] interleaved_data: ", interleaved_data[i * 5000:(i + 1) * 5000], "...")
+                # # Print set per 2500 elements (till 3 sets) in interleaved_data to verify
+                # for i in range(0, interleaved_data.size // 5000):
+                #     if (i < 3): print(f"[Frequency Client] interleaved_data: ", interleaved_data[i * 5000:(i + 1) * 5000], "...")
 
                 # Write directly to shared memory
                 obj['shm_ptr'].seek(0)
@@ -970,7 +968,7 @@ class ClearFrequencyService():
                     flattened_data = array_data
                 # Greater-than-1D list Found
                 elif type(list_of_lists) is list:
-                    print("2D list detected! Flattening...")
+                    # print("2D list detected! Flattening...")
                     for row in list_of_lists:
                         flattened_data += row
                 # Fail: Unexpected value found
@@ -978,7 +976,7 @@ class ClearFrequencyService():
                     raise ValueError(f"An unexpected value occured: {list_of_lists}")
 
             # Determine dtype for Packing
-            print(f"flattened array type: {type(flattened_data)}")
+            # print(f"flattened array type: {type(flattened_data)}")
             dtype = 'i'
             if atype == 'meta':
                 dtype = 'd'
@@ -986,24 +984,24 @@ class ClearFrequencyService():
             #     dtype = b'c'
             else:
                 dtype = self.detect_dtype(flattened_data)
-            print(f"dtype: {dtype}, elem_num: {obj['elem_num']}, ")
+            # print(f"dtype: {dtype}, elem_num: {obj['elem_num']}, ")
 
-            print(f"flattened array type: {type(flattened_data)}")
+            # print(f"flattened array type: {type(flattened_data)}")
 
             # Pack and write data
             if type(flattened_data) is list or type(flattened_data) is str:
-                print("[Frequency Client] new_data len of: ", len(flattened_data))
-                if atype == 'complex':
-                    print("[Frequency Client] Writing data:\n", flattened_data[:1], "...")
+                # print("[Frequency Client] new_data len of: ", len(flattened_data))
+                # if atype == 'complex':
+                #     print("[Frequency Client] Writing data:\n", flattened_data[:1], "...")
 
-                else:
-                    print("[Frequency Client] Writing data:\n", flattened_data)
+                # else:
+                #     print("[Frequency Client] Writing data:\n", flattened_data)
 
                 obj['shm_ptr'].seek(0)
                 obj['shm_ptr'].write(struct.pack(dtype * obj['elem_num'], *flattened_data))
             else:
-                print("[Frequency Client] new_data len of: ", 1)
-                print("[Frequency Client] Writing data:\n", flattened_data)
+                # print("[Frequency Client] new_data len of: ", 1)
+                # print("[Frequency Client] Writing data:\n", flattened_data)
 
                 obj['shm_ptr'].seek(0)
                 obj['shm_ptr'].write(struct.pack(dtype * 1, flattened_data))
@@ -1055,7 +1053,7 @@ class ClearFrequencyService():
                 result.append(elem)
 
         # Debug: Verify format of data object's raw data
-        print("[clearFrequencyService] Data read from Shm: ", result[:5], "...")  # Print first 10 integers for brevity
+        # print("[clearFrequencyService] Data read from Shm: ", result[:5], "...")  # Print first 10 integers for brevity
 
         return result
 
@@ -1094,16 +1092,16 @@ class ClearFrequencyService():
 
             ## Check for Premapped antenna num
             # Map shared memory object pointer for antenna num
-            print(f"Mapping {self.shm_objects[7]['name']}")
+            # print(f"Mapping {self.shm_objects[7]['name']}")
             self.log.debug("[clearFrequencyService] Verifying Antenna and Sample size")
             self.shm_objects[7]['shm_ptr'] = mmap.mmap(self.shm_objects[7]['shm_fd'], self.shm_objects[7]['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
 
             # Check if Antenna Num changed, update corresponding values before they're mapped
             shm_ant_num = self.read_m_data(self.shm_objects[7])[0]
-            print("SHM Antenna_num:  ", shm_ant_num)
-            print("Meta Antenna num: ", len(meta_data['antenna_list']))
+            # print("SHM Antenna_num:  ", shm_ant_num)
+            # print("Meta Antenna num: ", len(meta_data['antenna_list']))
             if shm_ant_num != self.cur_antenna_num or self.cur_antenna_num != len(meta_data['antenna_list']) or self.shm_objects[0]['elem_num'] != (len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2):
-                print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
+                # print("Antenna_num has been changed, updating SHM values before further SHM mapping...")
                 self.cur_antenna_num = len(meta_data['antenna_list'])
 
                 # Update meta SHM values
@@ -1121,13 +1119,13 @@ class ClearFrequencyService():
             self.log.debug("[clearFrequencyService] Verifying Antenna and Sample size done")
 
             # Map shared memory object pointers
-            print(f"Mapping Shared Memory for Objects...\n")
+            # print(f"Mapping Shared Memory for Objects...\n")
             self.log.debug("[clearFrequencyService] Mapping SHM")
             for obj in self.shm_objects:
                 # Special: Skip Antenna_Num mapping
                 if obj['name'] == '/antenna_num':
                     continue
-                print(f"Mapping {obj['name']}")
+                # print(f"Mapping {obj['name']}")
                 obj['shm_ptr'] = mmap.mmap(obj['shm_fd'], obj['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
 
 
@@ -1150,7 +1148,7 @@ class ClearFrequencyService():
             # print(f"ndim is {tmp_arr.ndim} for ant {i}")
             if tmp_arr.ndim != 1:
                 del meta_data['antenna_list'][i]
-                print("removing muted ant from antenna_list")
+                # print("removing muted ant from antenna_list")
         meta_data['antenna_num'] = len(meta_data['antenna_list'])
 
         meta_data_list = [
@@ -1171,24 +1169,24 @@ class ClearFrequencyService():
 
         # Get in Queue
         active_clients = self.increment_active_clients()
-        print(f"[clearFrequencyService] Active clients count: {active_clients}")
+        # print(f"[clearFrequencyService] Active clients count: {active_clients}")
 
         try:
             self.premap_shm(meta_data)
 
             # Await for a Client Request
-            print("[clearFrequencyService] Awaiting Client Request...\n")
+            # print("[clearFrequencyService] Awaiting Client Request...\n")
             self.sf_client['sem'].acquire()
-            print("[clearFrequencyService] Acquired Client Request...")
+            # print("[clearFrequencyService] Acquired Client Request...")
 
             # Check & Send Initialization Data
             if meta_data is not None:
-                print("[clearFrequencyService] Requesting Initialization Semaphore...")
+                # print("[clearFrequencyService] Requesting Initialization Semaphore...")
                 self.sl_init['sem'].acquire()
-                print("[clearFrequencyService] Initialization Semaphore Acquired...")
+                # print("[clearFrequencyService] Initialization Semaphore Acquired...")
 
                 # Read Radar ID
-                print(f"[Frequency Client] Data Write: {self.shm_objects[10]['name']}")
+                # print(f"[Frequency Client] Data Write: {self.shm_objects[10]['name']}")
                 self.write_data(self.shm_objects[10], radar_id)
 
                 # # Read Channel ID
@@ -1202,11 +1200,11 @@ class ClearFrequencyService():
 
                     # If antenna length or sample_num has changed, send, set, and sync with server
                     if self.cur_antenna_num != len(meta_data['antenna_list']) or self.shm_objects[0]['elem_num'] != (len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2):
-                        print(f"[Frequency Client] Antenna_num changed. Reallocating memory")
+                        # print(f"[Frequency Client] Antenna_num changed. Reallocating memory")
                         self.cur_antenna_num = len(meta_data['antenna_list'])
 
                         # Send Antenna Num
-                        print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
+                        # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
                         self.write_data(self.shm_objects[7], len(meta_data['antenna_list']))
 
                         # Reallocate meta SHM
@@ -1226,24 +1224,24 @@ class ClearFrequencyService():
                     # If server's antenna num is outdated, update it
                     elif shm_ant_num != self.cur_antenna_num:
                         # Send
-                        print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
+                        # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
                         self.write_data(self.shm_objects[7], len(meta_data['antenna_list']))
 
-                    print(f"[Frequency Client] Data Write Progress: {self.shm_objects[6]['name']}")
+                    # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[6]['name']}")
 
                     # Rearrange meta_data ordering
                     self.write_data(self.shm_objects[6], meta_data_list, 'meta')
 
                 self.sl_init['sem'].release()
                 self.sf_init['sem'].release()
-                print("[clearFrequencyService] Initialization Semaphore Released ...")
-                print("[clearFrequencyService] Server Initialization Flag raised ...")
+                # print("[clearFrequencyService] Initialization Semaphore Released ...")
+                # print("[clearFrequencyService] Server Initialization Flag raised ...")
                 self.log.debug("[clearFrequencyService] Writing Initializaton data to SHM done")
 
             if raw_samples is not None:
                 self.log.debug("[clearFrequencyService] Writing Sample data to SHM")
 
-                print("[clearFrequencyService] Awaiting Sample Semphore Lock...")
+                # print("[clearFrequencyService] Awaiting Sample Semphore Lock...")
                 self.sl_samples['sem'].acquire()
 
                 # Write Sample data
@@ -1251,7 +1249,7 @@ class ClearFrequencyService():
 
                 # If Sample-relevant Data given, write it
                 for i in range(1, self.SAMPLE_PARAM_NUM):
-                    print(f"[Frequency Client] Data Write Progress: {i}/{self.SAMPLE_PARAM_NUM} {self.shm_objects[i]['name']}")
+                    # print(f"[Frequency Client] Data Write Progress: {i}/{self.SAMPLE_PARAM_NUM} {self.shm_objects[i]['name']}")
 
                     # General: Write updated input data
                     if input_data[i] is not None:
@@ -1262,11 +1260,11 @@ class ClearFrequencyService():
 
                 self.sl_samples['sem'].release()
                 self.sf_samples['sem'].release()
-                print("[Frequency Client] Done writing data to Shared Memory...")
+                # print("[Frequency Client] Done writing data to Shared Memory...")
                 self.log.debug("[clearFrequencyService] Writing Sample data to SHM done")
 
                 # Request Server
-                print("[clearFrequencyService] Requesting Server Response...")
+                # print("[clearFrequencyService] Requesting Server Response...")
                 self.log.debug("[clearFrequencyService] Requesting Server response")
                 self.sf_server['sem'].release()
 
@@ -1283,7 +1281,7 @@ class ClearFrequencyService():
         except KeyboardInterrupt:
             print("[clearFrequencyService] Keyboard interrupt received. Exiting...")
         except posix_ipc.ExistentialError or ValueError or AttributeError:
-                print("[clearFrequencyService] Shared memory has been delinked. Exiting...")
+            print("[clearFrequencyService] Shared memory has been delinked. Exiting...")
         finally:
             active_clients = self.decrement_active_clients()
 
@@ -1311,55 +1309,55 @@ class ClearFrequencyService():
 
         # Get in Queue
         active_clients = self.increment_active_clients()
-        print(f"[clearFrequencyService] Active clients count: {active_clients}")
+        # print(f"[clearFrequencyService] Active clients count: {active_clients}")
 
         try:
             self.premap_shm()
 
             # Await for a Client Request
-            print("[clearFrequencyService] Awaiting Client Request...\n")
+            # print("[clearFrequencyService] Awaiting Client Request...\n")
             self.sf_client['sem'].acquire()
-            print("[clearFrequencyService] Acquired Client Request...")
+            # print("[clearFrequencyService] Acquired Client Request...")
 
             # Write Input Data present
-            print("[clearFrequencyService] Requesting ClrFreq Semaphore...")
+            # print("[clearFrequencyService] Requesting ClrFreq Semaphore...")
             self.sl_clrfreq['sem'].acquire()
-            print("[clearFrequencyService] ClrFreq Semaphore Acquired...")
+            # print("[clearFrequencyService] ClrFreq Semaphore Acquired...")
 
             for i in range(self.SAMPLE_PARAM_NUM-1, self.SAMPLE_PARAM_NUM + 3):
 
                 # If data present, write to SHM
                 if input_data[i - 1] is not None:
-                    print(f"[Frequency Client] Data Write: {self.shm_objects[i]['name']}")
+                    # print(f"[Frequency Client] Data Write: {self.shm_objects[i]['name']}")
                     self.write_data(self.shm_objects[i], input_data[i - 1])
 
             # Write Radar ID
-            print(f"[Frequency Client] Data Write: {self.shm_objects[10]['name']}")
+            # print(f"[Frequency Client] Data Write: {self.shm_objects[10]['name']}")
             self.write_data(self.shm_objects[10], radar_id)
 
             # Write Channel ID
-            print(f"[Frequency Client] Data Write: {self.shm_objects[11]['name']}")
+            # print(f"[Frequency Client] Data Write: {self.shm_objects[11]['name']}")
             self.write_data(self.shm_objects[11], channel_id)
 
             self.sl_clrfreq['sem'].release()
-            print("[clearFrequencyService] ClrFreq Semaphore Released ...")
+            # print("[clearFrequencyService] ClrFreq Semaphore Released ...")
 
             # Send Clear Frequency and Server Request
-            print("[clearFrequencyService] Requesting Clear Freq...")
+            # print("[clearFrequencyService] Requesting Clear Freq...")
             self.sf_clrfreq['sem'].release()
-            print("[clearFrequencyService] Requesting Server Response...")
+            # print("[clearFrequencyService] Requesting Server Response...")
             self.sf_server['sem'].release()
 
             # Read-in Clear Freq data
-            print("[clearFrequencyService] Awaiting Server Response...")
+            # print("[clearFrequencyService] Awaiting Server Response...")
             self.sf_processed['sem'].acquire()
-            print("[clearFrequencyService] Recieved Server Response. Reading Clear Freq data...")
+            # print("[clearFrequencyService] Recieved Server Response. Reading Clear Freq data...")
             self.sl_clrfreq['sem'].acquire()
             new_noise_data = []
             new_clrfreq_data = self.read_m_data(self.shm_objects[8])
             new_clrfreq_data, new_noise_data = self.repack_data(new_clrfreq_data, True)
-            for clr_freq_and_noise in zip(new_clrfreq_data, new_noise_data):
-                print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq_and_noise[0]} (kHz), {clr_freq_and_noise[1]} (N/A) |")
+            # for clr_freq_and_noise in zip(new_clrfreq_data, new_noise_data):
+            #     print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq_and_noise[0]} (kHz), {clr_freq_and_noise[1]} (N/A) |")
             clr_freq, noise = new_clrfreq_data[0], new_noise_data[0]
             self.log.debug("[clearFrequencyService] clr_freq recieved...")
 
@@ -1368,7 +1366,7 @@ class ClearFrequencyService():
         except KeyboardInterrupt:
             print("[clearFrequencyService] Keyboard interrupt received. Exiting...")
         except posix_ipc.ExistentialError or ValueError or AttributeError:
-                print("[clearFrequencyService] Shared memory has been delinked. Exiting...")
+            print("[clearFrequencyService] Shared memory has been delinked. Exiting...")
         finally:
             active_clients = self.decrement_active_clients()
 
@@ -1381,7 +1379,7 @@ class ClearFrequencyService():
             print("[clearFrequencyService] No active clients remaining, but not cleaning up shared resources to keep service idle.")
             try:
                 posix_ipc.unlink_shared_memory(self.ACTIVE_CLIENTS_SHM_NAME)
-                print(f"Unlinked shared memory {self.ACTIVE_CLIENTS_SHM_NAME}")
+                # print(f"Unlinked shared memory {self.ACTIVE_CLIENTS_SHM_NAME}")
             except posix_ipc.ExistentialError or ValueError or AttributeError:
                 print(f"Shared memory {self.ACTIVE_CLIENTS_SHM_NAME} does not exist")
 
@@ -1390,19 +1388,19 @@ class ClearFrequencyService():
             for obj in self.shm_objects:
                 try:
                     posix_ipc.unlink_shared_memory(obj['name'])
-                    print(f"Unlinked shared memory {obj['name']}")
+                    # print(f"Unlinked shared memory {obj['name']}")
                 except posix_ipc.ExistentialError or ValueError or AttributeError:
                     print(f"Shared memory {obj['name']} does not exist")
             try:
                 posix_ipc.unlink_shared_memory(self.ACTIVE_CLIENTS_SHM_NAME)
-                print(f"Unlinked shared memory {self.ACTIVE_CLIENTS_SHM_NAME}")
+                # print(f"Unlinked shared memory {self.ACTIVE_CLIENTS_SHM_NAME}")
             except posix_ipc.ExistentialError or ValueError or AttributeError:
                 print(f"Shared memory {self.ACTIVE_CLIENTS_SHM_NAME} does not exist")
 
             for sem in self.semaphores:
                 try:
                     posix_ipc.unlink_semaphore(sem['name'])
-                    print(f"Unlinked semaphore {sem['name']}")
+                    # print(f"Unlinked semaphore {sem['name']}")
                 except posix_ipc.ExistentialError:
                     print(f"Semaphore {sem['name']} does not exist")
 

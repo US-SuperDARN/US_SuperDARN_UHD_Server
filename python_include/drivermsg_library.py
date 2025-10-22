@@ -355,7 +355,7 @@ class usrp_ready_data_command(driver_command):
               payload['nsamples'] = recv_dtype(sock, np.int32)
               payload['fault']    = recv_dtype(sock, np.bool_)
               payloadList.append(payload)
-              print("usrp_ready_data_command: ",payload)
+              # print("usrp_ready_data_command: ",payload)
            except:
               payloadList.append(CONNECTION_ERROR)
               self.logger.error("Error receiving metadata for {}".format(sock))
