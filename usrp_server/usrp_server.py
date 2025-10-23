@@ -3147,12 +3147,12 @@ class RadarHardwareManager:
            cmd.client_return()
 
            self.clear_search_data_semaphore.acquire()
-           try:
+           if len(antenna_list) != 0 and len(clr_samples) != 0:
               self.logger.debug("Have auto clear freq data for radar {}. antenna_list {} len clr_samples {}".format(jrad, antenna_list, len(clr_samples[0])))
               auto_clear_freq_meta_data['record_time'] = time.time()
               self.clearFreqRawDataManager.update_auto_clear_freq_data(jrad, antenna_list, clr_samples, auto_clear_freq_meta_data)
-           except:
-              self.logger.error("radar {}: auto clear freq error".format(jrad))
+           else:
+              self.logger.error("No auto clear freq data for radar {}".format(jrad))
            self.clear_search_data_semaphore.release()
 
         if not trigger_next_period:
