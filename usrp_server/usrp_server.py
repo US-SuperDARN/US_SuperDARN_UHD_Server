@@ -587,7 +587,6 @@ class ClearFrequencyService():
     STATIC_ANTENNA_NUM  = 20
     RESTRICT_NUM        = 20
     META_ELEM           = 3                                    # 3 = 4 - 1 (fcenter has unique obj)
-    CLR_BAND_MAX        = 6
 
     SAMPLES_ELEM_NUM    = ANTENNA_NUM * SAMPLES_NUM * 2
     CLR_RANGE_ELEM_NUM  = 2
@@ -4073,7 +4072,7 @@ class RadarChannelHandler:
             self.logger.debug("Setting cuda upsampling rate to {}".format(upsample_rate))
 
             # determine downsample rates
-            #   bb_samplinRate = 3e8/2/rsep
+            #   bb_samplingRate = 3e8/2/rsep
             #    rsep=45km => 3.333 kHz  (default)
             #    rsep=15km => 10 kHz
             #    rsep=9km  => 16.667 kHz
