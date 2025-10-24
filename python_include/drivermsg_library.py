@@ -228,12 +228,6 @@ class cuda_exit_command(driver_command):
         driver_command.__init__(self, cudas, CUDA_EXIT)
 
 
-class cuda_pulse_init_command(driver_command):
-    def __init__(self, cudas, swing = -1):
-        driver_command.__init__(self, cudas, CUDA_PULSE_INIT)
-        self.queue(swing, np.uint32, 'swing')
-
-
 class cuda_process_command(driver_command):
     def __init__(self, cudas, swing = -1, nSamples = -1):
         driver_command.__init__(self, cudas, CUDA_PROCESS)

@@ -125,9 +125,8 @@ class cuda_generate_pulse_handler(cudamsg_handler):
                 bb_signal[chIndex] = self.generate_bb_signal(currentSequence, swing, shapefilter = dsp_filters.gaussian_pulse)
 
         # synthesize rf waveform (up mixing in cuda)
-        self.logger.info('TODO: refactor cuda_generate_pulse_handler to fix accessing rx bb samples per integration period by hardcoded first sequence')
+        self.logger.debug('TODO: refactor cuda_generate_pulse_handler to fix accessing rx bb samples per integration period by hardcoded first sequence')
         self.gpu.synth_channels(bb_signal, swing)
-
 
         # copy rf waveform to shared memory from GPU memory
         self.gpu.txsamples_host_to_shm(swing)
@@ -345,7 +344,6 @@ class cuda_get_data_handler(cudamsg_handler):
 
             channel = recv_dtype(self.sock, np.int32)
         self.gpu.rx_rf_samples.base.free()
-#       release_sem(rx_sem_list[swing]) # TODO why is this here so lonely? (mgu)
 
 
 # take copy and process IF data from shared memory, send to usrp_server via socks
@@ -382,7 +380,6 @@ class cuda_get_if_data_handler(cudamsg_handler):
                 self.sock.sendall(samples[iAntenna][channelIndex].tobytes())
 
             channel = recv_dtype(self.sock, np.int32)
-#       release_sem(rx_sem_list[swing]) # TODO why is this here so lonely? (mgu)
 
 
 # copy data to gpu, start processing
@@ -444,18 +441,6 @@ class cuda_setup_handler(cudamsg_handler):
 ##        release_sem(rx_sem_list[SWING1])
 
 
-# NOT USED:
-# prepare for a refresh of sequences
-class cuda_pulse_init_handler(cudamsg_handler):
-    def process(self):
-        self.logger.debug('entering cuda_pulse_init_handler')
-        cmd = cuda_pulse_init_command([self.sock])
-        cmd.receive(self.sock)
-        swing # TODO: receive
-        acquire_sem(rx_sem_list[swing])
-        release_sem(rx_sem_list[swing])
-
-
 cudamsg_handlers = {\
         CUDA_SETUP: cuda_setup_handler, \
         CUDA_GET_DATA: cuda_get_data_handler, \
@@ -464,7 +449,6 @@ cudamsg_handlers = {\
         CUDA_ADD_CHANNEL: cuda_add_channel_handler, \
         CUDA_REMOVE_CHANNEL: cuda_remove_channel_handler, \
         CUDA_GENERATE_PULSE: cuda_generate_pulse_handler, \
-        CUDA_PULSE_INIT: cuda_pulse_init_handler, \
         CUDA_EXIT: cuda_exit_handler}
 
 
@@ -476,7 +460,6 @@ cudamsg_handler_names = {\
         CUDA_ADD_CHANNEL: 'CUDA_ADD_CHANNEL', \
         CUDA_REMOVE_CHANNEL: 'CUDA_REMOVE_CHANNEL', \
         CUDA_GENERATE_PULSE: 'CUDA_GENERATE_PULSE', \
-        CUDA_PULSE_INIT: 'CUDA_PULSE_INIT', \
         CUDA_EXIT: 'CUDA_EXIT'}
 
 
