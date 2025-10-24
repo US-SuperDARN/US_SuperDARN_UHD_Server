@@ -1425,7 +1425,6 @@ class clearFrequencyRawDataManager():
 
         self.metaData = [{} for jrad in range(N_RADARs)]
 
-        self.freq_occupied_by_other_channels = []
         self.get_raw_data_semaphore = threading.BoundedSemaphore()
         self.select_clear_freq = threading.BoundedSemaphore()
 
@@ -1453,10 +1452,6 @@ class clearFrequencyRawDataManager():
         self.metaData[jrad]['usrp_fcenter'] = self.center_freq[jrad]
         self.metaData[jrad]['number_of_samples'] = self.number_of_samples
         self.metaData[jrad]['usrp_rf_rate'] = self.sampling_rate
-
-
-    def reset_occupied_freqs(self):
-        self.freq_occupied_by_other_channels = []
 
 
     def update_auto_clear_freq_data(self, jrad, antenna_list, raw_data, meta_data_dict):
@@ -1556,11 +1551,6 @@ class clearFrequencyRawDataManager():
 
         #self.get_raw_data_semaphore.release()
         return self.rawData[jrad], self.metaData[jrad], self.recordTime[jrad]
-
-
-    def add_channel(self, freq, bandwidth):
-        freq *= 1000
-        self.freq_occupied_by_other_channels.append([freq - bandwidth*1.5, freq + bandwidth*1.5])
 
 
 class swingManager():
@@ -1796,12 +1786,6 @@ class scanManager():
            noise = 99999.99
 
         self.logger.debug('end calc_clear_freq_on_raw_samples')
-        if 'baseband_samplerate' in RHM.commonChannelParameter:
-           bandwidth = RHM.commonChannelParameter['baseband_samplerate']
-        else:    # first call before channel details are known
-           bandwidth = 3333
-
-        RHM.clearFreqRawDataManager.add_channel(clearFreq, bandwidth)
 
         self.logger.debug("clear freq result for radar {} channel {}: selected {}, noise level {:2.1f}".format(self.channel.rnum, self.channel.cnum, clearFreq, noise))
         RHM.clearFreqRawDataManager.select_clear_freq.release()
@@ -2909,7 +2893,6 @@ class RadarHardwareManager:
 
         # PERIOD FINISHED
         self.next_period_RHM()
-        self.clearFreqRawDataManager.reset_occupied_freqs()
 
         # update (next) states
         for iChannel, channel in enumerate(np.concatenate(self.channels).tolist()):
