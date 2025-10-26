@@ -35,9 +35,6 @@ void read_clr_freq_bin(char *filename, freq_band *clr_band, int *clr_start, int 
 // Restriction reading
 int read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_num);
 
-// Radar configuration reading
-void read_radar_config(char *filepath, int *clr_freq_res);
-
 // Timestamp and file utilities
 void gen_filename(char *name_template, char *ext, char *name);
 void gen_filename_to_hour(char *name_template, char *ext, char *name);

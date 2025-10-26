@@ -417,52 +417,6 @@ int read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_nu
     return 0;
 }
 
-void read_radar_config(char *filepath, int *avg_ratio) {
-    FILE *file = fopen(filepath, "r");
-    if (file == NULL) {
-        file_access_error(filepath);
-        exit(EXIT_FAILURE);
-    }
-
-    char line[256];
-    char word[256] = {"\0"};
-    int value = 0;
-    int i = 0;
-    int result = 0;
-
-    while (fgets(line, sizeof(line), file)) {
-        result = sscanf(line, "%s = %d", &word, &value);
-        word[11] = '\0'; // Ensure null-termination
-
-        // Debug: Print word and value
-        // log_trace("Read line: %s, word: %s, value: %d", line, word, value);
-
-        // If sscanf finds CLR_FREQ_RES, store it
-        // if (strcmp(word, "CFSFREQ_RES\0") == 0) {
-        //     *clr_freq_res = value;
-        //     log_trace("CFSFREQ_RES: %d", *clr_freq_res);
-        //     break;
-        // }
-
-        if (strcmp(word, "AVG_RATIO") == 0) {
-            *avg_ratio = value;
-            log_trace("AVG_RATIO: %d", *avg_ratio);
-            break;
-        }
-    }
-
-    // Warn if low frequency resolution (can result in corrupted clr freq bands)
-    if (*avg_ratio <= 0) {
-        log_error("avg_ratio is invalid (%d <= 0). Please check radar_config_constants.py file.", *avg_ratio);
-    }
-    else if (*avg_ratio > 5) {
-        log_warn("avg_ratio is high (%d > 5). This can result in corrupted clear frequency bands!", *avg_ratio);
-        log_warn("Please check radar_config_constants.py file.");
-    }
-
-    fclose(file);
-}
-
 void get_timestamp( char* buffer){
 	time_t rawtime;
 	struct tm *timeinfo;

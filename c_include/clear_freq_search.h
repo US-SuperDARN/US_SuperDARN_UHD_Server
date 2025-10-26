@@ -85,22 +85,13 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 #define IDX_LAST_MA 15              // Last Main Array
 #define PI 3.14159265358979323846
 #define C  299792458.0
-#ifndef CLK_TCK
-#define CLK_TCK 60
-#endif
 
 
 // Config and Debug Flags
 #define BIN_OR_CSV_LOG  0   // 0 for Bin, otherwise CSV
 
-#define TEST_SAMPLES 0
-#define TEST_CLR_RANGE 1
-
 // Config Filepaths
 #define SPECTRAL_LOG_FILE   "save_spectra"
-#define LOG_PATH            "/data/log/"
 #define SPECTRUM_FILE       "/data/log/fft_spectrum/%s.%s.%c.fft%s"
 #define CLR_FREQ_FILE       "/data/log/clr_freq/%s.%s.%c.clr%s"
 #define CLR_STOR_FILE       "/data/log/clr_freq/%s.%s.%c.clrlog.csv"
-#define SAMPLE_RE_FILE      "/data/log/sample_re.csv"
-#define SAMPLE_IM_FILE      "/data/log/sample_im.csv"
