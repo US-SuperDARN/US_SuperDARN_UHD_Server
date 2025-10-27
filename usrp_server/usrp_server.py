@@ -2795,7 +2795,7 @@ class RadarHardwareManager:
                     for iChannel, channel in enumerate(self.channels[jrad]):
 
                        if channel.processing_state == CS_PROCESSING:
-                          channel.logger.debug("Receiving {} antennas for channel {} on radar {}".format(nAntennas, channel.cnum, channel.rnum))
+                          channel.logger.debug("Receiving {} antennas for radar {} ch {}".format(nAntennas, channel.rnum, channel.cnum))
                           transmit_dtype(cudasock, channel.cnum, np.int32)
                           time.sleep(0.001)
 
@@ -2819,7 +2819,7 @@ class RadarHardwareManager:
                                 self.logger.error("Cuda transmitted antenna ({}) that is not in main array list ({}) and back array list ({}). (Maybe different antenna definitions in usrp_config.ini on both computers?)".format(antIdx, self.antenna_idx_list_main[jrad], self.antenna_idx_list_back[jrad]))
                                 sys.exit(1)
                        else:
-                          channel.logger.debug("Receiving NOTHING for channel {} because processing_state is {}".format(channel.cnum, channel.processing_state))
+                          channel.logger.debug("Receiving NOTHING for radar {} ch {} because processing_state is {}".format(channel.rnum, channel.cnum, channel.processing_state))
 
                     transmit_dtype(cudasock, -1, np.int32) # to end transfer process
 
@@ -2883,7 +2883,7 @@ class RadarHardwareManager:
                  # save IF raw data
                  for channel in self.channels[jrad]:
                     if channel.processing_state == CS_PROCESSING and os.path.isfile("/collect.if.{:c}".format(96+channel.cnum)):
-                       channel.logger.warning("Channel {} saving raw IF samples.".format(channel.cnum))
+                       channel.logger.warning("radar {} ch {} saving raw IF samples.".format(channel.rnum, channel.cnum))
                        channel.get_if_data()
                        channel.write_if_data()
 
@@ -2903,15 +2903,15 @@ class RadarHardwareManager:
                  channel.next_processing_state = CS_INACTIVE
                  channel.active_state          = CS_INACTIVE
                  channel.next_active_state     = CS_INACTIVE
-                 channel.logger.debug('last period finished, setting radar {} cnum {} active and next processing states to CS_INACTIVE'.format(channel.rnum, channel.cnum))
+                 channel.logger.debug('last period finished, setting radar {} ch {} active and next processing states to CS_INACTIVE'.format(channel.rnum, channel.cnum))
               elif channel.scanManager.isLastPeriod:
                  channel.next_processing_state = CS_LAST_SWING
                  channel.logger.debug('Setting radar {} ch {} next processing state to CS_LAST_SWING'.format(channel.rnum, channel.cnum))
               else:
                  channel.next_processing_state = CS_READY
-              channel.logger.debug("Switching next processing state (swing {}) of radar {} cnum {} to {}".format(self.swingManager.activeSwing, channel.rnum, channel.cnum, channel.next_processing_state))
+              channel.logger.debug("Switching next processing state (swing {}) of radar {} ch {} to {}".format(self.swingManager.activeSwing, channel.rnum, channel.cnum, channel.next_processing_state))
 
-              channel.logger.debug("Switching processing state (swing {}) of radar {} cnum {} from CS_PROCESSING to CS_SAMPLES_READY".format(self.swingManager.processingSwing, channel.rnum, channel.cnum))
+              channel.logger.debug("Switching processing state (swing {}) of radar {} ch {} from CS_PROCESSING to CS_SAMPLES_READY".format(self.swingManager.processingSwing, channel.rnum, channel.cnum))
               channel.processing_state = CS_SAMPLES_READY
 
         # CUDA_ADD & CUDA_GENERATE for processingSwing
@@ -2951,7 +2951,7 @@ class RadarHardwareManager:
 
                   if channel.processing_state == CS_INACTIVE: # first use of swing 1
                       channel.processing_state = CS_READY
-                      channel.logger.debug("Switching processing state (swing {}) state of cnum {} to CS_READY (first use of swing)".format(self.swingManager.processingSwing, channel.cnum))
+                      channel.logger.debug("Switching processing state (swing {}) state of radar {} ch {} to CS_READY (first use of swing)".format(self.swingManager.processingSwing, channel.rnum, channel.cnum))
                else:
                   self.logger.debug("radar {} ch {}: channel not active => not calling CUDA_ADD".format(channel.rnum, channel.cnum))
                   self.logger.error("When is this happening and is this okay???")
@@ -3661,7 +3661,7 @@ class RadarChannelHandler:
                 runlen += 1
             return runlen
 
-        self.logger.debug('Entering RegisterSeqHandler for channel {}'.format(self.cnum))
+        self.logger.debug('Entering RegisterSeqHandler for radar {} ch {}'.format(self.rnum, self.cnum))
 
         # site libraries appear to not initialize the status, so a nonzero status here is normal.
 
