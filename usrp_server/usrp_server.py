@@ -3250,8 +3250,8 @@ class RadarHardwareManager:
 
         for iChannel, channel in enumerate(RHM.channels[jrad]):
             if channel.processing_state is CS_PROCESSING:
-                cur_beam=channel.ctrlprm_struct.payload['rbeam']
-                cur_freq=channel.ctrlprm_struct.payload['rfreq']
+                cur_beam = channel.scanManager.current_beam
+                cur_freq = channel.scanManager.get_current_clearFreq_result(channel.rnum)[0]
 
                 # calculate beam azimuth from transmit beam number
                 bmazm = calc_beam_azm_rad(RHM.array_nBeams[channel.rnum], cur_beam, RHM.array_beam_sep[channel.rnum])
