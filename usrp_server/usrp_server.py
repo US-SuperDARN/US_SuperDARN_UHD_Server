@@ -1622,20 +1622,6 @@ class scanManager():
         return seconds_in_this_scan
 
 
-    def set_start_period(self):
-        """  OLD: start beam is now calculated by control program """
-        """ Sets the current period to the start periods depending on the current time.
-            Corresponds to the skip variable of the old ontrol program """
-        return
-        time_in_scan = self.get_time_in_scan()
-        current_time = time_in_scan + self.integration_duration - 0.1 # taken over from old control program code
-        iPeriod = np.floor((current_time % self.scan_duration) / self.integration_duration)
-        if iPeriod > (self.numBeams - 1) or iPeriod < 0:
-            iPeriod = 0
-        self.current_period = int(iPeriod)
-        self.logger.info("Starting scan with period {}.".format(iPeriod))
-
-
     def wait_for_next_trigger(self):
         if self.syncBeams:
            time_to_wait = self.beam_times[self.current_period] - self.get_time_in_scan() - self.RHM.integration_time_manager.get_usrp_delay_time()
@@ -1880,19 +1866,6 @@ class RadarHardwareManager:
                 self.logger.error("RadarChannelHandler: Socket error => Deleting channel...")
                 self.unregister_channel_from_HardwareManager(channel)
             self.nControlPrograms -= 1
-
-
-        # not working, unused...
-        def radar_main_control_loop_environment():
-            "Run main_contol loop and catch errors"
-            # TODO shut down everything and ALSO print the error!
-           # try:
-           #    radar_control_loop()
-           # except:
-           #    e = sys.exc_info()[0]
-           #    self.logger.error(e.__str__())
-           #    self.logger.error("Error in mail contol loop. Shutting down usrp_server...")
-           #    self.exit()
 
 
         # TODO: add lock support
