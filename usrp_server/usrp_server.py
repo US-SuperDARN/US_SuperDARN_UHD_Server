@@ -4154,7 +4154,7 @@ class RadarChannelHandler:
 
     #@timeit
     def GetDataHandler(self, rmsg):
-        self.logger.debug('start channelHandler:GetDataHandler radar {} ch: {}'.format(self.rnum, self.cnum))
+        self.logger.debug('start channelHandler:GetDataHandler radar {} ch {}'.format(self.rnum, self.cnum))
         self.update_ctrlprm_class("current")
         self.dataprm_struct.set_data('samples', self.ctrlprm_struct.payload['number_of_samples'])
 
@@ -4179,7 +4179,7 @@ class RadarChannelHandler:
 
         self.logger.debug('radar {} ch {}: channelHandler:GetDataHandler finished returning samples. setting state to {} (swing {})'.format(self.rnum, self.cnum, self.next_state[finishedSwing], finishedSwing))
         self.state[finishedSwing] = self.next_state[finishedSwing]
-        self.logger.debug('end channelHandler:GetDataHandler radar {} ch: {}'.format(self.rnum, self.cnum))
+        self.logger.debug('end channelHandler:GetDataHandler radar {} ch {}'.format(self.rnum, self.cnum))
 
         return RMSG_SUCCESS
 
