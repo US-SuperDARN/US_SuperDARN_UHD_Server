@@ -332,7 +332,7 @@ class cuda_get_data_handler(cudamsg_handler):
         channel = recv_dtype(self.sock, np.int32)
         while (channel != -1):
             channelIndex = self.gpu.channelNumbers[swing].index(channel)
-            self.logger.debug('received channel number ={} (cuda index: {}))'.format(channel, channelIndex))
+            self.logger.debug('received channel number ={} (cuda index: {})'.format(channel, channelIndex))
 
             for iAntenna in range(nAntennas):
                 transmit_dtype(self.sock, self.antenna_index_list[iAntenna], np.uint16)
@@ -367,9 +367,9 @@ class cuda_get_if_data_handler(cudamsg_handler):
         # transmit requested channels
         channel = recv_dtype(self.sock, np.int32)
         while (channel != -1):
-            self.logger.debug('received channel number ={} swing={})'.format(channel,swing))
+            self.logger.debug('received channel number ={} (swing={})'.format(channel, swing))
             channelIndex = self.gpu.channelNumbers[swing].index(channel)
-            self.logger.debug('received channel number ={} (cuda index: {}))'.format(channel, channelIndex))
+            self.logger.debug('received channel number ={} (cuda index: {})'.format(channel, channelIndex))
 
             for iAntenna in range(nAntennas):
                 transmit_dtype(self.sock, self.antenna_index_list[iAntenna], np.uint16)
