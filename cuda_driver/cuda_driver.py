@@ -260,7 +260,7 @@ class cuda_add_channel_handler(cudamsg_handler):
         channelNumber = sequence.ctrlprm['channel']
         if channelNumber in self.gpu.channelNumbers[swing]:
             chIdx = self.gpu.channelNumbers[swing].index(channelNumber)
-            self.logger.warning("Channel {} already added at idx {}. Reinitializing it ...".format(channelNumber, chIdx))
+            self.logger.info("Channel {} already added at idx {}. Reinitializing it ...".format(channelNumber, chIdx))
         else:
             if None in self.gpu.channelNumbers[swing]:
                 chIdx = self.gpu.channelNumbers[swing].index(None)
