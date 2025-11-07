@@ -1146,6 +1146,12 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         }
                     }
 
+                    rx_stream.reset();
+                    rx_stream = usrp->get_rx_stream(stream_args);
+
+                    tx_stream.reset();
+                    tx_stream = usrp->get_tx_stream(stream_args);
+
                     sock_send_uint8(driverconn, UHD_SYNC);
                     break;
                 }
