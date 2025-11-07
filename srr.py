@@ -42,8 +42,8 @@
 #
 
 #  TODO:
-# restart is processes already running?
-# get all differnt call types "python3 cuda_driver.py" ".../python3 ./cuda_driver.py"
+# restart if processes already running?
+# get all different call types "python3 cuda_driver.py" ".../python3 ./cuda_driver.py"
 # add return argument to stop commands and don't wait on restart if nothing has been shut down
 #
 
@@ -74,11 +74,7 @@ import networkTool
 sys.path.insert(0, basePath + '/python_include')
 import rosmsg
 
-# TODO: get from config
-CUDADriverPort = 55420
 CUDA_EXIT = ord('e')
-
-USRPDriverPort = 54420
 UHD_EXIT = ord('e')
 
 USRP_SERVER_PORT = 45000
@@ -298,6 +294,14 @@ def stop_usrp_driver_soft():
         return 0
     myPrint("Found {} usrp_driver processes".format(len(usrpProcesses)))
 
+    fileName = os.path.join(basePath, 'driver_config.ini')
+    if not os.path.isfile(fileName):
+        USRPDriverPort = 54420
+        myPrint("  ERROR: driver_config.ini not found! Trying USRPDriverPort {}".format(USRPDriverPort))
+    else:
+        driver_config = read_config(fileName)
+        USRPDriverPort = int(driver_config['network_settings']['USRPDriverPort'])
+
     dtype = np.uint8
 
     for process in usrpProcesses:
@@ -397,16 +401,24 @@ def stop_cuda_driver():
     myPrint(" Stopping cuda_driver...")
     cudaProcesses = get_process_ids("cuda")
     if len(cudaProcesses):
+       fileName = os.path.join(basePath, 'driver_config.ini')
+       if not os.path.isfile(fileName):
+          CUDADriverPort = 55420
+          myPrint("  ERROR: driver_config.ini not found! Trying CUDADriverPort {}".format(CUDADriverPort))
+       else:
+          driver_config = read_config(fileName)
+          CUDADriverPort = int(driver_config['network_settings']['CUDADriverPort'])
+
        for process in cudaProcesses:
-            try:
-               myPrint("  sending CUDA_EXIT to localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
-               sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-               sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-               sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
-               sock.connect(('localhost',CUDADriverPort))
-               sock.sendall(np.uint8(CUDA_EXIT).tobytes())
-            except:
-                myPrint(" soft exit failed: localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
+          try:
+             myPrint("  sending CUDA_EXIT to localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
+             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+             sock.connect(('localhost',CUDADriverPort))
+             sock.sendall(np.uint8(CUDA_EXIT).tobytes())
+          except:
+              myPrint(" soft exit failed: localhost:{} (pid {})".format(CUDADriverPort, process['pid']))
 
        time.sleep(1)
        # terminate processes if they still exis
