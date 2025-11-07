@@ -410,8 +410,7 @@ class usrpMixingFreqManager():
     def __init__(self, cFreq, bandWidth, N_RADARs):
        self.current_mixing_freq = [cFreq for jrad in range(N_RADARs)] # in kHz (to be compatible with control program)
        self.usrp_bandwidth      = bandWidth - USRP_BANDWIDTH_RESTRICTION*2/1000   # in kHz (to be compatible with control program)
-       self.semaphore = posix_ipc.Semaphore('usrp_mixing_freq', posix_ipc.O_CREAT)
-       self.semaphore.release()
+       self.semaphore = threading.BoundedSemaphore()
        self.channelRangeList    = [[] for jrad in range(N_RADARs)]
        self.channelUniqueList   = [[] for jrad in range(N_RADARs)]
        self.channelList         = [[] for jrad in range(N_RADARs)]
@@ -2419,12 +2418,11 @@ class RadarHardwareManager:
         self.client_sock.close()
 
         if hasattr(self, 'usrpManager'):
-
-           # loop over jradar
            for jrad in range(self.N_RADARs):
               if radar_active[jrad]:
                  cmd = usrp_exit_command(self.usrpManager.socks[jrad])
                  cmd.transmit()
+
                  for sock in self.usrpManager.socks[jrad]:
                     sock.close()
 
@@ -2435,14 +2433,6 @@ class RadarHardwareManager:
 
               for sock in self.cudasocks[jrad]:
                  sock.close()
-
-        # clean up server semaphores
-       # if hasattr(self, 'set_par_semaphore'):
-       #    self.set_par_semaphore.release()
-         #  self.set_par_semaphore.unlink()
-        if hasattr(self, 'mixingFreqManager'):
-           self.mixingFreqManager.semaphore.release()
-           self.mixingFreqManager.semaphore.unlink()
 
 
     def _calc_period_details(self, newChannels=[]):
