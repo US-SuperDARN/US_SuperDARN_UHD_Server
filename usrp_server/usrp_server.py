@@ -2109,7 +2109,11 @@ class RadarHardwareManager:
          self.logger.debug("start CUDA_SETUP")
          cmd_list = []
          for jrad in range(self.N_RADARs):
-            cmd = cuda_setup_command(self.cudasocks[jrad], self.commonChannelParameter['upsample_rate'], self.commonChannelParameter['downsample_rates'][0], self.commonChannelParameter['downsample_rates'][1], self.mixingFreqManager.current_mixing_freq[jrad]*1000 )
+            cmd = cuda_setup_command(self.cudasocks[jrad], \
+                                     self.commonChannelParameter['upsample_rate'], \
+                                     self.commonChannelParameter['downsample_rates'][0], \
+                                     self.commonChannelParameter['downsample_rates'][1], \
+                                     self.mixingFreqManager.current_mixing_freq[jrad]*1000)
             cmd.transmit()
             cmd_list.append(cmd)
 
