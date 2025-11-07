@@ -18,72 +18,11 @@
 * to the compilier.
 */
 
-// Global or static variable for the FFT plan
-//fftw_plan storage_fft_plan = NULL;
-
 void phasing_and_beamforming(double beam_angle, int *clear_freq_range,
                              sample_meta_data *meta_data, fftw_complex *phasing_vector,
                              int *antennas, int num_samples, fftw_complex *raw_samples,
                              int *active_antennas, fftw_complex *beamformed_samples);
 
-
-//// Initialization function to create the plan
-//void init_storage_fft(int num_samples, int beam_total) {
-//    fftw_complex *input = fftw_alloc_complex(num_samples * beam_total);
-//    fftw_complex *output = fftw_alloc_complex(num_samples * beam_total);
-//
-//    if (storage_fft_plan == NULL) {
-//        int n[] = {num_samples};
-//        storage_fft_plan = fftw_plan_many_dft(
-//            1,                // Rank (1D FFT for each beam)
-//            n,                // FFT size
-//            beam_total,       // Number of transforms (one per beam)
-//            input,            // Input array
-//            NULL,             // Input stride (NULL for contiguous data)
-//            1,                // Distance between successive input elements
-//            num_samples,      // Distance between successive input transforms
-//            output,           // Output array
-//            NULL,             // Output stride (NULL for contiguous data)
-//            1,                // Distance between successive output elements
-//            num_samples,      // Distance between successive output transforms
-//            FFTW_FORWARD,     // FFT direction
-//            FFTW_PATIENT      // Plan flag
-//        );
-//        if (!storage_fft_plan) {
-//            perror("Error creating FFT plan");
-//            exit(EXIT_FAILURE);
-//        }
-//        log_info("FFT plan created and cached.");
-//    }
-//
-//    fftw_free(input);
-//    fftw_free(output);
-//}
-//
-//// Function to execute the FFT using the precomputed plan
-//void execute_storage_fft(fftw_complex *input, fftw_complex *output) {
-//    fftw_execute_dft(storage_fft_plan, input, output);
-//}
-//
-//// Cleanup function to destroy the plan
-//void cleanup_storage_fft() {
-//    if (storage_fft_plan != NULL) {
-//        fftw_destroy_plan(storage_fft_plan);
-//    }
-//}
-//
-//// Initialize FFTW multi-threading
-//void initialize_fftw_threads(int num_threads) {
-//    fftw_init_threads();
-//    fftw_plan_with_nthreads(num_threads);
-//    log_info("FFTW initialized with %d threads", num_threads);
-//}
-//
-//// Cleanup FFTW multi-threading
-//void cleanup_fftw_threads() {
-//    fftw_cleanup_threads();
-//    log_info("FFTW threads cleaned up");
-//}
 
 /**
  * @brief  Calculates Beam Azimuth Angle.
@@ -444,9 +383,6 @@ void calc_clear_freq_on_raw_samples(
     t_avg_curr = clock();
 
     // FFT Beamformed Samples
-    // TODO: Optimize fft_plan usage; Long-term fft_plan storage (create and store in samples_server.c)
-    //fftw_plan fft_plan = fftw_plan_dft_1d(num_samples, beamformed_samples, fft_spectrum, FFTW_FORWARD, FFTW_ESTIMATE);
-    //fftw_execute(fft_plan);
     fftw_execute_dft(storage_fft_plan, beamformed_samples, fft_spectrum);
 
     // Spectral Averaging
@@ -472,7 +408,6 @@ void calc_clear_freq_on_raw_samples(
 
 
     // Dispose of temp variables
-    //fftw_destroy_plan(fft_plan);
     fftw_free(fft_spectrum);
 
     /// END of Spectrum Calculations
@@ -764,7 +699,6 @@ void process_all_beamformed_spectras(
     // FFT Beamformed Samples
     current_beam_samples = beamformed_samples;
     fftw_complex *fft_spectrum = beamformed_spectra;
-    //fftw_plan fft_plan = fftw_plan_dft_1d(num_samples, current_beam_samples, fft_spectrum, FFTW_FORWARD, FFTW_ESTIMATE);
     for (int cur_beam = 0; cur_beam < beam_total; cur_beam++) {
         // Set the input and output for the FFT
         current_beam_samples    = beamformed_samples + cur_beam * num_samples;
@@ -772,7 +706,6 @@ void process_all_beamformed_spectras(
 
         fftw_execute_dft(storage_fft_plan, current_beam_samples, fft_spectrum);
     }
-    //fftw_destroy_plan(fft_plan);
     log_debug("     FFT done");
 
     // Debug: Print FFT results
