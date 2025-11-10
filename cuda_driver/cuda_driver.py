@@ -272,7 +272,7 @@ class cuda_add_channel_handler(cudamsg_handler):
                 self.gpu.channelNumbers[swing][chIdx] = channelNumber
             else:
                 self.logger.error("all channels active, can not add channel")
-                return # TODO rerun error?
+                return # TODO return error?
 
         self.gpu.sequences[swing][chIdx] = sequence
 
@@ -581,7 +581,7 @@ class ProcessingGPU(object):
             self.cu_txoffsets_rads = self.cu_tx.get_global('txphasedelay_rads')[0]
 
         self.streams = [cuda.Stream() for i in range(nSwings)]
-        self.cu_rx_filtertaps_rfif = [None for i in range(nSwings)] # TODO initialize meory once here and not each rx_init
+        self.cu_rx_filtertaps_rfif = [None for i in range(nSwings)] # TODO initialize memory once here and not each rx_init
         self.cu_rx_filtertaps_ifbb = [None for i in range(nSwings)]
 
 
@@ -656,7 +656,6 @@ class ProcessingGPU(object):
         self.logger.debug('tx_init: tx_rf_nSamples_total: {}, nAntennas: {}'.format(tx_rf_nSamples_total, self.nAntennas))
 
         # allocate page-locked memory on host for rf samples to decrease transfer time
-        # TODO: benchmark this, see if I should move this to init function..
         self.tx_rf_outdata = cuda.pagelocked_empty((self.nAntennas, 2 * tx_rf_nSamples_total), np.int16, mem_flags=cuda.host_alloc_flags.DEVICEMAP)
         self.tx_bb_indata  = np.float32(np.zeros([self.nAntennas, self.nChannels, self.nPulses, tx_bb_nSamples_per_pulse * 2])) # * 2 pulse samples for interleaved i/q
 
