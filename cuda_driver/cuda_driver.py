@@ -418,7 +418,6 @@ class cuda_exit_handler(cudamsg_handler):
         clean_exit()
 
 
-# NOT USED:
 # allocate memory for cuda sample buffers
 class cuda_setup_handler(cudamsg_handler):
     def process(self):
@@ -430,14 +429,6 @@ class cuda_setup_handler(cudamsg_handler):
         usrp_mixing_freq     = cmd.payload['usrp_mixing_freq']
 
         self.gpu.init_conversionRates_and_mixingFreq(upsampleRate, downsampleRate_rf2if, downsampleRate_if2bb, usrp_mixing_freq)
-# OLD
-##        self.logger.debug('entering cuda_setup_handler (currently blank!)')
-##        acquire_sem(rx_sem_list[SWING0])
-##        acquire_sem(rx_sem_list[SWING1])
-##
-##        # release semaphores
-##        release_sem(rx_sem_list[SWING0])
-##        release_sem(rx_sem_list[SWING1])
 
 
 cudamsg_handlers = {\
