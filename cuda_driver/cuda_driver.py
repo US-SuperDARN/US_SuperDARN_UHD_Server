@@ -18,7 +18,7 @@ import functools
 import configparser
 import logging
 
-import ctypes #  oly for debug
+import ctypes # only for debug
 
 import posix_ipc
 import pycuda.driver as cuda
@@ -191,7 +191,7 @@ class cuda_generate_pulse_handler(cudamsg_handler):
         beamnum   = ctrlprm['tbeam']
         self.logger.debug("generating bb samples for beam {}.".format(beamnum))
 
-        # convert beam number of radian angle
+        # convert beam number to radian angle
         bmazm = calc_beam_azm_rad(nbeams, beamnum, beam_sep)
 
         # calculate antenna-to-antenna phase shift for steering at a frequency
@@ -199,7 +199,11 @@ class cuda_generate_pulse_handler(cudamsg_handler):
 
         # calculate a complex number representing the phase shift for each antenna
         # (modulo 20 for 2nd polarization)
-        beamforming_shift = [rad_to_rect((antenna_idx % nAntennas_per_polarization)  * pshift) for antenna_idx in self.antenna_index_list]
+        beamforming_shift = [rad_to_rect((antenna_idx % nAntennas_per_polarization) * pshift) for antenna_idx in self.antenna_index_list]
+
+        beamforming_arr = np.complex64(np.zeros((nAntennas, len(pulsesamps))))
+        for iAntenna in range(nAntennas):
+            beamforming_arr[iAntenna,:] = beamforming_shift[iAntenna]
 
         # construct baseband tx sample array
         bb_signal = np.complex128(np.zeros((nAntennas, nPulses, len(pulsesamps))))
@@ -212,10 +216,12 @@ class cuda_generate_pulse_handler(cudamsg_handler):
         freq = (channel.ctrlprm["rfreq"]*1000 - self.gpu.usrp_mixing_freq[swing]) / self.gpu.tx_rf_samplingRate
         omega = np.float64(2*np.pi*freq)
 
+        nPad = len(padding)
+
         for iPulse in range(nPulses):
             # apply phase shifting to pulse using phase_mask
             psamp = np.copy(pulsesamps)
-            psamp[len(padding):-len(padding)] *= np.exp(1j * np.pi * channel.phase_masks[iPulse % channel.npulses])
+            psamp[nPad:-nPad] *= np.exp(1j * np.pi * channel.phase_masks[iPulse % channel.npulses])
             # TODO: support non-1us resolution phase masks
 
             # apply filtering function
@@ -231,9 +237,8 @@ class cuda_generate_pulse_handler(cudamsg_handler):
 
             psamp *= offset_factor
 
-            for iAntenna in range(nAntennas):
-                # apply beamforming
-                bb_signal[iAntenna][iPulse] = psamp * beamforming_shift[iAntenna]
+            # apply beamforming
+            bb_signal[:,iPulse,:] = psamp * beamforming_arr
 
         return bb_signal
 
@@ -985,7 +990,7 @@ class ProcessingGPU(object):
                 plt.title("RF")
 
                 ax = plt.subplot(312)
-                mpt.plot_time(self.rx_if_samples[iAntenna][0], self.rx_rf_samplingRate /  self.rx_rf2if_downsamplingRate, iqInterleaved=True, show=False)
+                mpt.plot_time(self.rx_if_samples[iAntenna][0], self.rx_rf_samplingRate / self.rx_rf2if_downsamplingRate, iqInterleaved=True, show=False)
                 ax.set_xlim(xlim)
                 plt.title("IF")
 
@@ -1058,7 +1063,7 @@ class ProcessingGPU(object):
             if self.sequences[swing][channel] is not None:
                 fc = self.sequences[swing][channel].ctrlprm['tfreq'] * 1000
                 for iAntenna in range(self.nAntennas):
-                    self.phase_delays[channel][iAntenna] = np.float32(np.mod(2 * np.pi  * self.tdelays[iAntenna] * fc +self.phase_offsets[iAntenna]/180*np.pi, 2 * np.pi))
+                    self.phase_delays[channel][iAntenna] = np.float32(np.mod(2 * np.pi * self.tdelays[iAntenna] * fc +self.phase_offsets[iAntenna]/180*np.pi, 2 * np.pi))
         cuda.memcpy_htod(self.cu_txoffsets_rads, self.phase_delays)
 
 
