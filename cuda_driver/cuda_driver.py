@@ -283,12 +283,6 @@ class cuda_add_channel_handler(cudamsg_handler):
             self.logger.debug("  rx channel freq {} kHz".format(self.gpu.sequences[swing][chIdx].ctrlprm['rfreq']))
             # self.logger.debug("  tx pulse offset   "+ str(self.gpu.sequences[swing][chIdx].pulse_offsets_vector))
 
-        # TODO: think if this has to move to rx/tx handler...
-#        this is the next step
-#        self.gpu._set_tx_mixerfreq(chIdx, swing)
-#        self.gpu._set_tx_phasedelay(chIdx, swing)
-#        self.gpu._set_rx_phaseIncrement(chIdx, swing)
-
         # release semaphores
         release_sem(rx_sem_list[swing])
         self.logger.debug('semaphores released and leaving cuda_add_channel_handler')
@@ -556,14 +550,14 @@ class ProcessingGPU(object):
         self.channelNumbers = [ [None for iCh in range(self.nChannels)] for iSwing in allSwings] # cuda sequence index to channel number (cnum)
 
         # host side copy of channel transmit frequency array
-        self.tx_mixer_freqs = np.zeros(self.nChannels, dtype=np.float64)# TODO: delete from class and use local variabe
+        self.tx_mixer_freqs = np.zeros(self.nChannels, dtype=np.float64)# TODO: delete from class and use local variable
 
         # host side copy of rx part: rx frequency and decimation rates
-        self.rx_phaseIncrement_rad = np.zeros(self.nChannels, dtype=np.float64)# TODO: delete from class and use local variabe
+        self.rx_phaseIncrement_rad = np.zeros(self.nChannels, dtype=np.float64)# TODO: delete from class and use local variable
         self.rx_decimationRates    = np.zeros(2, dtype=np.int16)
 
         # host side copy of per-channel, per-antenna array with calibrated cable phase offset
-        self.phase_delays = np.zeros((self.nChannels, self.nAntennas), dtype=np.float32)# TODO: delete from class and use local variabe
+        self.phase_delays = np.zeros((self.nChannels, self.nAntennas), dtype=np.float32)# TODO: delete from class and use local variable
         # dictionaries to map usrp array indexes and sequence channels to indexes
         self.channel_to_idx = {}
 
