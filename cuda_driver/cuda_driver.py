@@ -566,7 +566,7 @@ class ProcessingGPU(object):
             self.cu_txoffsets_rads = self.cu_tx.get_global('txphasedelay_rads')[0]
 
         self.streams = [cuda.Stream() for i in range(nSwings)]
-        self.cu_rx_filtertaps_rfif = [None for i in range(nSwings)] # TODO initialize memory once here and not each rx_init
+        self.cu_rx_filtertaps_rfif = [None for i in range(nSwings)]
         self.cu_rx_filtertaps_ifbb = [None for i in range(nSwings)]
 
 
@@ -598,6 +598,13 @@ class ProcessingGPU(object):
 
         # USRP NCO mixing frequency
         self.usrp_mixing_freq = [usrp_mixing_freq, usrp_mixing_freq]
+
+        # Allocate memory on GPU for filters
+        temp_rfif = np.float32(np.zeros([self.nChannels, self.ntaps_rfif, 2]))
+        temp_ifbb = np.float32(np.zeros([self.nChannels, self.ntaps_ifbb, 2]))
+        for i in range(nSwings):
+            self.cu_rx_filtertaps_rfif[i] = cuda.mem_alloc_like(temp_rfif)
+            self.cu_rx_filtertaps_ifbb[i] = cuda.mem_alloc_like(temp_ifbb)
 
 
     # ge
@@ -697,9 +704,7 @@ class ProcessingGPU(object):
 
         self.rx_filtertap_ifbb = IF_BB_GAIN * dsp_filters.kaiser_filter_r0(self.ntaps_ifbb, channelFreqVec, beta=self.R0_beta, gain=self.R0_gain)
 
-        # allocate memory on GPU
-        self.cu_rx_filtertaps_rfif[swing] = cuda.mem_alloc_like(self.rx_filtertap_rfif)
-        self.cu_rx_filtertaps_ifbb[swing] = cuda.mem_alloc_like(self.rx_filtertap_ifbb)
+        # copy filters to GPU
         cuda.memcpy_htod(self.cu_rx_filtertaps_rfif[swing], self.rx_filtertap_rfif)
         cuda.memcpy_htod(self.cu_rx_filtertaps_ifbb[swing], self.rx_filtertap_ifbb)
 
