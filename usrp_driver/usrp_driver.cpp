@@ -1162,12 +1162,16 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         sock_send_int32(driverconn, (int32_t) nSides);
 
                         for (int jSide=0; jSide < (int) nSides; jSide++) {
-                            DEBUG_PRINT("%s: AUTOCLRFREQ samples sending %d samples for antenna %d usrp side %d...\n", get_log_time(), num_clrfreq_samples,antennaVector[jSide],jSide);
+                            DEBUG_PRINT("%s: AUTOCLRFREQ sending %d samples for antenna %d usrp side %d...\n", get_log_time(), num_clrfreq_samples, antennaVector[jSide], jSide);
 
                             sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
                             sock_send_uint32(driverconn, (int32_t) num_clrfreq_samples);
+
                             // send samples
-                            send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                            ssize_t status = send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                            if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
+                                DEBUG_PRINT("%s: AUTOCLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
+                            }
                         }
                     } else {
                         sock_send_int32(driverconn, (int32_t) -1);
@@ -1246,8 +1250,12 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                             sock_send_uint32(driverconn, (int32_t) num_clrfreq_samples);
 
                             // send back samples
-                            send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-                            DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
+                            ssize_t status = send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                            if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
+                                DEBUG_PRINT("%s: CLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
+                            } else {
+                                DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
+                            }
                         }
                     }
 
