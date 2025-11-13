@@ -62,9 +62,9 @@
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
-#define GPS_WAIT 2   // in seconds
+#define GPS_WAIT 2     // in seconds
 #define SETUP_WAIT 100 // in milliseconds
-#define nSwings 2    // swings are slots in the swing buffer
+#define nSwings 2      // swings are slots in the swing buffer
 
 #define PULSE_TIMELOG true
 #define LINE_LENGTH 20
@@ -478,8 +478,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     // TODO also read usrp_config.ini and get antenna and side information from it. remove antenna input argument.
 
     // process command line arguments
-    struct arg_lit  *al_help   = arg_lit0(NULL, "help", "Prints help information and then exits");
-//    struct arg_int  *ai_ant    = arg_intn("a", "antenna", NULL, 1, 2, "Antenna position index for the USRP");
+    struct arg_lit  *al_help           = arg_lit0(NULL, "help", "Prints help information and then exits");
+//    struct arg_int  *ai_ant            = arg_intn("a", "antenna", NULL, 1, 2, "Antenna position index for the USRP");
     struct arg_int  *ai_ant_a          = arg_int0("a", "antennaA", NULL, "Antenna position index for the USRP on side A");
     struct arg_int  *ai_ant_b          = arg_int0("b", "antennaB", NULL, "Antenna position index for the USRP on side B");
     struct arg_str  *as_host           = arg_str0("h", "host", NULL, "Hostname or IP address of USRP to control (e.g usrp1)");
@@ -1278,13 +1278,12 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
                 case EXIT: {
                     DEBUG_PRINT("%s: entering EXIT command\n", get_log_time());
-
                     exit_driver = 1;
                     break;
                 }
 
                 default: {
-                    printf("USRP_DRIVER unrecognized command: %d, %c, exiting..\n", command, command);
+                    DEBUG_PRINT("%s: USRP_DRIVER unrecognized command: %d, %c, exiting..\n", get_log_time(), command, command);
                     sleep(10);
                     exit(1);
                     break;
@@ -1314,7 +1313,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     }
                 }
 
-                // TODO: close usrp streams?
+                // close usrp streams
+                rx_stream.reset();
+                tx_stream.reset();
+
+                DEBUG_PRINT("%s: Finished shutting down driver, exiting\n", get_log_time());
                 exit(1);
             }
         }
