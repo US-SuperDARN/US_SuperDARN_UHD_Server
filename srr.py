@@ -16,8 +16,9 @@
 #     srr.py restart PROCESS       : restart a process or process group with needed wait times
 #
 #  Available PROCESSES:
-#     cuda (or cuda_driver)        : cuda driver
-#     usrps (or usrp_driver)       : all usrps defined in usrp_config.ini
+#     cuda   (or cuda_driver)      : cuda driver
+#     usrps  (or usrp_driver)      : all usrps defined in usrp_config.ini
+#     cfs    (or cf_server)        : clear frequency server
 #     server (or usrp_server)      : usrp_server
 #
 #     errlog (or errorlog)         : errlog server            (no restart)
@@ -31,7 +32,7 @@
 #
 #  Available PROCESS GROUPS:
 #     driver                       : cuda_driver and usrp_driver
-#     all                          : cuda_driver, usrp_driver and usrp_server
+#     all                          : cuda_driver, usrp_driver, cf_server and usrp_server
 #     allscans                     : all processes with scan in their name
 #
 #
@@ -731,22 +732,22 @@ def restart_all():
    myPrint("Restarting all processes")
    restart_driver()
    myPrint("done starting usrps.. waiting....")
-   restart_clear_frequency_service()
+   restart_clear_frequency_server()
    waitFor(delay_between_driver_and_server)
    myPrint("done  waiting.... starting server")
    start_usrp_server()
 
 
-def restart_clear_frequency_service():
-   server_was_running = stop_clear_frequency_service()
+def restart_clear_frequency_server():
+   server_was_running = stop_clear_frequency_server()
    if server_was_running:
       waitFor(nSecs_restart_pause)
-   stop_clear_frequency_service()
+   stop_clear_frequency_server()
    start_clear_frequency_server()
 
 
-def stop_clear_frequency_service():
-    myPrint(" Stopping clear frequency service...")
+def stop_clear_frequency_server():
+    myPrint(" Stopping clear frequency server...")
     serverProcesses = get_process_ids("cf_server") + get_process_ids("./cf_server")
     if len(serverProcesses):
        terminate_all(serverProcesses)
@@ -831,6 +832,8 @@ def main():
          elif inputArg[1].lower() == "driver":
             start_cuda_driver()
             start_usrp_driver()
+         elif inputArg[1].lower() in ["cf_server", "cfs"]:
+            start_clear_frequency_server()
          elif inputArg[1].lower() in ["usrp_server", "server"]:
             start_usrp_server()
          elif inputArg[1].lower() in ["uaf_fix_onesec", "uafscan_fix_onesec"]:
@@ -871,6 +874,11 @@ def main():
 
          elif inputArg[1].lower() == "driver":
              restart_driver()
+
+         elif inputArg[1].lower() in ["cf_server", "cfs"]:
+            stop_clear_frequency_server()
+            start_clear_frequency_server()
+
          elif inputArg[1].lower() in ["usrp_server", "server"]:
             stop_usrp_server()
             start_usrp_server()
@@ -887,7 +895,7 @@ def main():
             remote_stop_all()
             stop_watchdog()
             server_was_running = stop_usrp_server()
-            stop_clear_frequency_service()
+            stop_clear_frequency_server()
             if server_was_running:
                 waitFor(5)
             stop_usrp_driver()
@@ -898,6 +906,9 @@ def main():
          elif inputArg[1].lower() in ["cuda_driver", "cuda"]:
             stop_watchdog()
             stop_cuda_driver()
+         elif inputArg[1].lower() in ["cf_server", "cfs"]:
+            stop_watchdog()
+            stop_clear_frequency_server()
          elif inputArg[1].lower() in ["usrp_server", "server"]:
             stop_watchdog()
             stop_usrp_server()
