@@ -14,8 +14,6 @@
 #include "tx_worker.h"
 #include "usrp_utils.h"
 
-#define TEST_TXWORKER 0
-#define SAVE_TX_SAMPLES_DEBUG 0
 #define DEBUG 1
 
 #ifdef DEBUG

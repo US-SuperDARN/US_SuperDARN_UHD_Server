@@ -51,7 +51,6 @@
 #include "dio.h"
 
 #define SAVE_RAW_SAMPLES_DEBUG 0
-#define SUPRESS_UHD_PRINTS 0
 #define DEBUG 1
 
 #define MAX_STREAM_RESETS 120
@@ -62,7 +61,6 @@
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
-#define GPS_WAIT 2     // in seconds
 #define SETUP_WAIT 100 // in milliseconds
 #define nSwings 2      // swings are slots in the swing buffer
 
@@ -74,7 +72,6 @@
 #define SETUP_READY 'y'
 #define TRIGGER_PROCESS 'p'
 #define ARG_MAXERRORS 10
-#define MAX_TX_PULSES 10
 #define MAX_PULSE_LENGTH 10000
 #define USRP_SETUP 's'
 #define UHD_SYNC 'S'
