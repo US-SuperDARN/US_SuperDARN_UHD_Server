@@ -22,7 +22,7 @@
 // -lrt -pthread -lfftw3 -lm
 
 
-typedef struct shm_obj{
+typedef struct shm_obj {
     const char* name;
     void* shm_ptr;
     int shm_fd;
@@ -65,26 +65,22 @@ shm_obj clr_range_obj   = {CLR_RANGE_SHM_NAME, NULL, -1, CLR_RANGE_SHM_SIZE};
 shm_obj fcenter_obj     = {FCENTER_SHM_NAME, NULL, -1, FCENTER_SHM_SIZE};
 shm_obj beam_num_obj    = {BEAM_NUM_SHM_NAME, NULL, -1, BEAM_NUM_SHM_SIZE};
 shm_obj sample_sep_obj  = {SAMPLE_SEP_SHM_NAME, NULL, -1, SAMPLE_SEP_SHM_SIZE};
-shm_obj restrict_obj    = {RESTRICT_SHM_NAME, NULL, -1, RESTRICT_SHM_SIZE};
 shm_obj meta_obj        = {META_DATA_SHM_NAME, NULL, -1, META_DATA_SHM_SIZE};
 shm_obj antenna_obj     = {ANTENNA_SHM_NAME, NULL, -1, ANTENNA_SHM_SIZE};
 shm_obj clrfreq_obj     = {CLRFREQ_SHM_NAME, NULL, -1, CLR_BAND_SHM_SIZE};
-shm_obj site_id_obj     = {SITE_ID_SHM_NAME, NULL, -1, SITE_ID_SHM_SIZE};
 shm_obj radar_id_obj    = {RADAR_ID_SHM_NAME, NULL, -1, RADAR_ID_SHM_SIZE};
 shm_obj channel_id_obj  = {CHANNEL_ID_SHM_NAME, NULL, -1, CHANNEL_ID_SHM_SIZE};
 shm_obj client_num_obj  = {ACTIVE_CLIENTS_SHM_NAME, NULL, -1, ACTIVE_CLIENTS_SHM_SIZE};
 shm_obj muted_ant_obj   = {MUTED_ANT_SHM_NAME, NULL, -1, MUTED_ANT_SHM_SIZE};
 struct shm_obj *objects[PARAM_NUM] = {
     &samples_obj,
-    &clr_range_obj,
     &fcenter_obj,
+    &clr_range_obj,
     &beam_num_obj,
     &sample_sep_obj,
-    &restrict_obj,
     &meta_obj,
     &antenna_obj,
     &clrfreq_obj,
-    &site_id_obj,
     &radar_id_obj,
     &channel_id_obj,
     &client_num_obj,
