@@ -312,15 +312,13 @@ void read_double(double *result, void *shm_ptr, int elem_num) {
 }
 
 void read_meta_data(sample_meta_data *result, void *shm_ptr, int ant_num) {
-    log_trace("starting meta read..");
+    log_trace("Starting meta read..");
     double *ref_ptr = (double *) shm_ptr;
     int *antenna_ptr = (int *) result->antenna_list;
 
     // Read in meta data elements
     result->number_of_samples = (int) ref_ptr[0];
-    result->x_spacing = ref_ptr[1];
-    result->usrp_rf_rate = (int) ref_ptr[2];
-    log_trace("Fin reading meta_elem; reading antenna_list...");
+    log_trace("Finished reading meta_elem; reading antenna_list...");
 
     // Read in antenna_list elements
     for (int i = META_ELEM; i < (ant_num + META_ELEM); i++) {
@@ -346,7 +344,7 @@ void read_single_int(int *result, void *shm_ptr) {
     if (VERBOSE) log_trace("   read_s_int: %d", *result);
 }
 
-void read_single_double(double *result, void *shm_ptr){
+void read_single_double(double *result, void *shm_ptr) {
     *result = *(double *) shm_ptr;
     if (VERBOSE) log_trace("   read_s_int: %f", *result);
 }
@@ -675,7 +673,7 @@ int main() {
 
     // Open Shared Memory Object
     log_trace( "Initializing Shared Memory Object...");
-    for (int i = 0; i < PARAM_NUM; i++){
+    for (int i = 0; i < PARAM_NUM; i++) {
         objects[i]->shm_fd = shm_open(objects[i]->name, O_CREAT | O_RDWR, 0666);
         if (objects[i]->shm_fd == -1) {
             log_fatal( "shm_open failed for %s", objects[i]->name);
@@ -686,7 +684,7 @@ int main() {
     log_trace( "Created Shared Memory Objects...");
 
     // Set Size of Shared Memory Object
-    for (int i = 0; i < PARAM_NUM; i++){
+    for (int i = 0; i < PARAM_NUM; i++) {
         if (ftruncate(objects[i]->shm_fd, objects[i]->size) == -1) {
             log_fatal( " ftruncate failed");
             perror("ftruncate failed");
@@ -749,6 +747,9 @@ int main() {
     }
     int beam_total = array_config.array_info.nbeams;
     int cur_radar = 0;
+    double x_spacing[STATIC_RADAR_NUM] = {0};
+    x_spacing[0] = array_config.array_info.x_spacing;
+
     int muted_config_ants[STATIC_RADAR_NUM][STATIC_ANTENNA_NUM] = {0};
     int num_muted_config_ants[STATIC_RADAR_NUM] = {0};
     num_muted_config_ants[0] = array_config.gain_control.num_mute_antennas;
@@ -770,6 +771,7 @@ int main() {
             perror("Error reading second array configuration file");
             exit(EXIT_FAILURE);
         }
+        x_spacing[1] = array_config_2.array_info.x_spacing;
         num_muted_config_ants[1] = array_config_2.gain_control.num_mute_antennas;
         for (int ant_idx=0; ant_idx < num_muted_config_ants[1]; ant_idx++) {
             muted_config_ants[1][ant_idx] = array_config_2.gain_control.mute_antenna_ids[ant_idx];
@@ -777,7 +779,7 @@ int main() {
     }
 
     // Get Clear Frequency Resolution
-    log_debug( "Reading Avg_ratio from driver_config.ini ...");
+    log_debug( "Reading Avg_ratio and RF sampling rate from driver_config.ini ...");
     ini_check = ini_parse(DRIVER_CONFIG_FILEPATH, config_ini_handler, &array_config);
     if (ini_check < 0) {
         log_fatal( "Error reading driver configuration file");
@@ -785,7 +787,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
     int avg_ratio = array_config.clr_settings.avg_ratio;
-    log_debug( "Done reading Average Ratio...");
+    meta_data.usrp_rf_rate = array_config.cuda_settings.fsamprx;
+    log_debug( "Done reading Average Ratio and RF sampling rate...");
 
     // Allocate temp mem for shm varibles
     temp_samples = fftw_alloc_complex(ANTENNA_NUM * SAMPLES_NUM);
@@ -971,7 +974,7 @@ int main() {
         t1 = clock();
 
         // If initialization data flagged, read and store data
-        if (sem_trywait(sf_init.sem) == 0){
+        if (sem_trywait(sf_init.sem) == 0) {
             log_info( "Awaiting initialization data unlock...");
             sem_wait(sl_init.sem);
             log_info( "Initialization data read...");
@@ -1062,15 +1065,12 @@ int main() {
             }
             log_debug("     num_antennas: %d", meta_data.num_antennas);
             log_debug("     num_samples : %d", meta_data.number_of_samples);
-            log_debug("     fcenter: passed during sample DT");
-            log_debug("     rf_rate     : %d", meta_data.usrp_rf_rate);
-            log_debug("     x_spacing   : %f", meta_data.x_spacing);
 
             sem_post(sl_init.sem);
         }
 
         // If samples flagged, process samples and clear frequency
-        if (sem_trywait(sf_samples.sem) == 0){
+        if (sem_trywait(sf_samples.sem) == 0) {
             // Special: Semaphore order is faulty
             if (meta_data.num_antennas == 0) {
                 log_error( "ERROR: Called samples flag without prior initialization");
@@ -1106,6 +1106,7 @@ int main() {
                     perror("ERROR: Radar ID out of range");
                     exit(EXIT_FAILURE);
                 }
+                meta_data.x_spacing = x_spacing[cur_radar];
             }
 
             // Skip reading channel ID, as it is not used in this context
@@ -1357,6 +1358,7 @@ int main() {
                     perror("ERROR: Radar ID out of range");
                     exit(EXIT_FAILURE);
                 }
+                meta_data.x_spacing = x_spacing[cur_radar];
             }
 
             // Read Channel ID

@@ -33,7 +33,7 @@
 #define SAMPLE_TIME             3                       // Time per Sample (in seconds)
 #define STORAGE_TIME            60                      // Total time per Sample Storage Batch (in seconds)
 #define STORAGE_NUM             (STORAGE_TIME / SAMPLE_TIME) // Total number of processed sample sets to store
-#define META_ELEM               3                       // 3 = 4 - 1 (fcenter has unique obj)
+#define META_ELEM               1                       // 1 = 2 - 1 (fcenter has unique obj)
 #ifndef RESTRICT_NUM
 #define RESTRICT_NUM            50                      // Number of restricted freq bands in the restrict.dat.inst
 #endif
@@ -118,9 +118,14 @@ typedef struct {
 } ClrSettings;
 
 typedef struct {
+    int fsamprx;
+} CudaSettings;
+
+typedef struct {
     ArrayInfo array_info;
     HardwareLimits hardware_limits;
     GainControl gain_control;
     ClrSettings clr_settings;
+    CudaSettings cuda_settings;
 } Config;
 

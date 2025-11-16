@@ -584,7 +584,7 @@ class ClearFrequencyService():
     SAMPLES_NUM         = 5000
     ANTENNA_NUM         = 16
     STATIC_ANTENNA_NUM  = 20
-    META_ELEM           = 3                             # 3 = 4 - 1 (fcenter has unique obj)
+    META_ELEM           = 1                             # 1 = 2 - 1 (fcenter has unique obj)
 
     SAMPLES_ELEM_NUM    = ANTENNA_NUM * SAMPLES_NUM * 2
     CLR_RANGE_ELEM_NUM  = 2
@@ -1141,8 +1141,6 @@ class ClearFrequencyService():
         meta_data_list = [
                         meta_data['antenna_list'],
                         meta_data['number_of_samples'],
-                        meta_data['x_spacing'],
-                        meta_data['usrp_rf_rate'],
                     ]
 
         # Special: Halt all future ClearFreqService
@@ -1391,7 +1389,7 @@ class ClearFrequencyService():
 class clearFrequencyRawDataManager():
     """ Buffers the raw clearfrequency data for all channels
     """
-    def __init__(self, antenna_spacing, usrpManager, N_RADARs):
+    def __init__(self, usrpManager, N_RADARs):
         self.rawData     = [None for jrad in range(N_RADARs)]
         self.antennaList = [None for jrad in range(N_RADARs)]
         self.recordTime  = [None for jrad in range(N_RADARs)]
@@ -1402,7 +1400,7 @@ class clearFrequencyRawDataManager():
         self.usrpManager = usrpManager # TODO change to take socks automatically from usrpManager
         self.usrp_socks = [None for jrad in range(N_RADARs)]
         self.center_freq = [None for jrad in range(N_RADARs)]
-        self.sampling_rate = [None for jrad in range(N_RADARs)]
+        self.sampling_rate = None
         self.number_of_samples = None
         self.CFS = ClearFrequencyService()
 
@@ -1410,9 +1408,6 @@ class clearFrequencyRawDataManager():
 
         self.get_raw_data_semaphore = threading.BoundedSemaphore()
         self.select_clear_freq = threading.BoundedSemaphore()
-
-        for j in range(N_RADARs):
-           self.metaData[j]['x_spacing'] = antenna_spacing[j]
 
         self.logger = logging.getLogger('clearFrequency')
         self.logger.debug('clearFrequencyRawDataManager initialized')
@@ -1434,7 +1429,6 @@ class clearFrequencyRawDataManager():
 
         self.metaData[jrad]['usrp_fcenter'] = self.center_freq[jrad]
         self.metaData[jrad]['number_of_samples'] = self.number_of_samples
-        self.metaData[jrad]['usrp_rf_rate'] = self.sampling_rate
 
 
     def update_auto_clear_freq_data(self, jrad, antenna_list, raw_data, meta_data_dict):
@@ -1814,7 +1808,7 @@ class RadarHardwareManager:
         self.nControlPrograms = 0  # number of control programs, also include unregistered channels
         self.channel_manager_consecutive_number = 10 # serial number shown in logger of channel_manager
 
-        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.array_x_spacing, self.usrpManager, self.N_RADARs)
+        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.usrpManager, self.N_RADARs)
         for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 

@@ -70,6 +70,10 @@ static int config_ini_handler(void* user, const char* section, const char* name,
         } else if (strcmp(name, "auto_pause_time") == 0) {
             pconfig->clr_settings.auto_pause_time = atof(value);
         }
+    } else if (strcmp(section, "cuda_settings") == 0) {
+        if (strcmp(name, "FSampRX") == 0) {
+            pconfig->cuda_settings.fsamprx = atoi(value);
+        }
     }
 
     return 1;
