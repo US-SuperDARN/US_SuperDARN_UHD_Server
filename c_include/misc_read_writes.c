@@ -166,6 +166,7 @@ void write_spectrum_mag_bin(
 
     int freq_start = 0;
     int dfreq = 0;
+    float f_spectrum[num_samples];
 
     // If file doesn't exists, create it
     if (filename == NULL) {
@@ -194,12 +195,16 @@ void write_spectrum_mag_bin(
     freq_start = freq_vector[0]/1000;
     dfreq = (freq_vector[1]-freq_vector[0])/1000;
 
+    for (int i=0; i < num_samples; i++) {
+        f_spectrum[i] = (float) spectrum[i];
+    }
+
     fwrite(&t, sizeof(__uint64_t), 1, file);
     fwrite(&beam_num, sizeof(int), 1, file);
     fwrite(&num_samples, sizeof(int), 1, file);
     fwrite(&freq_start, sizeof(int), 1, file);
     fwrite(&dfreq, sizeof(int), 1, file);
-    fwrite(spectrum, sizeof(double), num_samples, file);
+    fwrite(f_spectrum, sizeof(float), num_samples, file);
 
     fclose(file);
 }
