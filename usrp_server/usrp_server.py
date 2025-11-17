@@ -249,8 +249,10 @@ class usrpSockManager():
 
        lost_antennas = self.antennaList_active[jrad][iSock]
        self.antennaList_inactive[jrad].append(lost_antennas)
-       for iSwing in range(nSwings):
-          self.fill_shm_with_zeros(lost_antennas, iSwing, ['rx', 'tx'])
+       # only fill shm with zeros if this is a local USRP
+       if jrad == 0:
+          for iSwing in range(nSwings):
+             self.fill_shm_with_zeros(lost_antennas, iSwing, ['rx', 'tx'])
        del self.antennaList_active[jrad][iSock]
 
        self.hostnameList_inactive[jrad].append(self.hostnameList_active[jrad][iSock])
