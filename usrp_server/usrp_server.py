@@ -8,7 +8,8 @@
 # RadarHardwareManager class (RHM)
 # - has a radar_main_control_loop() that executes clear freq search, adding new channels and triggering
 #
-# This branch is set up for two-radar operation at dual sites. Select the config/driver_config__two_radar.ini to be driver_config.ini
+# This branch is set up for single- or dual-radar operation.
+# - select the appropriate config files for the local radar with "python3 srr.py init [rad]"
 
 import sys
 import os
