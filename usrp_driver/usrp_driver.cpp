@@ -87,8 +87,6 @@
 #define RXDIR 0
 #define INIT_SHM 1
 
-#define CAPTURE_ERRORS 0
-
 
 const char * log_dir = "/data/log/usrp_driver";
 const char * diag_dir = "/data/diagnostic_samples/usrp_driver";
