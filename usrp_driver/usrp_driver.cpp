@@ -83,6 +83,7 @@
 #define UHD_GETTIME 'm'
 #define EXIT 'e'
 
+#define CLRDIR 2
 #define TXDIR 1
 #define RXDIR 0
 #define INIT_SHM 1
@@ -135,8 +136,10 @@ void *open_sample_shm(int32_t ant, int32_t dir, int32_t side, int32_t swing, siz
 
     if (dir == TXDIR) {
         sprintf(shm_device, "/shm_tx_ant_%d_side_%d_swing_%d", ant, side, swing);
-    } else {
+    } else if (dir == RXDIR) {
         sprintf(shm_device, "/shm_rx_ant_%d_side_%d_swing_%d", ant, side, swing);
+    } else {
+        sprintf(shm_device, "/shm_clr_ant_%d_side_%d_swing_%d", ant, side, swing);
     }
 
     fprintf(stderr, "usrp_driver opening: %s\n", shm_device);
@@ -390,7 +393,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     bool realtime=true;
     uhd::set_thread_priority_safe(priority,realtime);
 
-    size_t rxshm_size, txshm_size;
+    size_t rxshm_size, txshm_size, clrshm_size;
 
     int PtimeLoggingAntenna;
 
@@ -455,6 +458,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
   //  DEBUG_PRINT("USRP_DRIVER reading txshm_size\n");
     txshm_size = std::stoi(pt.get<std::string>("shm_settings.txshm_size"));
+
+    clrshm_size = std::stoi(pt.get<std::string>("shm_settings.clrshm_size"));
 
     usrp_driver_base_port = std::stoi(pt.get<std::string>("network_settings.USRPDriverPort"));
 
@@ -550,8 +555,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     }
 
     // pointers to shared memory
-    std::vector<std::vector<void *>> shm_rx_vec(nSides, std::vector<void *>( nSwings));
-    std::vector<std::vector<void *>> shm_tx_vec(nSides, std::vector<void *>( nSwings));
+    std::vector<std::vector<void *>> shm_rx_vec(nSides, std::vector<void *>(nSwings));
+    std::vector<std::vector<void *>> shm_tx_vec(nSides, std::vector<void *>(nSwings));
+    std::vector<void *> shm_clr_vec(nSides);
 
     size_t initial_rx_size = 20000000;
     size_t initial_clrfreq_size = 40000;
@@ -608,6 +614,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                sem_tx_vec[iSwing] = open_sample_semaphore(antennaVector[iSide], iSwing, TXDIR);
             }
         }
+    }
+
+    for (iSide = 0; iSide < nSides; iSide++) {
+        int shm_side = 0;
+        shm_clr_vec[iSide] = open_sample_shm(antennaVector[iSide], CLRDIR, shm_side, 0, clrshm_size);
     }
 
     if (al_interferometer->count > 0) {
@@ -1057,9 +1068,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         }
                         // auto clear freq samples
                         for (iSide = 0; iSide < nSides; iSide++) {
-                            for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
-                                rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx + nSamples_pause_after_rx + iSample];
-                            }
+                            memcpy(shm_clr_vec[iSide], &rx_data_buffer[iSide][nSamples_rx + nSamples_pause_after_rx], sizeof(std::complex<int16_t>) * nSamples_auto_clear_freq);
+                            //for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
+                            //    rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx + nSamples_pause_after_rx + iSample];
+                            //}
                         }
                     }
 
@@ -1167,11 +1179,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                             sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
                             sock_send_uint32(driverconn, (int32_t) num_clrfreq_samples);
 
-                            // send samples
-                            ssize_t status = send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-                            if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
-                                DEBUG_PRINT("%s: AUTOCLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
-                            }
+                            //// send samples
+                            //ssize_t status = send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                            //if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
+                            //    DEBUG_PRINT("%s: AUTOCLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
+                            //}
                         }
                     } else {
                         sock_send_int32(driverconn, (int32_t) -1);
@@ -1243,19 +1255,23 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     if (clrfreq_rx_worker_status) {
                         sock_send_int32(driverconn, (int32_t) -1);
                     } else {
+                        for (int iSide = 0; iSide < (int) nSides; iSide++) {
+                            memcpy(shm_clr_vec[iSide], &clrfreq_data_buffer[iSide][0], sizeof(std::complex<int16_t>) * num_clrfreq_samples);
+                        }
                         sock_send_int32(driverconn, (int32_t) nSides);
+
                         DEBUG_PRINT("%s: CLRFREQ received samples, relaying %d samples back...\n", get_log_time(), num_clrfreq_samples);
                         for (int jSide = 0; jSide < (int) nSides; jSide++) {
                             sock_send_int32(driverconn, (int32_t) antennaVector[jSide]);
                             sock_send_uint32(driverconn, (int32_t) num_clrfreq_samples);
 
-                            // send back samples
-                            ssize_t status = send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-                            if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
-                                DEBUG_PRINT("%s: CLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
-                            } else {
-                                DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
-                            }
+                            //// send back samples
+                            //ssize_t status = send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
+                            //if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
+                            //    DEBUG_PRINT("%s: CLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
+                            //} else {
+                            //    DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
+                            //}
                         }
                     }
 
@@ -1306,6 +1322,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                 close(driverconn);
 
                 for (iSide = 0; iSide < nSides; iSide++) {
+                    memset(shm_clr_vec[iSide], 0, clrshm_size);
+                    munmap(shm_clr_vec[iSide], clrshm_size);
                     for (iSwing = 0; iSwing < nSwings; iSwing++) {
                         // fill SHM with zeros
                         memset(shm_rx_vec[iSide][iSwing], 0, rxshm_size);

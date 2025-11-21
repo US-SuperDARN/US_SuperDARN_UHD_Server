@@ -47,6 +47,7 @@ SIDEA = 0 # just for compatibility of shm names
 
 RXDIR = 'rx'
 TXDIR = 'tx'
+CLRDIR = 'clr'
 
 DEBUG = True
 verbose = 1
@@ -60,6 +61,8 @@ rx_shm_list = [ [] for iSwing in allSwings]
 tx_shm_list = [ [] for iSwing in allSwings]
 rx_sem_list = [ [] for iSwing in allSwings]
 tx_sem_list = [ [] for iSwing in allSwings]
+
+clr_shm_list = []
 
 # list of all semaphores/shared memory paths for cleaning up
 shm_list = []
@@ -1154,9 +1157,11 @@ def main():
     # get size of shared memory buffer per-antenna in bytes from cudadriver_config.ini
     rxshm_size = shm_settings.getint('rxshm_size')
     txshm_size = shm_settings.getint('txshm_size')
+    clrshm_size = shm_settings.getint('clrshm_size')
 
     # create shared memory buffers and semaphores for rx and tx
     for ant in antennas:
+        clr_shm_list.append(create_shm(ant, 0, SIDEA, clrshm_size, CLRDIR))
         for iSwing in allSwings:
 #            print("Shm ant {}, iSwing {}".format(ant, iSwing))
             rx_shm_list[iSwing].append(create_shm(ant, iSwing, SIDEA, rxshm_size, RXDIR))

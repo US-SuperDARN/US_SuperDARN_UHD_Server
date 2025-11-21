@@ -394,7 +394,7 @@ class usrp_get_auto_clear_freq_command(driver_command):
 
     def recv_samples_from_one_usrp(self, sock):
         antenna_no = []
-        sample_buf = []
+        #sample_buf = []
 
         # give non-local usrps some extra time to respond
         if sock.getpeername()[0] != '127.0.0.1':
@@ -411,32 +411,32 @@ class usrp_get_auto_clear_freq_command(driver_command):
 
             nSamples = recv_dtype(sock, np.int32)
 
-            time.sleep(0.001)
-            try:
-                sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
-                sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
-            except:
-                self.logger.error("Error receiving auto clear freq samples for antenna {}".format(antenna_no_side))
-                antenna_no_side = -1
-                sample_buf_side = []
+            #time.sleep(0.001)
+            #try:
+            #    sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
+            #    sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
+            #except:
+            #    self.logger.error("Error receiving auto clear freq samples for antenna {}".format(antenna_no_side))
+            #    antenna_no_side = -1
+            #    sample_buf_side = []
 
             antenna_no.append(antenna_no_side)
-            sample_buf.append(sample_buf_side)
+            #sample_buf.append(sample_buf_side)
 
-        return nSides, antenna_no, sample_buf
+        return nSides, antenna_no #, sample_buf
 
 
     def recv_all(self):
         antenna_list = []
-        all_samples = []
+        #all_samples = []
         for sock in self.clients:
-            nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock)
+            nSides, tmp_ant = self.recv_samples_from_one_usrp(sock)
             for jside in range(nSides):
                 if tmp_ant[jside] != -1:
                     antenna_list.append(tmp_ant[jside])
-                    all_samples.append(tmp_samples[jside])
+                    #all_samples.append(tmp_samples[jside])
 
-        return antenna_list, all_samples
+        return antenna_list #, all_samples
 
 
 # command to query usrp time
@@ -459,7 +459,7 @@ class usrp_clrfreq_command(driver_command):
 
     def recv_samples_from_one_usrp(self, sock):
         antenna_no = []
-        sample_buf = []
+        #sample_buf = []
 
         # give non-local usrps some extra time to respond
         if sock.getpeername()[0] != '127.0.0.1':
@@ -476,32 +476,32 @@ class usrp_clrfreq_command(driver_command):
 
             nSamples = recv_dtype(sock, np.int32)
 
-            time.sleep(0.002)
-            try:
-                sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
-                sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
-            except:
-                self.logger.error("Error receiving clear freq samples for antenna {}".format(antenna_no_side))
-                antenna_no_side = -1
-                sample_buf_side = []
+            #time.sleep(0.002)
+            #try:
+            #    sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
+            #    sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
+            #except:
+            #    self.logger.error("Error receiving clear freq samples for antenna {}".format(antenna_no_side))
+            #    antenna_no_side = -1
+            #    sample_buf_side = []
 
             antenna_no.append(antenna_no_side)
-            sample_buf.append(sample_buf_side)
+            #sample_buf.append(sample_buf_side)
 
-        return nSides, antenna_no, sample_buf
+        return nSides, antenna_no #, sample_buf
 
 
     def recv_all(self):
         antenna_list = []
-        all_samples = []
+        #all_samples = []
         for sock in self.clients:
-            nSides, tmp_ant, tmp_samples = self.recv_samples_from_one_usrp(sock)
+            nSides, tmp_ant = self.recv_samples_from_one_usrp(sock)
             for jside in range(nSides):
                 if tmp_ant[jside] != -1:
                     antenna_list.append(tmp_ant[jside])
-                    all_samples.append(tmp_samples[jside])
+                    #all_samples.append(tmp_samples[jside])
 
-        return antenna_list, all_samples
+        return antenna_list #, all_samples
 
 
 # prompt the usrp driver to cleanly shut down, useful for testing
