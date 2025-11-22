@@ -33,7 +33,7 @@
 #define SAMPLE_TIME             3                       // Time per Sample (in seconds)
 #define STORAGE_TIME            60                      // Total time per Sample Storage Batch (in seconds)
 #define STORAGE_NUM             (STORAGE_TIME / SAMPLE_TIME) // Total number of processed sample sets to store
-#define META_ELEM               3                       // 4 = 5 - 1 (fcenter has unique obj)
+#define META_ELEM               1                       // 1 = 2 - 1 (fcenter has unique obj)
 #ifndef RESTRICT_NUM
 #define RESTRICT_NUM            50                      // Number of restricted freq bands in the restrict.dat.inst
 #endif
@@ -45,11 +45,9 @@
 #define FCENTER_SHM_SIZE        (1 * sizeof(int))
 #define BEAM_NUM_SHM_SIZE       (1 * sizeof(int))
 #define SAMPLE_SEP_SHM_SIZE     (1 * sizeof(int))
-#define RESTRICT_SHM_SIZE       (RESTRICT_NUM * 2 * sizeof(int))          // 2 = start and end freqs
 #define META_DATA_SHM_SIZE      ((META_ELEM + ANTENNA_NUM) * sizeof(double))
 #define ANTENNA_SHM_SIZE        (1 * sizeof(int))
 #define CLR_BAND_SHM_SIZE       (1 * sizeof(int) * 3)
-#define SITE_ID_SHM_SIZE        (SITE_ID_ELEM * sizeof(char))
 #define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
 #define CHANNEL_ID_SHM_SIZE     (1 * sizeof(int))
 #define ACTIVE_CLIENTS_SHM_SIZE (1 * sizeof(int))
@@ -61,11 +59,9 @@
 #define FCENTER_SHM_NAME        "/fcenter"
 #define BEAM_NUM_SHM_NAME       "/beam_num"
 #define SAMPLE_SEP_SHM_NAME     "/sample_sep"
-#define RESTRICT_SHM_NAME       "/restricted_freq"
 #define META_DATA_SHM_NAME      "/meta_data"
 #define ANTENNA_SHM_NAME        "/antenna_num"
 #define CLRFREQ_SHM_NAME        "/clear_freq"
-#define SITE_ID_SHM_NAME        "/site_id"
 #define RADAR_ID_SHM_NAME       "/radar_id"
 #define CHANNEL_ID_SHM_NAME     "/channel_id"
 #define ACTIVE_CLIENTS_SHM_NAME "/active_clients"   // For debugging
@@ -73,7 +69,7 @@
 
 #define SAMPLE_PARAM_NUM 4
 #define RESTRICT_PARAM_NUM 2
-#define PARAM_NUM 14
+#define PARAM_NUM 12
 
 #define SEM_F_CLIENT    "/sf_client"                // For Sync and reserving client and server roles during data transfer
 #define SEM_F_SERVER    "/sf_server"
@@ -122,9 +118,14 @@ typedef struct {
 } ClrSettings;
 
 typedef struct {
+    int fsamprx;
+} CudaSettings;
+
+typedef struct {
     ArrayInfo array_info;
     HardwareLimits hardware_limits;
     GainControl gain_control;
     ClrSettings clr_settings;
+    CudaSettings cuda_settings;
 } Config;
 

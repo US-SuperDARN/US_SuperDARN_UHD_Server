@@ -8,7 +8,8 @@
 # RadarHardwareManager class (RHM)
 # - has a radar_main_control_loop() that executes clear freq search, adding new channels and triggering
 #
-# This branch is set up for two-radar operation at dual sites. Select the config/driver_config__two_radar.ini to be driver_config.ini
+# This branch is set up for single- or dual-radar operation.
+# - select the appropriate config files for the local radar with "python3 srr.py init [rad]"
 
 import sys
 import os
@@ -249,8 +250,10 @@ class usrpSockManager():
 
        lost_antennas = self.antennaList_active[jrad][iSock]
        self.antennaList_inactive[jrad].append(lost_antennas)
-       for iSwing in range(nSwings):
-          self.fill_shm_with_zeros(lost_antennas, iSwing, ['rx', 'tx'])
+       # only fill shm with zeros if this is a local USRP
+       if jrad == 0:
+          for iSwing in range(nSwings):
+             self.fill_shm_with_zeros(lost_antennas, iSwing, ['rx', 'tx'])
        del self.antennaList_active[jrad][iSock]
 
        self.hostnameList_inactive[jrad].append(self.hostnameList_active[jrad][iSock])
@@ -315,7 +318,7 @@ class usrpSockManager():
        side = 0
        # direction_list = ['rx', 'tx']
        nInts_shm = int(self.RHM.ini_shm_settings['rxshm_size']) / 2 # two bytes per int16
-       nZeros_per_block = 10000   #write zeros in blocks
+       nZeros_per_block = 10000   # write zeros in blocks
        zeros_block = np.zeros(nZeros_per_block, dtype=np.int16).tobytes()
        nFullBlocks = int(nInts_shm / nZeros_per_block)
        nInts_rem   = nInts_shm % nZeros_per_block
@@ -572,7 +575,7 @@ class ClearFrequencyService():
     # load_dotenv(".env")
 
     # Program Flags
-    CLEAN_ON_INACTIVE   = False           # Cleans all semaphores and shared memory objects when there are no Active Clients
+    CLEAN_ON_INACTIVE = False  # Cleans all semaphores and shared memory objects when there are no Active Clients
     soft_kill = False
 
     # Static Constants
@@ -584,26 +587,21 @@ class ClearFrequencyService():
     SAMPLES_NUM         = 5000
     ANTENNA_NUM         = 16
     STATIC_ANTENNA_NUM  = 20
-    RESTRICT_NUM        = 20
-    META_ELEM           = 3                                    # 3 = 4 - 1 (fcenter has unique obj)
+    META_ELEM           = 1                             # 1 = 2 - 1 (fcenter has unique obj)
 
     SAMPLES_ELEM_NUM    = ANTENNA_NUM * SAMPLES_NUM * 2
     CLR_RANGE_ELEM_NUM  = 2
-    RESTRICT_ELEM_NUM   = RESTRICT_NUM * 2
     META_ELEM_NUM       = META_ELEM + ANTENNA_NUM
     CLR_BAND_ELEM_NUM   = 1 * 3                         # 3     = start & stop freqs and noise
-    SITE_ID_ELEM_NUM    = 1 * 3                         # 1 * 3 = one instance of a 3 letter identifier
 
     SAMPLES_SHM_SIZE        = (ANTENNA_NUM * SAMPLES_NUM * 2 * INT_SIZE)
     CLR_RANGE_SHM_SIZE      = (2 * INT_SIZE)
     FCENTER_SHM_SIZE        = (1 * INT_SIZE)
     BEAM_NUM_SHM_SIZE       = (1 * INT_SIZE)
     SAMPLE_SEP_SHM_SIZE     = (1 * INT_SIZE)
-    RESTRICT_SHM_SIZE       = (RESTRICT_NUM * 2 * INT_SIZE)             # 2 = start and end freqs
     META_DATA_SHM_SIZE      = ((META_ELEM + ANTENNA_NUM) * DOUBLE_SIZE)
     ANTENNA_SHM_SIZE        = (1 * INT_SIZE)
     CLR_BAND_SHM_SIZE       = (1 * INT_SIZE * 3)
-    SITE_ID_SHM_SIZE        = (3 * CHAR_SIZE)
     RADAR_ID_SHM_SIZE       = (1 * INT_SIZE)
     CHANNEL_ID_SHM_SIZE     = (1 * INT_SIZE)
     ACTIVE_CLIENTS_SHM_SIZE = (1 * INT_SIZE)
@@ -613,38 +611,34 @@ class ClearFrequencyService():
     RETRY_DELAY = 2  # seconds
 
     # Shared Memory Object and Semaphores Names
-    SAMPLES_SHM_NAME =          "/samples"          # For Data Transmission
-    CLR_RANGE_SHM_NAME =        "/clear_freq_range"
-    FCENTER_SHM_NAME =          "/fcenter"
-    BEAM_NUM_SHM_NAME =         "/beam_num"
-    SAMPLE_SEP_SHM_NAME =       "/sample_sep"
-    RESTRICT_SHM_NAME =         "/restricted_freq"
-    META_DATA_SHM_NAME =        "/meta_data"
-    ANTENNA_SHM_NAME =          "/antenna_num"
-    CLRFREQ_SHM_NAME =          "/clear_freq"
-    SITE_ID_SHM_NAME =          "/site_id"
-    RADAR_ID_SHM_NAME =         "/radar_id"
-    CHANNEL_ID_SHM_NAME =       "/channel_id"
-    ACTIVE_CLIENTS_SHM_NAME =   "/active_clients"   # For Debugging
-    MUTED_ANT_SHM_NAME =        "/muted_ant"
+    SAMPLES_SHM_NAME =        "/samples"          # For Data Transmission
+    CLR_RANGE_SHM_NAME =      "/clear_freq_range"
+    FCENTER_SHM_NAME =        "/fcenter"
+    BEAM_NUM_SHM_NAME =       "/beam_num"
+    SAMPLE_SEP_SHM_NAME =     "/sample_sep"
+    META_DATA_SHM_NAME =      "/meta_data"
+    ANTENNA_SHM_NAME =        "/antenna_num"
+    CLRFREQ_SHM_NAME =        "/clear_freq"
+    RADAR_ID_SHM_NAME =       "/radar_id"
+    CHANNEL_ID_SHM_NAME =     "/channel_id"
+    ACTIVE_CLIENTS_SHM_NAME = "/active_clients"   # For Debugging
+    MUTED_ANT_SHM_NAME =      "/muted_ant"
 
     # Semaphore Constants
-    SAMPLE_PARAM_NUM =      2
-    RESTRICT_PARAM_NUM =    2
-    PARAM_NUM =             10
+    SAMPLE_PARAM_NUM = 2
 
-    SEM_F_CLIENT =      "/sf_client"               # For reserving client and server roles during data transfer
-    SEM_F_SERVER =      "/sf_server"               # And for signalling specific data transfers
-    SEM_F_SAMPLES =     "/sf_samples"
-    SEM_F_INIT =        "/sf_init"
-    SEM_F_CLRFREQ =     "/sf_clrfreq"
-    SEM_F_PROCESSED =   "/sf_processed"            # For processed data transfer
-    SEM_L_SAMPLES =     "/sl_samples"              # For Data locking b/w write/reads
-    SEM_L_INIT =        "/sl_init"                 # init = initialization
-    SEM_L_CLRFREQ =     "/sl_clrfreq"
+    SEM_F_CLIENT =    "/sf_client"               # For reserving client and server roles during data transfer
+    SEM_F_SERVER =    "/sf_server"               # And for signalling specific data transfers
+    SEM_F_SAMPLES =   "/sf_samples"
+    SEM_F_INIT =      "/sf_init"
+    SEM_F_CLRFREQ =   "/sf_clrfreq"
+    SEM_F_PROCESSED = "/sf_processed"            # For processed data transfer
+    SEM_L_SAMPLES =   "/sl_samples"              # For Data locking b/w write/reads
+    SEM_L_INIT =      "/sl_init"                 # init = initialization
+    SEM_L_CLRFREQ =   "/sl_clrfreq"
 
-    SEM_NUM =       9
-    SL_NUM =        3
+    SEM_NUM = 9
+    SL_NUM = 3
 
     # Service Variables
     semaphores = []
@@ -687,20 +681,18 @@ class ClearFrequencyService():
                 ClearFrequencyService.sl_clrfreq,
             ]
             ClearFrequencyService.shm_objects = [
-                self.create_shm_obj(self.SAMPLES_SHM_NAME,          self.SAMPLES_SHM_SIZE       , self.SAMPLES_ELEM_NUM),
-                self.create_shm_obj(self.FCENTER_SHM_NAME,          self.FCENTER_SHM_SIZE       , ),
-                self.create_shm_obj(self.CLR_RANGE_SHM_NAME,        self.CLR_RANGE_SHM_SIZE     , self.CLR_RANGE_ELEM_NUM),
-                self.create_shm_obj(self.BEAM_NUM_SHM_NAME,         self.BEAM_NUM_SHM_SIZE      , ),
-                self.create_shm_obj(self.SAMPLE_SEP_SHM_NAME,       self.SAMPLE_SEP_SHM_SIZE    , ),
-                self.create_shm_obj(self.RESTRICT_SHM_NAME,         self.RESTRICT_SHM_SIZE      , self.RESTRICT_ELEM_NUM),
-                self.create_shm_obj(self.META_DATA_SHM_NAME,        self.META_DATA_SHM_SIZE     , self.META_ELEM_NUM),
-                self.create_shm_obj(self.ANTENNA_SHM_NAME,          self.ANTENNA_SHM_SIZE       , ),
-                self.create_shm_obj(self.CLRFREQ_SHM_NAME,          self.CLR_BAND_SHM_SIZE      , self.CLR_BAND_ELEM_NUM),
-                self.create_shm_obj(self.SITE_ID_SHM_NAME,          self.SITE_ID_SHM_SIZE       , self.SITE_ID_ELEM_NUM),
-                self.create_shm_obj(self.RADAR_ID_SHM_NAME,         self.RADAR_ID_SHM_SIZE      , ),
-                self.create_shm_obj(self.CHANNEL_ID_SHM_NAME,       self.CHANNEL_ID_SHM_SIZE    , ),
-                self.create_shm_obj(self.ACTIVE_CLIENTS_SHM_NAME,   self.ACTIVE_CLIENTS_SHM_SIZE, ),
-                self.create_shm_obj(self.MUTED_ANT_SHM_NAME,        self.MUTED_ANT_SHM_SIZE     , self.STATIC_ANTENNA_NUM)
+                self.create_shm_obj(self.SAMPLES_SHM_NAME,        self.SAMPLES_SHM_SIZE       , self.SAMPLES_ELEM_NUM),
+                self.create_shm_obj(self.FCENTER_SHM_NAME,        self.FCENTER_SHM_SIZE       , ),
+                self.create_shm_obj(self.CLR_RANGE_SHM_NAME,      self.CLR_RANGE_SHM_SIZE     , self.CLR_RANGE_ELEM_NUM),
+                self.create_shm_obj(self.BEAM_NUM_SHM_NAME,       self.BEAM_NUM_SHM_SIZE      , ),
+                self.create_shm_obj(self.SAMPLE_SEP_SHM_NAME,     self.SAMPLE_SEP_SHM_SIZE    , ),
+                self.create_shm_obj(self.META_DATA_SHM_NAME,      self.META_DATA_SHM_SIZE     , self.META_ELEM_NUM),
+                self.create_shm_obj(self.ANTENNA_SHM_NAME,        self.ANTENNA_SHM_SIZE       , ),
+                self.create_shm_obj(self.CLRFREQ_SHM_NAME,        self.CLR_BAND_SHM_SIZE      , self.CLR_BAND_ELEM_NUM),
+                self.create_shm_obj(self.RADAR_ID_SHM_NAME,       self.RADAR_ID_SHM_SIZE      , ),
+                self.create_shm_obj(self.CHANNEL_ID_SHM_NAME,     self.CHANNEL_ID_SHM_SIZE    , ),
+                self.create_shm_obj(self.ACTIVE_CLIENTS_SHM_NAME, self.ACTIVE_CLIENTS_SHM_SIZE, ),
+                self.create_shm_obj(self.MUTED_ANT_SHM_NAME,      self.MUTED_ANT_SHM_SIZE     , self.STATIC_ANTENNA_NUM)
             ]
 
             for obj in ClearFrequencyService.shm_objects:
@@ -1090,12 +1082,12 @@ class ClearFrequencyService():
 
             ## Check for Premapped antenna num
             # Map shared memory object pointer for antenna num
-            # print(f"Mapping {self.shm_objects[7]['name']}")
+            # print(f"Mapping {self.shm_objects[6]['name']}")
             self.log.debug("[clearFrequencyService] Verifying Antenna and Sample size")
-            self.shm_objects[7]['shm_ptr'] = mmap.mmap(self.shm_objects[7]['shm_fd'], self.shm_objects[7]['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+            self.shm_objects[6]['shm_ptr'] = mmap.mmap(self.shm_objects[6]['shm_fd'], self.shm_objects[6]['size'], mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
 
             # Check if Antenna Num changed, update corresponding values before they're mapped
-            shm_ant_num = self.read_m_data(self.shm_objects[7])[0]
+            shm_ant_num = self.read_m_data(self.shm_objects[6])[0]
             # print("SHM Antenna_num:  ", shm_ant_num)
             # print("Meta Antenna num: ", len(meta_data['antenna_list']))
             if shm_ant_num != self.cur_antenna_num or self.cur_antenna_num != len(meta_data['antenna_list']) or self.shm_objects[0]['elem_num'] != (len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2):
@@ -1103,7 +1095,7 @@ class ClearFrequencyService():
                 self.cur_antenna_num = len(meta_data['antenna_list'])
 
                 # Update meta SHM values
-                meta_obj = self.shm_objects[6]
+                meta_obj = self.shm_objects[5]
                 meta_obj['elem_num'] = len(meta_data['antenna_list']) + self.META_ELEM
                 meta_obj['size'] = meta_obj['elem_num'] * self.DOUBLE_SIZE
                 os.ftruncate(meta_obj['shm_fd'], meta_obj['size'])
@@ -1152,8 +1144,6 @@ class ClearFrequencyService():
         meta_data_list = [
                         meta_data['antenna_list'],
                         meta_data['number_of_samples'],
-                        meta_data['x_spacing'],
-                        meta_data['usrp_rf_rate'],
                     ]
 
         # Special: Halt all future ClearFreqService
@@ -1184,17 +1174,13 @@ class ClearFrequencyService():
                 # print("[clearFrequencyService] Initialization Semaphore Acquired...")
 
                 # Read Radar ID
-                # print(f"[Frequency Client] Data Write: {self.shm_objects[10]['name']}")
-                self.write_data(self.shm_objects[10], radar_id)
-
-                # # Read Channel ID
-                # print(f"[Frequency Client] Data Write: {self.shm_objects[11]['name']}")
-                # self.write_data(self.shm_objects[11], channel_id)
+                # print(f"[Frequency Client] Data Write: {self.shm_objects[8]['name']}")
+                self.write_data(self.shm_objects[8], radar_id)
 
                 # If meta_data has changed
                 if self.old_meta_data != meta_data_list:
                     self.old_meta_data = meta_data_list
-                    shm_ant_num = self.read_m_data(self.shm_objects[7])
+                    shm_ant_num = self.read_m_data(self.shm_objects[6])
 
                     # If antenna length or sample_num has changed, send, set, and sync with server
                     if self.cur_antenna_num != len(meta_data['antenna_list']) or self.shm_objects[0]['elem_num'] != (len(meta_data['antenna_list']) * int(meta_data['number_of_samples']) * 2):
@@ -1202,11 +1188,11 @@ class ClearFrequencyService():
                         self.cur_antenna_num = len(meta_data['antenna_list'])
 
                         # Send Antenna Num
-                        # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
-                        self.write_data(self.shm_objects[7], len(meta_data['antenna_list']))
+                        # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[6]['name']}")
+                        self.write_data(self.shm_objects[6], len(meta_data['antenna_list']))
 
                         # Reallocate meta SHM
-                        meta_obj = self.shm_objects[6]
+                        meta_obj = self.shm_objects[5]
                         meta_obj['elem_num'] = len(meta_data['antenna_list']) + self.META_ELEM
                         meta_obj['size'] = meta_obj['elem_num'] * self.DOUBLE_SIZE
                         os.ftruncate(meta_obj['shm_fd'], meta_obj['size'])
@@ -1222,13 +1208,13 @@ class ClearFrequencyService():
                     # If server's antenna num is outdated, update it
                     elif shm_ant_num != self.cur_antenna_num:
                         # Send
-                        # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[7]['name']}")
-                        self.write_data(self.shm_objects[7], len(meta_data['antenna_list']))
+                        # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[6]['name']}")
+                        self.write_data(self.shm_objects[6], len(meta_data['antenna_list']))
 
-                    # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[6]['name']}")
+                    # print(f"[Frequency Client] Data Write Progress: {self.shm_objects[5]['name']}")
 
                     # Rearrange meta_data ordering
-                    self.write_data(self.shm_objects[6], meta_data_list, 'meta')
+                    self.write_data(self.shm_objects[5], meta_data_list, 'meta')
 
                 self.sl_init['sem'].release()
                 self.sf_init['sem'].release()
@@ -1254,7 +1240,7 @@ class ClearFrequencyService():
                         self.write_data(self.shm_objects[i], input_data[i])
 
                 # Write Radar ID
-                self.write_data(self.shm_objects[10], radar_id)
+                self.write_data(self.shm_objects[8], radar_id)
 
                 self.sl_samples['sem'].release()
                 self.sf_samples['sem'].release()
@@ -1271,7 +1257,7 @@ class ClearFrequencyService():
                 self.sl_samples['sem'].acquire()
 
                 self.muted_antennas = []
-                self.muted_antennas = self.read_m_data(self.shm_objects[13])
+                self.muted_antennas = self.read_m_data(self.shm_objects[11])
                 # print(f"[ClearFrequencyService] Muted Antennas: {self.muted_antennas}")
 
                 self.sl_samples['sem'].release()
@@ -1330,12 +1316,12 @@ class ClearFrequencyService():
                     self.write_data(self.shm_objects[i], input_data[i - 1])
 
             # Write Radar ID
-            # print(f"[Frequency Client] Data Write: {self.shm_objects[10]['name']}")
-            self.write_data(self.shm_objects[10], radar_id)
+            # print(f"[Frequency Client] Data Write: {self.shm_objects[8]['name']}")
+            self.write_data(self.shm_objects[8], radar_id)
 
             # Write Channel ID
-            # print(f"[Frequency Client] Data Write: {self.shm_objects[11]['name']}")
-            self.write_data(self.shm_objects[11], channel_id)
+            # print(f"[Frequency Client] Data Write: {self.shm_objects[9]['name']}")
+            self.write_data(self.shm_objects[9], channel_id)
 
             self.sl_clrfreq['sem'].release()
             # print("[clearFrequencyService] ClrFreq Semaphore Released ...")
@@ -1352,7 +1338,7 @@ class ClearFrequencyService():
             # print("[clearFrequencyService] Recieved Server Response. Reading Clear Freq data...")
             self.sl_clrfreq['sem'].acquire()
             new_noise_data = []
-            new_clrfreq_data = self.read_m_data(self.shm_objects[8])
+            new_clrfreq_data = self.read_m_data(self.shm_objects[7])
             new_clrfreq_data, new_noise_data = self.repack_data(new_clrfreq_data, True)
             # for clr_freq_and_noise in zip(new_clrfreq_data, new_noise_data):
             #     print(f"[clearFrequencyService] Clear Freq Band: | {clr_freq_and_noise[0]} (kHz), {clr_freq_and_noise[1]} (N/A) |")
@@ -1406,7 +1392,7 @@ class ClearFrequencyService():
 class clearFrequencyRawDataManager():
     """ Buffers the raw clearfrequency data for all channels
     """
-    def __init__(self, antenna_spacing, usrpManager, N_RADARs):
+    def __init__(self, usrpManager, N_RADARs):
         self.rawData     = [None for jrad in range(N_RADARs)]
         self.antennaList = [None for jrad in range(N_RADARs)]
         self.recordTime  = [None for jrad in range(N_RADARs)]
@@ -1417,7 +1403,7 @@ class clearFrequencyRawDataManager():
         self.usrpManager = usrpManager # TODO change to take socks automatically from usrpManager
         self.usrp_socks = [None for jrad in range(N_RADARs)]
         self.center_freq = [None for jrad in range(N_RADARs)]
-        self.sampling_rate = [None for jrad in range(N_RADARs)]
+        self.sampling_rate = None
         self.number_of_samples = None
         self.CFS = ClearFrequencyService()
 
@@ -1433,9 +1419,6 @@ class clearFrequencyRawDataManager():
 
         self.get_raw_data_semaphore = threading.BoundedSemaphore()
         self.select_clear_freq = threading.BoundedSemaphore()
-
-        for j in range(N_RADARs):
-           self.metaData[j]['x_spacing'] = antenna_spacing[j]
 
         self.logger = logging.getLogger('clearFrequency')
         self.logger.debug('clearFrequencyRawDataManager initialized')
@@ -1457,7 +1440,6 @@ class clearFrequencyRawDataManager():
 
         self.metaData[jrad]['usrp_fcenter'] = self.center_freq[jrad]
         self.metaData[jrad]['number_of_samples'] = self.number_of_samples
-        self.metaData[jrad]['usrp_rf_rate'] = self.sampling_rate
 
 
     def update_auto_clear_freq_data(self, jrad, antenna_list, raw_data, meta_data_dict):
@@ -1843,7 +1825,7 @@ class RadarHardwareManager:
         self.nControlPrograms = 0  # number of control programs, also include unregistered channels
         self.channel_manager_consecutive_number = 10 # serial number shown in logger of channel_manager
 
-        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.array_x_spacing, self.usrpManager, self.N_RADARs)
+        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.usrpManager, self.N_RADARs)
         for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
 

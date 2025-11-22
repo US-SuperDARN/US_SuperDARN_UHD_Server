@@ -432,6 +432,7 @@ void calc_clear_freq_on_raw_samples(
     for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = i * delta_f_avg + f_start;
 
     double *avg_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
+    double *raw_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
     fftw_complex *fft_spectrum = NULL;
     fft_spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_samples);
     if (fft_spectrum == NULL) {
@@ -462,6 +463,7 @@ void calc_clear_freq_on_raw_samples(
             // }
         }
         avg_spectrum[k] /= avg_ratio;
+        raw_spectrum[k] = avg_spectrum[k];
 
         if (k == 0 && VERBOSE) log_trace("avg_spectrum[%d]: %.2f", k, avg_spectrum[k]);
     }
@@ -521,7 +523,7 @@ void calc_clear_freq_on_raw_samples(
                 ststr,
                 channel,
                 -1,   // beam_num not used
-                avg_spectrum,
+                raw_spectrum,
                 avg_freq_vector,
                 num_avg_samples
             );
@@ -543,7 +545,7 @@ void calc_clear_freq_on_raw_samples(
                 ststr,
                 channel,
                 -1,
-                avg_spectrum,
+                raw_spectrum,
                 avg_freq_vector,
                 num_avg_samples
             );  // Spectrum after FFT averaging; plot w/ spectrum_plot.py
@@ -569,6 +571,7 @@ void calc_clear_freq_on_raw_samples(
     log_trace("freed allocated fftw & its ptrs");
     free(avg_freq_vector);
     free(avg_spectrum);
+    free(raw_spectrum);
     log_trace("freed allocated ptrs ");
 }
 
