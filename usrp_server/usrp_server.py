@@ -1409,12 +1409,14 @@ class clearFrequencyRawDataManager():
 
         self.metaData = [{} for jrad in range(N_RADARs)]
 
+        self.clr_ant_list = []
         self.clr_shm_list = []
         for ant in np.concatenate(self.usrpManager.antennaList_active[0]):
            name = 'shm_clr_ant_{}_side_0_swing_0'.format(int(ant))
            memory = posix_ipc.SharedMemory(name)
            mapfile = mmap.mmap(memory.fd, memory.size)
            memory.close_fd()
+           self.clr_ant_list.append(int(ant))
            self.clr_shm_list.append(mapfile)
 
         self.get_raw_data_semaphore = threading.BoundedSemaphore()
@@ -1491,8 +1493,9 @@ class clearFrequencyRawDataManager():
             self.logger.error("CLRFREQ, communication with at least one USRP failed")
 
         for ant in output_antenna_idx_list:
-           self.clr_shm_list[ant].seek(0)
-           sample_buf_side = np.frombuffer(self.clr_shm_list[ant], dtype=np.int16, count = int(self.number_of_samples*2))
+           idx = self.clr_ant_list.index(ant)
+           self.clr_shm_list[idx].seek(0)
+           sample_buf_side = np.frombuffer(self.clr_shm_list[idx], dtype=np.int16, count = int(self.number_of_samples*2))
            sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
            output_samples_list.append(sample_buf_side)
 
@@ -3093,8 +3096,9 @@ class RadarHardwareManager:
 
            clr_samples = []
            for ant in antenna_list:
-              self.clearFreqRawDataManager.clr_shm_list[ant].seek(0)
-              sample_buf_side = np.frombuffer(self.clearFreqRawDataManager.clr_shm_list[ant], dtype=np.int16, count = int(nSamples_clear_freq*2))
+              idx = self.clearFreqRawDataManager.clr_ant_list.index(ant)
+              self.clearFreqRawDataManager.clr_shm_list[idx].seek(0)
+              sample_buf_side = np.frombuffer(self.clearFreqRawDataManager.clr_shm_list[idx], dtype=np.int16, count = int(nSamples_clear_freq*2))
               sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
               clr_samples.append(sample_buf_side)
 
