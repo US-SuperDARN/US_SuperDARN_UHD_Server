@@ -23,7 +23,6 @@
 
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500
-#define ANTENNA_NUM             20
 #define STATIC_ANTENNA_NUM      20
 #define STATIC_RADAR_NUM        2                       // Max Number of possible radars in an array
 #define STATIC_CHANNEL_NUM      2                       // Max Number of possible channels in an array
@@ -40,12 +39,12 @@
 #define CLR_STORAGE_NUM         1000
 #define SITE_ID_ELEM            3                       // 3 = 3-letter identifier
 
-#define SAMPLES_SHM_SIZE        (ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int))
+#define SAMPLES_SHM_SIZE        (STATIC_ANTENNA_NUM * SAMPLES_NUM * 2 * sizeof(int))
 #define CLR_RANGE_SHM_SIZE      (2 * sizeof(int))
 #define FCENTER_SHM_SIZE        (1 * sizeof(int))
 #define BEAM_NUM_SHM_SIZE       (1 * sizeof(int))
 #define SAMPLE_SEP_SHM_SIZE     (1 * sizeof(int))
-#define META_DATA_SHM_SIZE      ((META_ELEM + ANTENNA_NUM) * sizeof(double))
+#define META_DATA_SHM_SIZE      ((META_ELEM + STATIC_ANTENNA_NUM) * sizeof(double))
 #define ANTENNA_SHM_SIZE        (1 * sizeof(int))
 #define CLR_BAND_SHM_SIZE       (1 * sizeof(int) * 3)
 #define RADAR_ID_SHM_SIZE       (1 * sizeof(int))
