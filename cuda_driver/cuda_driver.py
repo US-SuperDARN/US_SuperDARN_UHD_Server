@@ -194,15 +194,27 @@ class cuda_generate_pulse_handler(cudamsg_handler):
         beamnum   = ctrlprm['tbeam']
         self.logger.debug("generating bb samples for beam {}.".format(beamnum))
 
-        # convert beam number to radian angle
-        bmazm = calc_beam_azm_rad(nbeams, beamnum, beam_sep)
+        if ctrlprm['tbeamwidth'] > 5:
+            self.logger.debug("applying wide beam phase shift")
 
-        # calculate antenna-to-antenna phase shift for steering at a frequency
-        pshift = calc_phase_increment(bmazm, tx_center_freq, x_spacing)
+            # antenna-to-antenna phase shift for wide-beam transmission
+            pshift = np.float32([0., 68.6, 116.4, 208.9, 283.0, 326.1, 375.6, 320.1,
+                                 320.1, 375.6, 326.1, 283.0, 208.9, 116.4, 68.6, 0.,
+                                 0., 0., 0., 0.])
 
-        # calculate a complex number representing the phase shift for each antenna
-        # (modulo 20 for 2nd polarization)
-        beamforming_shift = [rad_to_rect((antenna_idx % nAntennas_per_polarization) * pshift) for antenna_idx in self.antenna_index_list]
+            # calculate a complex number representing the phase shift for each antenna
+            beamforming_shift = [np.exp(1j * np.deg2rad(pshift[antenna_idx])) for antenna_idx in self.antenna_index_list]
+        else:
+            self.logger.debug("applying narrow beam phase shift")
+
+            # convert beam number to radian angle
+            bmazm = calc_beam_azm_rad(nbeams, beamnum, beam_sep)
+
+            # calculate antenna-to-antenna phase shift for steering at a frequency
+            pshift = calc_phase_increment(bmazm, tx_center_freq, x_spacing)
+
+            # calculate a complex number representing the phase shift for each antenna
+            beamforming_shift = [rad_to_rect((antenna_idx % nAntennas_per_polarization) * pshift) for antenna_idx in self.antenna_index_list]   # modulo 20 for 2nd polarization
 
         beamforming_arr = np.complex64(np.zeros((nAntennas, len(pulsesamps))))
         for iAntenna in range(nAntennas):

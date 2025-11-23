@@ -3245,6 +3245,10 @@ class RadarHardwareManager:
         maxInt16value = np.iinfo(np.int16).max # +32767
         minInt16value = np.iinfo(np.int16).min # -32768
 
+        # Chebyshev 30 dB window for wide-beam TX
+        window = np.float32([0.2910, 0.3173, 0.4557, 0.6018, 0.7424, 0.8637, 0.9528, 1.0000,
+                             1.0000, 0.9528, 0.8637, 0.7424, 0.6018, 0.4557, 0.3173, 0.2910])
+
         for iChannel, channel in enumerate(RHM.channels[jrad]):
             if channel.processing_state is CS_PROCESSING:
                 cur_beam = channel.scanManager.current_beam
@@ -3261,6 +3265,13 @@ class RadarHardwareManager:
                 # MAIN ARRAY
                 first_pol_ant_idx = [ant_idx for ant_idx in RHM.antenna_idx_list_main[jrad] if ant_idx < 20]
                 first_pol_matrix_idx = [RHM.antenna_idx_list_main[jrad].index(ant_idx) for ant_idx in first_pol_ant_idx]
+
+                # apply Chebyshev window to each main antenna for RX beamforming of wide-beam TX
+                if channel.ctrlprm_struct.payload['tbeamwidth'] > 5:
+                    channel.logger.debug("radar {} ch {}: applying Chebyshev RX window".format(channel.rnum, channel.cnum))
+                    for ant_idx in first_pol_ant_idx:
+                        antenna_scale_factors[iChannel][ant_idx] *= window[ant_idx]
+                        channel.logger.debug(" scaling antenna {} with factor {:}".format(ant_idx, antenna_scale_factors[iChannel][ant_idx]))
 
                 # calculate a complex number representing the phase shift for each antenna
                 phasing_matrix = np.matrix([rad_to_rect(ant_idx * pshift)*antenna_scale_factors[iChannel][ant_idx] for ant_idx in first_pol_ant_idx])
@@ -3521,7 +3532,7 @@ class RadarChannelHandler:
            beam = self.scanManager.next_beam
            freq = int(self.scanManager.get_next_clearFreq_result(self.rnum)[0])
         else:
-            self.logger.error("unknown period specifier: {} (valid: current or next )".format(period))
+           self.logger.error("unknown period specifier: {} (valid: current or next )".format(period))
 
         parNameList  = ['rbeam', 'tbeam', 'rfreq', 'tfreq']
         parValueList = [ beam  ,  beam  ,  freq  ,  freq  ]
@@ -3967,7 +3978,7 @@ class RadarChannelHandler:
            else:
                self.logger.debug("radar {} ch {}: already in newChannelList ({})".format(self.rnum, self.cnum, self.parent__RadarHardwareManager.newChannelList))
 
-        # in middle of scan, period already triggerd. only compare with prediction
+        # in middle of scan, period already triggered. only compare with prediction
         elif self.state[current_swing] == CS_PROCESSING or self.state[current_swing] == CS_LAST_SWING:
 
            self.update_ctrlprm_class("current")
