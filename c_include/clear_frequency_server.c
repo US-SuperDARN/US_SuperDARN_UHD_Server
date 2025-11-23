@@ -791,7 +791,7 @@ int main() {
     log_debug( "Done reading Average Ratio and RF sampling rate...");
 
     // Allocate temp mem for shm varibles
-    temp_samples = fftw_alloc_complex(ANTENNA_NUM * SAMPLES_NUM);
+    temp_samples = fftw_alloc_complex(STATIC_ANTENNA_NUM * SAMPLES_NUM);
     if (temp_samples == NULL) {
         log_fatal("Error allocating memory for temp_samples pointers");
         perror("Error allocating memory for temp_samples pointers");
@@ -882,7 +882,7 @@ int main() {
     int cur_channel = 0;
     int cur_beam = 0;
     int sample_sep = 0;
-    int old_antenna_num = ANTENNA_NUM;
+    int old_antenna_num = -1;
     int samples_num = SAMPLES_NUM;
     // int old_samples_num = -1;
     // int old_usrp_fcenter = -1;
