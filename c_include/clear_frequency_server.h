@@ -23,7 +23,7 @@
 
 // Default Length of Variables (some dynamically change during runtime)
 #define SAMPLES_NUM             2500
-#define ANTENNA_NUM             16
+#define ANTENNA_NUM             20
 #define STATIC_ANTENNA_NUM      20
 #define STATIC_RADAR_NUM        2                       // Max Number of possible radars in an array
 #define STATIC_CHANNEL_NUM      2                       // Max Number of possible channels in an array
