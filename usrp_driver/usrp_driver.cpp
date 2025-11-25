@@ -412,7 +412,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     size_t nSamples_rx, nSamples_tx_pulse, nSamples_pause_after_rx, nSamples_auto_clear_freq, nSamples_rx_total;
     size_t auto_clear_freq_available = 0;
 
-    uint32_t npulses, nerrors;
+    uint32_t npulses, nsequences, nerrors;
     ssize_t cmd_status;
     uint32_t usrp_driver_base_port, ip_part;
 
@@ -424,6 +424,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     uint32_t exit_driver = 0;
 
     uint32_t tx_worker_active;
+
+    boost::xtime sync_time;
+    double pulse_offset = 0.0;
 
     uhd::time_spec_t start_time, rx_start_time;
     uhd::usrp_clock::multi_usrp_clock::sptr gps_clock;
@@ -728,7 +731,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     txrate_new = sock_get_float64(driverconn);
                     rxrate_new = sock_get_float64(driverconn);
 
-                    npulses = sock_get_uint32(driverconn);
+                    npulses    = sock_get_uint32(driverconn);
+                    nsequences = sock_get_uint32(driverconn);
 
                     nSamples_rx              = sock_get_uint64(driverconn);
                     nSamples_pause_after_rx  = sock_get_uint64(driverconn);
@@ -1037,6 +1041,13 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     // TODO move this in loop as soon as usrp_server receives both sides
                     sock_send_bool(driverconn, fault);     // FAULT status from conrol board
 
+                    // send actual start times of each pulse sequence
+                    double pulse_time;
+                    for (uint32_t i = 0; i < nsequences; i++) {
+                        pulse_time = pulse_time_offsets[i*npulses/nsequences].get_real_secs() + pulse_offset;
+                        sock_send_float64(driverconn, pulse_time);
+                    }
+
                     if (mute_output) {
                         DEBUG_PRINT("%s: READY_DATA: Filling SHM with zeros (because of rx_worker error)\n", get_log_time());
 
@@ -1103,6 +1114,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     // if --intclk flag passed to usrp_driver, set clock source as internal and do not sync time
                     if (al_intclk->count > 0) {
                         usrp->set_time_now(uhd::time_spec_t(0.0));
+                        boost::xtime_get(&sync_time, boost::TIME_UTC_);
                     } else {
                         // Sync time to the GPS Octoclock if it is available and locked
                         if (strcmp(clk_addr, "addr=") &&
@@ -1137,7 +1149,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         } else {
                             DEBUG_PRINT("%s: Start setting unknown pps\n", get_log_time());
                             usrp->set_time_unknown_pps(uhd::time_spec_t(11.0));
+                            boost::xtime_get(&sync_time, boost::TIME_UTC_);
                             DEBUG_PRINT("%s: End setting unknown pps\n", get_log_time());
+                            pulse_offset = sync_time.sec + sync_time.nsec/1000000000 - 11.0;
                         }
                     }
 
