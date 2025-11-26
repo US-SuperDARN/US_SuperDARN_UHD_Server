@@ -2826,8 +2826,8 @@ class RadarHardwareManager:
                     chResExportList = [ ch.resultDict_list[-1] for ch in np.concatenate(self.channels).tolist() if ch.processing_state == CS_PROCESSING]
                     with open('tmpRawData.pkl', 'wb') as f:
                        pickle.dump([main_samples, back_samples, chResExportList, self.antenna_idx_list_main[jrad], self.antenna_idx_list_back[jrad]], f, pickle.HIGHEST_PROTOCOL)
-                       os.rename("tmpRawData.pkl", "liveRawData.pkl")
-                       os.remove("./bufferLiveData.flag")
+                    os.rename("tmpRawData.pkl", "liveRawData.pkl")
+                    os.remove("./bufferLiveData.flag")
 
                  # save IF raw data
                  for channel in self.channels[jrad]:
