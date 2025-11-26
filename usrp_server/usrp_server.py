@@ -2815,8 +2815,11 @@ class RadarHardwareManager:
                           channel.bb_export["antenna_list"] = self.antenna_idx_list_main[jrad] + self.antenna_idx_list_back[jrad]
                           channel.bb_export['nSamples'] = nSamples_bb
                           channel.bb_export['nSequences_per_period'] = channel.resultDict_list[-1]['nSequences_per_period']
-                          channel.bb_export['sequence_start_time_secs'] = channel.resultDict_list[-1]['sequence_start_time_secs']
-                          channel.bb_export['sequence_start_time_usecs'] = channel.resultDict_list[-1]['sequence_start_time_usecs']
+                          seq_pulse_times = self.usrpManager.pulse_times[jrad]
+                          seq_start_time_sec = np.array(seq_pulse_times, dtype=np.uint64)
+                          seq_start_time_usec = np.array(np.fix((np.array(seq_pulse_times) - seq_start_time_sec)*1e6), dtype=np.uint32)
+                          channel.bb_export['sequence_start_time_secs'] = seq_start_time_sec
+                          channel.bb_export['sequence_start_time_usecs'] = seq_start_time_usec
                           channel.bb_export['nbb_rx_samples_per_sequence'] = channel.resultDict_list[-1]['nbb_rx_samples_per_sequence']
 
                           channel.write_bb_data()
