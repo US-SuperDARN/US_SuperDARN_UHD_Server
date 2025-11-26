@@ -2831,7 +2831,7 @@ class RadarHardwareManager:
 
                  # save IF raw data
                  for channel in self.channels[jrad]:
-                    if channel.processing_state == CS_PROCESSING and os.path.isfile("/collect.if.{:c}".format(96+channel.cnum)):
+                    if channel.processing_state == CS_PROCESSING and os.path.isfile("./collect.if.{}.{:c}".format(channel.ststr,96+channel.cnum)):
                        channel.logger.warning("radar {} ch {} saving raw IF samples.".format(channel.rnum, channel.cnum))
                        channel.get_if_data()
                        channel.write_if_data()
@@ -3741,43 +3741,45 @@ class RadarChannelHandler:
 
 
     def get_if_data(channel):
-      RHM = channel.parent_RadarHardwareManager
-      # CUDA_GET_IF_DATA
-      channel.logger.debug('start CUDA_GET_IF_DATA')
-      jrad=channel.rnum
-      cmd = cuda_get_if_data_command(RHM.cudasocks[channel.nrad], RHM.swingManager.processingSwing)
-      cmd.transmit()
-      time.sleep(0.001)
+        RHM = channel.parent_RadarHardwareManager
+        # CUDA_GET_IF_DATA
+        channel.logger.debug('start CUDA_GET_IF_DATA')
+        jrad = channel.rnum
+        cmd = cuda_get_if_data_command(RHM.cudasocks[jrad], RHM.swingManager.processingSwing)
+        cmd.transmit()
+        time.sleep(0.001)
 
-      if_samples = None
-      all_antenna_list = RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad]
-      for cudasock in RHM.cudasocks[channel.rnum]:
-          nAntennas = recv_dtype(cudasock, np.uint32)
+        if_samples = None
+        all_antenna_list = RHM.antenna_idx_list_main[jrad] + RHM.antenna_idx_list_back[jrad]
+        for cudasock in RHM.cudasocks[jrad]:
+            nAntennas = recv_dtype(cudasock, np.uint32)
 
-          if channel.processing_state == CS_PROCESSING:
-              transmit_dtype(cudasock, channel.cnum, np.int32)
+            if channel.processing_state == CS_PROCESSING:
+                transmit_dtype(cudasock, channel.cnum, np.int32)
 
-              for iAntenna in range(nAntennas):
-                  antIdx = recv_dtype(cudasock, np.uint16)
-                  nSamples_if = int(recv_dtype(cudasock, np.uint32) )
-                  channel.logger.debug("Receiving {} if samples.".format(nSamples_if))
-                  if if_samples is None:
-                     if_samples = np.zeros((nAntennas, nSamples_if), dtype=np.float32)
+                for iAntenna in range(nAntennas):
+                    antIdx = recv_dtype(cudasock, np.uint16)
+                    nSamples_if = int(recv_dtype(cudasock, np.uint32))
+                    channel.logger.debug("Receiving {} if samples (antenna {}).".format(nSamples_if, antIdx))
+                    if if_samples is None:
+                        if_samples = np.zeros((len(all_antenna_list), nSamples_if), dtype=np.float32)
 
-                  samples = recv_dtype(cudasock, np.float32, nSamples_if )
-#                  samples = samples[0::2] + 1j * samples[1::2] # TODO change to match export format. i/q int32 ????
+                    samples = recv_dtype(cudasock, np.float32, nSamples_if)
+                    channel.logger.debug("Received {} if samples (antenna {}).".format(len(samples), antIdx))
+                    # TODO change to match export format. i/q int32 ????
+                    #samples = samples[0::2] + 1j * samples[1::2]
 
-                  # TODO add back array
-                  iAntenna = all_antenna_list.index(antIdx)
-                  if_samples[iAntenna] = samples[:]
+                    # TODO add back array
+                    iAntenna = all_antenna_list.index(antIdx)
+                    if_samples[iAntenna] = samples[:]
 
-          transmit_dtype(cudasock, -1, np.int32) # to end transfer process
+            transmit_dtype(cudasock, -1, np.int32) # to end transfer process
 
-          cmd.client_return()
-          channel.raw_export_data['data'] = if_samples * RHM.scaling_factor_rx_if[channel.rnum]
-          channel.raw_export_data['nAntennas'] = nAntennas
-          channel.raw_export_data['nSamples'] = nSamples_if
-          channel.logger.debug('end CUDA_GET_IF_DATA')
+            cmd.client_return()
+            channel.raw_export_data['data'] = if_samples * RHM.scaling_factor_rx_if[jrad]
+            channel.raw_export_data['nAntennas'] = nAntennas
+            channel.raw_export_data['nSamples'] = nSamples_if
+            channel.logger.debug('end CUDA_GET_IF_DATA')
 
 
     def write_bb_data(channel):
@@ -3846,7 +3848,7 @@ class RadarChannelHandler:
     def write_if_data(channel):
         channel.logger.debug('start saving IF samples')
         time_now = datetime.datetime.now()
-        version = 2
+        version = 3
         RECV_SAMPLE_HEADER = 0 # TODO is this an offset???
         hardwareManager = channel.parent_RadarHardwareManager
 
@@ -3854,10 +3856,12 @@ class RadarChannelHandler:
         if not os.path.isdir(savePath):
             os.mkdir(savePath)
 
-        fileName = '{:04d}{:02d}{:02d}{:02d}{:02d}.{:d}.iraw.{:c}'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute, channel.rnum, 96+channel.cnum)
+        fileName = '{:04d}{:02d}{:02d}.{:02d}{:02d}.{}.{:c}.iraw'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute, channel.ststr, 96+channel.cnum)
 
         exportList = []
         exportList.append( version )
+        exportList.append( channel.stid )
+        exportList.append( channel.cnum )
         exportList.append( time_now.year )
         exportList.append( time_now.month )
         exportList.append( time_now.day )
@@ -3888,8 +3892,8 @@ class RadarChannelHandler:
 
         print(exportList)
 
-        for iAntenna in range(channel.oversample_export_data['nAntennas']):
-            channel.oversample_export_data['data'][iAntenna].tofile(rawFile)
+        for iAntenna in range(channel.raw_export_data['nAntennas']):
+            channel.raw_export_data['data'][iAntenna].tofile(rawFile)
 
         rawFile.close()
         time_end = datetime.datetime.now()
