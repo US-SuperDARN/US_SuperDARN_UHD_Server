@@ -176,7 +176,7 @@ class usrpSockManager():
       self.RHM = RHM
       self.logger = logging.getLogger("usrpManager")
 
-      self.nUSRPs = len(RHM.ini_usrp_configs) # TODO should this be all USRPs or only active?
+      self.nUSRPs = np.zeros(RHM.N_RADARs, dtype=int)
       self.fault_status = np.zeros(self.nUSRPs)
       self.errors_in_a_row = 0
       self.error_limit = 15
@@ -187,6 +187,7 @@ class usrpSockManager():
       for usrpConfig in RHM.ini_usrp_configs:
          self.logger.debug("USRP {} {}".format(usrpConfig['usrp_hostname'], usrpConfig['array_idx']))
          jrad = int(usrpConfig["radar"])
+         self.nUSRPs[jrad] += 1
          try:
             if usrpConfig['usrp_hostname'] in self.hostnameList_active[jrad]:
                self.logger.debug("Already connected to USRP {}".format(usrpConfig['usrp_hostname']))
@@ -228,6 +229,8 @@ class usrpSockManager():
                self.antennaList_inactive[jrad].append([usrpConfig['array_idx']])
                self.hostnameList_inactive[jrad].append(usrpConfig['usrp_hostname'])
                self.driverHostnameList_inactive[jrad].append(usrpConfig['driver_hostname'])
+
+      self.fault_status = np.zeros((RHM.N_RADARs, max(self.nUSRPs)), dtype=int)
 
       SomeActiveUSRPs=False
       for jrad in range(RHM.N_RADARs):
@@ -2962,7 +2965,7 @@ class RadarHardwareManager:
            antenna_list_offset = 0
            for iUSRP, ready_return in enumerate(payloadList):
               if ready_return == CONNECTION_ERROR:
-                 self.usrpManager.fault_status[iUSRP] = True
+                 self.usrpManager.fault_status[jrad][iUSRP] = True
                  self.logger.error('connection to USRP broke in GET_DATA for radar {}'.format(jrad))
                  antenna_list_offset += 1
               else:
@@ -2990,7 +2993,7 @@ class RadarHardwareManager:
                  else:
                     all_usrps_report_failure = False
 
-                 self.usrpManager.fault_status[iUSRP] = ready_return["fault"]
+                 self.usrpManager.fault_status[jrad][iUSRP] = ready_return["fault"]
 
                  self.logger.debug('GET_DATA rx status {}'.format(rx_status))
                  if rx_status != 2:
@@ -4167,12 +4170,18 @@ class RadarChannelHandler:
         transmit_dtype(self.conn, badtrdat_start_usec,                np.uint32) # length badtrdat_len
         transmit_dtype(self.conn, resultDict['pulse_lens'],           np.uint32) # length badtrdat_len
 
-        # stuff these with junk, they don't seem to be used..
-        num_transmitters = self.parent_RadarHardwareManager.usrpManager.nUSRPs   # TODO update for polarization?
-        txstatus_agc = self.parent_RadarHardwareManager.usrpManager.fault_status # TODO is this the right way to return fault status????
-        txstatus_lowpwr = np.zeros(num_transmitters)
-        if txstatus_agc.any():
-            self.logger.warning('Following USRPs report Fault: {} (usrp index)'.format([k for k in range(txstatus_agc.size) if txstatus_agc[k] != 0]))
+        num_transmitters = self.parent_RadarHardwareManager.usrpManager.nUSRPs[self.rnum]
+        txstatus_agc = np.zeros(num_transmitters, dtype=np.int32)
+        txstatus_lowpwr = np.zeros(num_transmitters, dtype=np.int32)
+
+        # transmit active main and int antennas as txstatus agc and lowpwr respectively
+        tmp_ant = [int(ant) for row in self.parent_RadarHardwareManager.usrpManager.antennaList_active[self.rnum] for ant in row]
+        for ant in tmp_ant:
+            if not ant in self.parent_RadarHardwareManager.mute_antenna_list[self.rnum]:
+                if ant < 16:
+                    txstatus_agc[ant] = 1
+                else:
+                    txstatus_lowpwr[ant] = 1
 
         transmit_dtype(self.conn, num_transmitters, np.int32)
         transmit_dtype(self.conn, txstatus_agc,     np.int32) # length num_transmitters
