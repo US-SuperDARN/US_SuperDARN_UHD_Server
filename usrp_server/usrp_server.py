@@ -3461,9 +3461,10 @@ class RadarChannelHandler:
                    status = rmsg_handlers[command](rmsg)
                else:
                    status = self.DefaultHandler(rmsg)
-            except:
+            except Exception as error:
                 self.logger.error('radar {} ch {}: Error while command {} ({}). Removing this channel'.format(self.rnum, self.cnum, RMSG_COMMAND_NAMES[command], command))
                 self.logger.error("Error: {}".format(sys.exc_info()[0]))
+                self.logger.exception(error)
                 print(sys.exc_info()[0])
                 raise
                 self.close()
@@ -4181,7 +4182,7 @@ class RadarChannelHandler:
         transmit_dtype(self.conn, badtrdat_start_usec,                np.uint32) # length badtrdat_len
         transmit_dtype(self.conn, resultDict['pulse_lens'],           np.uint32) # length badtrdat_len
 
-        num_transmitters = self.parent_RadarHardwareManager.usrpManager.nUSRPs[self.rnum]
+        num_transmitters = 20
         txstatus_agc = np.zeros(num_transmitters, dtype=np.int32)
         txstatus_lowpwr = np.zeros(num_transmitters, dtype=np.int32)
 
