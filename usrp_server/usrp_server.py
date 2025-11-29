@@ -3451,9 +3451,10 @@ class RadarChannelHandler:
                    status = rmsg_handlers[command](rmsg)
                else:
                    status = self.DefaultHandler(rmsg)
-            except:
+            except Exception as error:
                 self.logger.error('radar {} ch {}: Error while command {} ({}). Removing this channel'.format(self.rnum, self.cnum, RMSG_COMMAND_NAMES[command], command))
                 self.logger.error("Error: {}".format(sys.exc_info()[0]))
+                self.logger.exception(error)
                 print(sys.exc_info()[0])
                 raise
                 self.close()
