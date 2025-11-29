@@ -4171,7 +4171,7 @@ class RadarChannelHandler:
         transmit_dtype(self.conn, badtrdat_start_usec,                np.uint32) # length badtrdat_len
         transmit_dtype(self.conn, resultDict['pulse_lens'],           np.uint32) # length badtrdat_len
 
-        num_transmitters = self.parent_RadarHardwareManager.usrpManager.nUSRPs[self.rnum]
+        num_transmitters = 20
         txstatus_agc = np.zeros(num_transmitters, dtype=np.int32)
         txstatus_lowpwr = np.zeros(num_transmitters, dtype=np.int32)
 
