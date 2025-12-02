@@ -9,10 +9,16 @@ def recv_dtype(sock, dtype, nitems = 1):
     if dtype == str:
         data = sock.recv(nitems, socket.MSG_WAITALL)
     else:
-        dstr = sock.recv(dtype().nbytes * nitems, socket.MSG_WAITALL)
-        if verbose:
-            print(' => {}  received ?? as {} ({} / {}  bytes): {}'.format(__file__, dtype, len(dstr), dtype().nbytes * nitems , dstr))
-        data = np.fromstring(dstr, dtype=dtype, count=nitems)
+        expected_len = dtype().nbytes * nitems
+        data_len = 0
+        data_str = []
+        while data_len < expected_len:
+            dstr = sock.recv(expected_len - data_len)
+            if verbose:
+                print(' => {}  received ?? as {} ({} / {}  bytes): {}'.format(__file__, dtype, len(dstr), dtype().nbytes * nitems , dstr))
+            data_len += len(dstr)
+            data_str.append(dstr)
+        data = np.frombuffer(b''.join(x for x in data_str), dtype=dtype, count=nitems)
     #except ValueError:
     #    import logging
     #    print('timed out waiting for ' + str(dtype))

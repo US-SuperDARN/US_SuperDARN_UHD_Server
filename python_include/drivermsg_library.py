@@ -126,8 +126,9 @@ class driver_command(object):
                    assert r == self.command, 'return {} does not match expected command of {}'.format(r, self.command)
 
                returns.append(r)
-            except:
+            except Exception as error:
                self.logger.error("Error receiving client_return for command '{}'({}) from client {}:{}".format(chr(self.command), self.command, client.getsockname()[0], client.getsockname()[1]))
+               self.logger.exception(error)
               # pdb.set_trace()
                returns.append(CONNECTION_ERROR)
 
