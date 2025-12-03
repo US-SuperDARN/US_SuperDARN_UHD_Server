@@ -287,7 +287,7 @@ class cuda_generate_pulse_command(driver_command):
 
 # re-initialize the usrp driver for a new pulse sequence
 class usrp_setup_command(driver_command):
-    def __init__(self, usrps, txfreq, rxfreq, txrate, rxrate, npulses, num_requested_rx_samples, num_pause_samples, num_auto_clear_freq, num_requested_tx_samples, pulse_offsets_vector, swing):
+    def __init__(self, usrps, txfreq, rxfreq, txrate, rxrate, npulses, nsequences, num_requested_rx_samples, num_pause_samples, num_auto_clear_freq, num_requested_tx_samples, pulse_offsets_vector, swing):
         driver_command.__init__(self, usrps, UHD_SETUP)
 
         self.queue(swing,  np.int16,   'swing')
@@ -296,6 +296,7 @@ class usrp_setup_command(driver_command):
         self.queue(txrate, np.float64, 'txrate')
         self.queue(rxrate, np.float64, 'rxrate')
         self.queue(npulses, np.uint32, 'npulses')
+        self.queue(nsequences, np.uint32, 'nsequences')
         self.queue(num_requested_rx_samples, np.uint64, 'num_requested_rx_samples')
         self.queue(num_pause_samples, np.uint64, 'num_pause_samples')
         self.queue(num_auto_clear_freq, np.uint64, 'num_auto_clear_freq')
@@ -334,14 +335,16 @@ class usrp_trigger_pulse_command(driver_command):
 
 # command usrp drivers to ready rx sample data into shared memory
 class usrp_ready_data_command(driver_command):
-    def __init__(self, usrps, swing):
+    def __init__(self, usrps, swing, nsequences):
         driver_command.__init__(self, usrps, UHD_READY_DATA)
         self.queue(swing, np.int16, 'swing')
+        self.nsequences = nsequences
 
 
     def receive_all_metadata(self):
        payloadList = []
-       for sock in self.clients:
+       pulse_times = [[] for i in range(len(self.clients))]
+       for isock, sock in enumerate(self.clients):
            self.logger.debug("receive metadata for {}".format(sock))
            try:
               payload = {}
@@ -349,12 +352,15 @@ class usrp_ready_data_command(driver_command):
               payload['antenna']  = recv_dtype(sock, np.int32)
               payload['nsamples'] = recv_dtype(sock, np.int32)
               payload['fault']    = recv_dtype(sock, np.bool_)
+              for seq in range(self.nsequences):
+                  ptime = recv_dtype(sock, np.float64)
+                  pulse_times[isock].append(ptime)
               payloadList.append(payload)
               # print("usrp_ready_data_command: ",payload)
            except:
               payloadList.append(CONNECTION_ERROR)
               self.logger.error("Error receiving metadata for {}".format(sock))
-       return payloadList
+       return payloadList, pulse_times
 
 
     def recv_metadata(self, sock):

@@ -183,6 +183,8 @@ class usrpSockManager():
       self.nSeconds_retry_reconnect = 60
       self.last_reconnection = datetime.datetime.now()
 
+      self.pulse_times = [[] for jrad in range(RHM.N_RADARs)]
+
       # open each
       for usrpConfig in RHM.ini_usrp_configs:
          self.logger.debug("USRP {} {}".format(usrpConfig['usrp_hostname'], usrpConfig['array_idx']))
@@ -2063,7 +2065,7 @@ class RadarHardwareManager:
                                 self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
                                 self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
                                 self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, \
-                                1, 0, 0, 0, 0, [0], 0)
+                                1, 1, 0, 0, 0, 0, [0], 0)
        cmd.transmit()
 
        try:
@@ -2577,6 +2579,7 @@ class RadarHardwareManager:
                                           self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
                                           self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, \
                                           self.nPulses_per_integration_period, \
+                                          self.nSequences_per_period, \
                                           channel.nrf_rx_samples_per_integration_period, \
                                           nSamples_pause_before_autoclearfreq, nSamples_clear_freq, \
                                           nSamples_per_pulse, \
@@ -2815,8 +2818,11 @@ class RadarHardwareManager:
                           channel.bb_export["antenna_list"] = self.antenna_idx_list_main[jrad] + self.antenna_idx_list_back[jrad]
                           channel.bb_export['nSamples'] = nSamples_bb
                           channel.bb_export['nSequences_per_period'] = channel.resultDict_list[-1]['nSequences_per_period']
-                          channel.bb_export['sequence_start_time_secs'] = channel.resultDict_list[-1]['sequence_start_time_secs']
-                          channel.bb_export['sequence_start_time_usecs'] = channel.resultDict_list[-1]['sequence_start_time_usecs']
+                          seq_pulse_times = self.usrpManager.pulse_times[jrad]
+                          seq_start_time_sec = np.array(seq_pulse_times, dtype=np.uint64)
+                          seq_start_time_usec = np.array(np.fix((np.array(seq_pulse_times) - seq_start_time_sec)*1e6), dtype=np.uint32)
+                          channel.bb_export['sequence_start_time_secs'] = seq_start_time_sec
+                          channel.bb_export['sequence_start_time_usecs'] = seq_start_time_usec
                           channel.bb_export['nbb_rx_samples_per_sequence'] = channel.resultDict_list[-1]['nbb_rx_samples_per_sequence']
 
                           channel.write_bb_data()
@@ -2938,7 +2944,7 @@ class RadarHardwareManager:
 
               self.logger.debug("socks: {}".format(self.usrpManager.socks[jrad]))
 
-              cmd = usrp_ready_data_command(self.usrpManager.socks[jrad], self.swingManager.activeSwing)
+              cmd = usrp_ready_data_command(self.usrpManager.socks[jrad], self.swingManager.activeSwing, self.nSequences_per_period)
               cmd.transmit()
               cmd_list.append(cmd)
               jrad_list.append(jrad)
@@ -2959,7 +2965,7 @@ class RadarHardwareManager:
 
            # check status of usrp drivers
            self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
-           payloadList = self.usrpManager.eval_client_return(cmd, jrad, fcn=cmd.receive_all_metadata)
+           payloadList, pulse_times = self.usrpManager.eval_client_return(cmd, jrad, fcn=cmd.receive_all_metadata)
            self.logger.debug('end receiving all USRP status for radar {}'.format(jrad))
 
            antenna_list_offset = 0
@@ -2999,6 +3005,10 @@ class RadarHardwareManager:
                  if rx_status != 2:
                     self.logger.error('USRP driver status {} in GET_DATA'.format(rx_status))
                     #status = USRP_DRIVER_ERROR # TODO: understand what is an error here..
+
+           self.usrpManager.pulse_times[jrad] = []
+           for seq in range(len(pulse_times[0])):
+              self.usrpManager.pulse_times[jrad].append(pulse_times[0][seq])
 
            self.usrpManager.watchdog(all_usrps_report_failure)
 
@@ -4162,6 +4172,7 @@ class RadarChannelHandler:
 
         rd_shallow = self.resultDict_list[-1]
         resultDict = copy.deepcopy(self.resultDict_list.pop())
+        pulse_times = copy.deepcopy(self.parent_RadarHardwareManager.usrpManager.pulse_times[self.rnum])
 
         transmit_dtype(self.conn, resultDict['nSequences_per_period'], np.uint32)
         self.logger.debug("transmitting number of sequences in period: {}".format(resultDict['nSequences_per_period']))
@@ -4189,14 +4200,17 @@ class RadarChannelHandler:
         transmit_dtype(self.conn, txstatus_lowpwr,  np.int32) # length num_transmitters
 
         # transmit trigger time
-        time_struct = time.gmtime(resultDict['sequence_start_time_secs'][0])
+        first_pulse_time = pulse_times[0]
+        first_pulse_usec = int((first_pulse_time - int(first_pulse_time))*1e6)
+
+        time_struct = time.gmtime(first_pulse_time)
         transmit_dtype(self.conn, time_struct.tm_year, np.int32)
         transmit_dtype(self.conn, time_struct.tm_mon, np.int32)
         transmit_dtype(self.conn, time_struct.tm_mday, np.int32)
         transmit_dtype(self.conn, time_struct.tm_hour, np.int32)
         transmit_dtype(self.conn, time_struct.tm_min, np.int32)
         transmit_dtype(self.conn, time_struct.tm_sec, np.int32)
-        transmit_dtype(self.conn, resultDict['sequence_start_time_usecs'][0], np.int32)
+        transmit_dtype(self.conn, first_pulse_usec, np.int32)
 
         # print main info of sequence
         for item in resultDict['ctrlprm_dataqueue']:
@@ -4207,12 +4221,15 @@ class RadarChannelHandler:
         # send back samples with pulse start times
         self.logger.debug('GET_DATA returning samples for {} pulses'.format(resultDict['nSequences_per_period']))
 
+        seq_start_time_sec = np.array(pulse_times, dtype=np.uint32)
+        seq_start_time_usec = np.fix((np.array(pulse_times) - seq_start_time_sec)*1e6)
+
         for iSequence in range(resultDict['nSequences_per_period']):
-            # self.logger.debug('GET_DATA sending samples for seq {} time: {}'.format(iSequence, resultDict['sequence_start_time_secs'][iSequence]+resultDict['sequence_start_time_usecs'][iSequence]/1.e6))
+            # self.logger.debug('GET_DATA sending samples for seq {} time: {}'.format(iSequence, seq_start_time_sec[iSequence] + seq_start_time_usec[iSequence]/1.e6))
 
             #self.logger.debug('GET_DATA sending sequence start time')
-            transmit_dtype(self.conn, resultDict['sequence_start_time_secs'][iSequence],  np.uint32)
-            transmit_dtype(self.conn, resultDict['sequence_start_time_usecs'][iSequence], np.uint32)
+            transmit_dtype(self.conn, seq_start_time_sec[iSequence], np.uint32)
+            transmit_dtype(self.conn, seq_start_time_usec[iSequence], np.uint32)
 
             # calculate the baseband sample index for the start and end of a pulse sequence
             # within a block of beamformed samples over the entire integration period
