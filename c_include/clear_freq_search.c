@@ -168,7 +168,7 @@ void convolve(double* u, int u_size, int* v, int v_size, double* result) {
         for (int j = 0; j < v_size; j++) {
             result[i] += v[j] * u[i + j]; // result[i + (int) v_size] += ...
         }
-        // result[i] /= v_size;
+        result[i] /= v_size;
     }
 }
 
