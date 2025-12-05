@@ -712,9 +712,11 @@ class ProcessingGPU(object):
                 channelFreqVec[iChannel] = -(self.sequences[swing][iChannel].ctrlprm['rfreq']*1000 - self.usrp_mixing_freq[swing]) # use negative frequency here since filter is not time inverted for convolution
                 self.logger.debug('generating rx filter for ch {}: {} kHz (USRP baseband: {} kHz)'.format(iChannel, self.sequences[swing][iChannel].ctrlprm['rfreq'], self.sequences[swing][iChannel].ctrlprm['rfreq'] - self.usrp_mixing_freq[swing] /1000))
 
-        self.rx_filtertap_rfif = RF_IF_GAIN * dsp_filters.kaiser_filter_s0(self.ntaps_rfif, channelFreqVec, beta=self.S0_beta, gain=self.S0_gain)
+        self.rx_filtertap_rfif = RF_IF_GAIN * dsp_filters.CIC_filter(channelFreqVec, decimationRate_rf2if, self.ntap_rf_if_factor)
+        # self.rx_filtertap_rfif = RF_IF_GAIN * dsp_filters.kaiser_filter_s0(self.ntaps_rfif, channelFreqVec, beta=self.S0_beta, gain=self.S0_gain)
 
-        self.rx_filtertap_ifbb = IF_BB_GAIN * dsp_filters.kaiser_filter_r0(self.ntaps_ifbb, channelFreqVec, beta=self.R0_beta, gain=self.R0_gain)
+        self.rx_filtertap_ifbb = IF_BB_GAIN * dsp_filters.CIC_filter(channelFreqVec, decimationRate_if2bb, self.ntap_if_bb_factor)
+        # self.rx_filtertap_ifbb = IF_BB_GAIN * dsp_filters.kaiser_filter_r0(self.ntaps_ifbb, channelFreqVec, beta=self.R0_beta, gain=self.R0_gain)
 
         # copy filters to GPU
         cuda.memcpy_htod(self.cu_rx_filtertaps_rfif[swing], self.rx_filtertap_rfif)

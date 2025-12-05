@@ -78,6 +78,33 @@ def kaiser_filter_r0(nTaps, channelFreqVec, normalize = True, beta=5, gain=3.73)
     return filterData
 
 
+def CIC_filter(channelFreqVec, nDecimate, nPasses):
+
+    nTaps = nDecimate*nPasses
+    freq = np.linspace(-0.5,0.5,num=nTaps,dtype=np.float64)
+    nzpts = freq != 0
+    Hcic = np.zeros(nTaps)
+    Hcic[nzpts] = np.sin(np.pi*freq[nzpts]*nDecimate)/np.sin(np.pi*freq[nzpts])
+
+    if any(freq == 0):
+        zpts = freq == 0
+        Hcic[zpts] = nDecimate
+
+    Hcic = np.power(Hcic,nPasses)
+
+    hCIC = np.fft.fftshift(np.fft.fft(Hcic,norm="ortho"))
+    hCIC /= np.sum(np.abs(hCIC))
+
+    filterData = np.zeros((len(channelFreqVec), nTaps,2), dtype=np.float32)
+    for iChannel, channelFreq in enumerate(channelFreqVec):
+        if channelFreq != None:
+            for iTap in range(nTaps):
+                filterData[iChannel,iTap,0] = np.abs(hCIC[iTap])
+                filterData[iChannel,iTap,1] = np.abs(hCIC[iTap])
+
+    return(filterData)
+
+
 def raisedCosine_filter(nTaps, nChannels, normalize = True):
     alpha = 0.22
     filterData = np.zeros((nChannels, nTaps, 2), dtype=np.float32)
