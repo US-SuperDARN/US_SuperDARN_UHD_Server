@@ -44,7 +44,6 @@ USRP_SERVER_HOST = 'localhost'
 
 MAX_CHANNELS = 4
 USRP_BANDWIDTH_RESTRICTION = 300000 # in Hz. No channels allowed on both edges of the URSP bandwidth to avoid aliasing
-USRP_SOCK_TIMEOUT = 2.5 # sec
 
 RMSG_SUCCESS = 0
 RMSG_FAILURE = -1
@@ -180,6 +179,7 @@ class usrpSockManager():
       self.fault_status = np.zeros(self.nUSRPs)
       self.errors_in_a_row = 0
       self.error_limit = 15
+      self.sock_timeout = 2.5
       self.nSeconds_retry_reconnect = 60
       self.last_reconnection = datetime.datetime.now()
 
@@ -207,12 +207,12 @@ class usrpSockManager():
                usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+               if self.sock_timeout != None:
+                  usrpsock.settimeout(self.sock_timeout)
                time.sleep(0.002)
                usrpsock.connect(connectPar)
                self.logger.debug('USRP server connection {}:{}'.format(usrpConfig['driver_hostname'], port))
 
-               if USRP_SOCK_TIMEOUT != None:
-                  usrpsock.settimeout(USRP_SOCK_TIMEOUT)
                self.socks[jrad].append(usrpsock)
                self.addressList_active[jrad].append(connectPar)
                self.antennaList_active[jrad].append([usrpConfig['array_idx']])
@@ -387,6 +387,8 @@ class usrpSockManager():
                usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+               if self.sock_timeout != None:
+                  usrpsock.settimeout(self.sock_timeout)
                time.sleep(0.002)
                usrpsock.connect(usrp)
 
@@ -3634,6 +3636,7 @@ class RadarChannelHandler:
                     break
                 runlen += 1
             return runlen
+
 
         self.logger.debug('Entering RegisterSeqHandler for radar {} ch {}'.format(self.rnum, self.cnum))
 
