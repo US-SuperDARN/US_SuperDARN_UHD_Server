@@ -1912,6 +1912,9 @@ class RadarHardwareManager:
                          while (active_ch not in (self.channels[jrad] + self.newChannelList)):
                             self.logger.info("Waiting for radar {} ch {} to be added to newChannelList".format(jrad, active_ch.cnum))
                             time.sleep(0.01)
+                            if active_ch not in self.active_channels[jrad]:
+                               self.logger.info("radar {} ch {} no longer active".format(jrad, active_ch.cnum))
+                               break
 
                    while (self.n_SetParameterHandlers_active):
                       self.logger.debug("Waiting for all {} SetParameterHandlers to finish before initializing new channels".format(self.n_SetParameterHandlers_active))
