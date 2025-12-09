@@ -4105,11 +4105,11 @@ class RadarChannelHandler:
             if (not all(parCompatibleList_seq)) or (not all(parCompatibleList_ctrl)) or (pulseLength != hardwareManager.commonChannelParameter['pulseLength']):
                 self.logger.error('Unable to add new channel. Parameters not compatible with active channels.')
                 for iPar, isCompatible in enumerate(parCompatibleList_seq):
-                     if not all(isCompatible):
-                        self.logger.error(" Not compatible sequence parameter: {}   old channel(s): {}, new channel: {}".format(commonParameterList_seq[iPar], hardwareManager.commonChannelParameter[commonParameterList_seq[iPar]], getattr(self, commonParameterList_seq[iPar])))
+                     if not isCompatible:
+                        self.logger.error(" Not compatible sequence parameter: {}   old channel(s): {}, new channel: {}".format(commonParList_seq[iPar], hardwareManager.commonChannelParameter[commonParList_seq[iPar]], getattr(self, commonParList_seq[iPar])))
                 for iPar, isCompatible in enumerate(parCompatibleList_ctrl):
                      if not isCompatible:
-                        self.logger.error(" Not compatible ctrlprm: {}   old channel(s): {}, new channel: {}".format(commonParameterList_ctrl[iPar], hardwareManager.commonChannelParameter[commonParameterList_ctrl[iPar]], self.ctrlprm_struct.payload[commonParameterList_ctrl[iPar]]))
+                        self.logger.error(" Not compatible ctrlprm: {}   old channel(s): {}, new channel: {}".format(commonParList_ctrl[iPar], hardwareManager.commonChannelParameter[commonParList_ctrl[iPar]], self.ctrlprm_struct.payload[commonParList_ctrl[iPar]]))
                 if pulseLength != hardwareManager.commonChannelParameter['pulseLength']:
                     self.logger.error(" Pulse length of new channel ({}) is not compatible to old channel(s) ({})".format(pulseLength, hardwareManager.commonChannelParameter['pulseLength']))
                 return False
