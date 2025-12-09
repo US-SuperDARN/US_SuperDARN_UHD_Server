@@ -4346,6 +4346,15 @@ class RadarChannelHandler:
            scan_times_list = None
            self.logger.debug('SetActiveHandler: no time sync of beams')
 
+        self.parent_RadarHardwareManager.usrp_setup_semaphore.acquire()
+        if integration_time > self.parent_RadarHardwareManager.usrpManager.sock_timeout:
+            self.logger.debug('SetActiveHandler: increasing USRP sock timeout ({} s)'.format(integration_time+0.1))
+            self.parent_RadarHardwareManager.usrpManager.sock_timeout = integration_time + 0.1
+            socks = np.concatenate(self.parent_RadarHardwareManager.usrpManager.socks).tolist()
+            for usrpsock in socks:
+                usrpsock.settimeout(self.parent_RadarHardwareManager.usrpManager.sock_timeout)
+        self.parent_RadarHardwareManager.usrp_setup_semaphore.release()
+
         if self.scanManager.camping:
             # if camping==True control progam uses SetActive for every new beam but no paramater should change
             # in this case skip reset of scanManager and swingManager to be able to use two swings parallel
