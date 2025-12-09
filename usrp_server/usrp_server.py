@@ -4033,7 +4033,7 @@ class RadarChannelHandler:
         if all([self.pulse_lens[0]==self.pulse_lens[i] for i in range(1,len(self.pulse_lens))]):
             pulseLength = self.pulse_lens[0]
         else:
-            self.logger.error("Pulse lengths in one sequence have to be the equal!") # TODO raise error?
+            self.logger.error("Pulse lengths in one sequence have to be equal!") # TODO raise error?
             pdb.set_trace()
             return False
 
@@ -4089,6 +4089,10 @@ class RadarChannelHandler:
             return True
 
         else:   # not first channel => check if new parameters are compatible
+
+            if self.npulses_per_sequence != hardwareManager.commonChannelParameter['npulses_per_sequence']:
+                self.logger.error('Number of pulses in each sequence must be equal ({} != {})'.format(self.npulses_per_sequence, hardwareManager.commonChannelParameter['npulses_per_sequence']))
+                return False
 
             try:
                 parCompatibleList_seq = [hardwareManager.commonChannelParameter[parameter] == getattr(self, parameter) for parameter in commonParList_seq]
