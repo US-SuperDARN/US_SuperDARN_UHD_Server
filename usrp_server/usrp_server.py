@@ -3012,8 +3012,10 @@ class RadarHardwareManager:
                     #status = USRP_DRIVER_ERROR # TODO: understand what is an error here..
 
            self.usrpManager.pulse_times[jrad] = []
-           for seq in range(len(pulse_times[0])):
-              self.usrpManager.pulse_times[jrad].append(pulse_times[0][seq])
+           time_len = [len(i) for i in pulse_times]
+           time_idx = time_len.index(max(time_len))
+           for seq in range(len(pulse_times[time_idx])):
+              self.usrpManager.pulse_times[jrad].append(pulse_times[time_idx][seq])
 
            self.usrpManager.watchdog(all_usrps_report_failure)
 
