@@ -1726,7 +1726,6 @@ class scanManager():
 
 
     def evaluate_clear_freq(self, jrad, cnum, iPeriod, beamNo):
-        # TODO make sure this function is only called once at a time
         RHM = self.RHM
 
         RHM.clearFreqRawDataManager.select_clear_freq.acquire()
@@ -1819,7 +1818,7 @@ class RadarHardwareManager:
 
         self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.usrpManager, self.N_RADARs)
         for jrad in range(self.N_RADARs):
-           self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad]) # TODO check if this also works after reconnection to a usrp (copy or reference?)
+           self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad])
 
            self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(self.avg_ratio * self.usrp_rf_rx_rate / self.clrfreq_res))
 
