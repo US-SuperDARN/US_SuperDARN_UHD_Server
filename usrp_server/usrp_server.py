@@ -1734,8 +1734,7 @@ class scanManager():
 
         rawData, metaData, recordTime = RHM.clearFreqRawDataManager.get_raw_data(jrad)
 
-        beam_angle = calc_beam_azm_rad(self.numBeams, beamNo, self.beamSep)
-        self.logger.debug("clear_freq_range: {} on radar {} beam {} angle {}".format(self.clear_freq_range_list[iPeriod], jrad, beamNo, beam_angle))
+        self.logger.debug("clear_freq_range: {} on radar {} ch {} beam {}".format(self.clear_freq_range_list[iPeriod], jrad, cnum, beamNo))
 
         self.logger.debug('start calc_clear_freq_on_raw_samples')
 
