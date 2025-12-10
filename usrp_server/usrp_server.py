@@ -179,7 +179,7 @@ class usrpSockManager():
       self.fault_status = np.zeros(self.nUSRPs)
       self.errors_in_a_row = 0
       self.error_limit = 15
-      self.sock_timeout = 2.5
+      self.sock_timeout = 3.0
       self.nSeconds_retry_reconnect = 60
       self.last_reconnection = datetime.datetime.now()
 
