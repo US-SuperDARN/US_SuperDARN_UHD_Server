@@ -4125,8 +4125,8 @@ class RadarChannelHandler:
                    hardwareManager.nRegisteredChannels += 1
                 return True
 
-        # TODO change usrp_xx_cfreq somewhere if possible
-        assert np.abs((ch.ctrlprm_struct.payload['tfreq'] * 1e3) - self.mixingFreqManager.current_mixing_freq[self.rnum]*1e6) < (self.usrp_rf_tx_rate / 2), 'transmit frequency outside range supported by sampling rate and center frequency'
+        # TODO change usrp_xx_cfreq somewhere if possible (EGT - this is never checked)
+        assert np.abs((self.ctrlprm_struct.payload['tfreq']*1e3) - hardwareManager.mixingFreqManager.current_mixing_freq[self.rnum]*1e3) < (hardwareManager.usrp_rf_tx_rate / 2), 'transmit frequency outside range supported by sampling rate and center frequency'
 
 
     # send ctrlprm struct
