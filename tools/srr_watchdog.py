@@ -159,7 +159,7 @@ while True:
        new_start = False
 
    if restart_server:
-       log("Age of usrp_server status file is {} seconds. Restarting all processes (with srr.py) ...".format(file_age))
+       log("Age of usrp_server status file is {:.3f} seconds. Restarting all processes (with srr.py) ...".format(file_age))
        time.sleep(10) # in case USRP_driver just shut down
        srr.restart_all()
        time.sleep(wait_after_restart_all)
