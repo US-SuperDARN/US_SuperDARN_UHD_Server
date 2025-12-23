@@ -1,6 +1,6 @@
 # Top level Makefile
 
-SUBDIRS= c_include usrp_driver
+SUBDIRS= cf_server usrp_driver
 
 all: build
 

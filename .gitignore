@@ -5,7 +5,7 @@
 tags
 dist/*
 
-cf_server
+cf_server/cf_server
 usrp_driver/usrp_driver
 
 save_spectra

@@ -17,8 +17,8 @@
 #define SAVE_CLR_LOG            0                       // 1 to store selected frequencies in CSV log files, 0 to skip
 
 // Filepaths Vars
-#define ARRAY_CONFIG_FILEPATH   "array_config.ini"
-#define DRIVER_CONFIG_FILEPATH  "driver_config.ini"
+#define ARRAY_CONFIG_FILEPATH   "../array_config.ini"
+#define DRIVER_CONFIG_FILEPATH  "../driver_config.ini"
 #define DEFAULT_SITE_STSTR      "lab"                   // Default site config to use if not passed from usrp_server
 
 // Default Length of Variables (some dynamically change during runtime)

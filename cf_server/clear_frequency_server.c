@@ -763,7 +763,7 @@ int main() {
     if (radar_num == 2) {
         strcpy(ststr[1], array_config.array_info.radar_stid_2);
         char array_name_2[128];
-        snprintf(array_name_2, sizeof(array_name_2), "config/%s/array_config__%s.ini", ststr[1], ststr[1]);
+        snprintf(array_name_2, sizeof(array_name_2), "../config/%s/array_config__%s.ini", ststr[1], ststr[1]);
         Config array_config_2 = {0};
         ini_check = ini_parse(array_name_2, config_ini_handler, &array_config_2);
         if (ini_check < 0) {

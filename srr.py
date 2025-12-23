@@ -626,8 +626,9 @@ def start_cuda_driver():
 
 def start_clear_frequency_server():
     myPrint("Starting clear_frequency_server...")
-    os.chdir(basePath)
+    os.chdir(os.path.join(basePath, "cf_server") )
     subprocess.Popen(['./cf_server'])
+    os.chdir(basePath)
 
 
 def start_usrp_server():
