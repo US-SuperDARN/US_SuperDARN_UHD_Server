@@ -2810,16 +2810,14 @@ class RadarHardwareManager:
                        # save BB samples to file
                        if os.path.isfile("./save.raw.bb"):
                           self.logger.info("Saving raw bb data to disk.")
-                          # for iChannel, channel in enumerate(self.channels):
+
                           channel.bb_export = dict()
                           channel.bb_export["main_samples"] = main_samples[iChannel]
                           channel.bb_export["back_samples"] = back_samples[iChannel]
                           channel.bb_export["nMainAntennas"] = nMainAntennas
                           channel.bb_export["nBackAntennas"] = nBackAntennas
                           channel.bb_export['number_of_samples'] = channel.resultDict_list[-1]['number_of_samples']
-                          channel.bb_export['number_of_sequences'] = channel.resultDict_list[-1]['npulses_per_sequence']
                           channel.bb_export["antenna_list"] = self.antenna_idx_list_main[jrad] + self.antenna_idx_list_back[jrad]
-                          channel.bb_export['nSamples'] = nSamples_bb
                           channel.bb_export['nSequences_per_period'] = channel.resultDict_list[-1]['nSequences_per_period']
                           seq_pulse_times = self.usrpManager.pulse_times[jrad]
                           seq_start_time_sec = np.array(seq_pulse_times, dtype=np.uint64)
@@ -3837,7 +3835,6 @@ class RadarChannelHandler:
         exportList += channel.raw_export_data['ppat']
         exportList.append( channel.raw_export_data['nbaud'])
         exportList += channel.raw_export_data['pcode']
-#       exportList.append(channel.bb_export['nSamples'])
         exportList.append(channel.bb_export['number_of_samples'])
         exportList.append(channel.bb_export['nSequences_per_period'])
         exportList.append(channel.bb_export['nMainAntennas'] + channel.bb_export['nBackAntennas'])
