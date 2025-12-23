@@ -3780,9 +3780,9 @@ class RadarChannelHandler:
                     nSamples_if = int(recv_dtype(cudasock, np.uint32))
                     channel.logger.debug("Receiving {} if samples (antenna {}).".format(nSamples_if, antIdx))
                     if if_samples is None:
-                        if_samples = np.zeros((len(all_antenna_list), nSamples_if), dtype=np.float32)
+                        if_samples = np.zeros((len(all_antenna_list), nSamples_if), dtype=np.float64)
 
-                    samples = recv_dtype(cudasock, np.float32, nSamples_if)
+                    samples = recv_dtype(cudasock, np.float64, nSamples_if)
                     channel.logger.debug("Received {} if samples (antenna {}).".format(len(samples), antIdx))
                     # TODO change to match export format. i/q int32 ????
                     #samples = samples[0::2] + 1j * samples[1::2]
@@ -3864,7 +3864,7 @@ class RadarChannelHandler:
 
     def write_if_data(channel):
         channel.logger.debug('start saving IF samples')
-        time_now = datetime.datetime.now()
+        time_now = datetime.datetime.now(datetime.UTC)
         version = 3
         RECV_SAMPLE_HEADER = 0 # TODO is this an offset???
         hardwareManager = channel.parent_RadarHardwareManager
@@ -3907,13 +3907,11 @@ class RadarChannelHandler:
         rawFile = open(os.path.join(savePath, fileName), "ba")
         rawFile.write(np.array(exportList, dtype=np.int32))
 
-        print(exportList)
-
         for iAntenna in range(channel.raw_export_data['nAntennas']):
             channel.raw_export_data['data'][iAntenna].tofile(rawFile)
 
         rawFile.close()
-        time_end = datetime.datetime.now()
+        time_end = datetime.datetime.now(datetime.UTC)
 
         channel.logger.debug('end saving IF samples (it took {} seconds)'.format(str(time_end - time_now)))
 
