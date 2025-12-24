@@ -1800,6 +1800,7 @@ class RadarHardwareManager:
 
         self.set_par_semaphore = threading.BoundedSemaphore()
         self.usrp_setup_semaphore = threading.BoundedSemaphore()
+        self.usrp_timeout_semaphore = threading.BoundedSemaphore()
         self.channel_spawn_semaphore = threading.BoundedSemaphore()
         self.clear_search_data_semaphore = threading.BoundedSemaphore()
 
@@ -4348,6 +4349,7 @@ class RadarChannelHandler:
            scan_times_list = None
            self.logger.debug('SetActiveHandler: no time sync of beams')
 
+        self.parent_RadarHardwareManager.usrp_timeout_semaphore.acquire()
         if integration_time > self.parent_RadarHardwareManager.usrpManager.sock_timeout:
             self.logger.debug('SetActiveHandler: increasing USRP sock timeout ({} s)'.format(integration_time+0.1))
             self.parent_RadarHardwareManager.usrp_setup_semaphore.acquire()
@@ -4356,6 +4358,7 @@ class RadarChannelHandler:
             for usrpsock in socks:
                 usrpsock.settimeout(self.parent_RadarHardwareManager.usrpManager.sock_timeout)
             self.parent_RadarHardwareManager.usrp_setup_semaphore.release()
+        self.parent_RadarHardwareManager.usrp_timeout_semaphore.release()
 
         if self.scanManager.camping:
             # if camping==True control progam uses SetActive for every new beam but no paramater should change
