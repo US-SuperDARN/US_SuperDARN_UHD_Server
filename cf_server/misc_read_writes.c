@@ -427,7 +427,7 @@ void get_timestamp( char* buffer){
 	struct tm *timeinfo;
 	time(&rawtime);
 	timeinfo = gmtime (&rawtime);
-	strftime(buffer,32,"%G.%m%d.%H%M%S",timeinfo);
+	strftime(buffer,32,"%Y.%m%d.%H%M%S",timeinfo);
 }
 
 void get_file_name(char* filename, char* filepath){
