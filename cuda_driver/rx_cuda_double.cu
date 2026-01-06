@@ -33,7 +33,7 @@ __device__ __constant__ int16_t decimationRates[2]; // [0]: rf2if, [1]: if2bb
 
 
 // downsampling and filter
-__global__ void multiply_and_add(double *samples, float *odata, float *filter)
+__global__ void multiply_and_add(double *samples, float *odata, float *filter, uint32_t nSamples_if)
 {
     __shared__ double itemp[1024]; // Array size is max number of threads in a block
     __shared__ double qtemp[1024];
@@ -58,8 +58,8 @@ __global__ void multiply_and_add(double *samples, float *odata, float *filter)
     // 2 samples/thread (unrolled) * 2 components/sample (I /Q) = 4
     uint32_t idxSample_filter = 4 * (iFilterSampleTimes2 + iChannel * nFilterSamplesDivBy2);
 
-    // nSamples_in = decimationRate * (nSamples_out-1) + nSamples_filter
-    uint32_t nSamples_if = decimationRate_if2bb * (nSamplesBB -1) + nFilterSamplesDivBy2 * 2;
+    // // nSamples_in = decimationRate * (nSamples_out-1) + nSamples_filter
+    // uint32_t nSamples_if = decimationRate_if2bb * (nSamplesBB -1) + nFilterSamplesDivBy2 * 2;
 
     // number of (complex) samples in rf signal
     uint32_t iSample_if = iSampleBB * decimationRate_if2bb + iFilterSampleTimes2 * 2;
@@ -140,7 +140,7 @@ __global__ void multiply_and_add(double *samples, float *odata, float *filter)
 
 
 // multiply with filter (that includes NCO), downsampling, apply filter phase correction
-__global__ void multiply_mix_add(int16_t *samples, double *odata, float *filter)
+__global__ void multiply_mix_add(int16_t *samples, double *odata, float *filter, uint32_t nSamples_rf)
 {
     __shared__ double itemp[1024];
     __shared__ double qtemp[1024];
@@ -164,8 +164,8 @@ __global__ void multiply_mix_add(int16_t *samples, double *odata, float *filter)
     // 2 samples/thread (unrolled) * 2 components/sample (I /Q) = 4
     uint32_t idxSample_filter = 4 * (iFilterSampleTimes2 + iChannel * nFilterSamplesDivBy2);
 
-    // nSamples_in = decimationRate * (nSamples_out-1) + nSamples_filter
-    uint32_t nSamples_rf = decimationRate_rf2if * (nSamplesIF -1) + nFilterSamplesDivBy2 * 2;
+    // // nSamples_in = decimationRate * (nSamples_out-1) + nSamples_filter
+    // uint32_t nSamples_rf = decimationRate_rf2if * (nSamplesIF -1) + nFilterSamplesDivBy2 * 2;
 
     // number of (complex) samples in rf signal
     uint32_t iSample_rf = iSampleIF * decimationRate_rf2if + iFilterSampleTimes2 * 2;
