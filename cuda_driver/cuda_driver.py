@@ -37,6 +37,8 @@ import dsp_filters
 from phasing_utils import *
 import logging_usrp
 
+from scipy.signal import kaiserord
+
 # import pycuda stuff
 SWING0 = 0
 SWING1 = 1
@@ -47,6 +49,7 @@ SIDEA = 0 # just for compatibility of shm names
 
 RXDIR = 'rx'
 TXDIR = 'tx'
+CLRDIR = 'clr'
 
 DEBUG = True
 verbose = 1
@@ -520,6 +523,7 @@ class ProcessingGPU(object):
         self.logger = logging.getLogger("cuda_gpu")
         self.logger.info('initializing cuda gpu')
         self.antenna_index_list = np.int16(antennas)
+        self.dsp_info = dsp_info
         # maximum supported channels
         self.nChannels = int(maxchannels)
         self.nAntennas = len(antennas)
@@ -537,13 +541,6 @@ class ProcessingGPU(object):
         # USRP rx/tx sampling rates
         self.tx_rf_samplingRate = int(fsamptx)
         self.rx_rf_samplingRate = int(fsamprx)
-
-        self.ntap_rf_if_factor = int(dsp_info['ntap_rf_if_factor'])
-        self.ntap_if_bb_factor = int(dsp_info['ntap_if_bb_factor'])
-        self.S0_beta = float(dsp_info['S0_beta'])
-        self.S0_gain = float(dsp_info['S0_gain'])
-        self.R0_beta = float(dsp_info['R0_beta'])
-        self.R0_gain = float(dsp_info['R0_gain'])
 
         # calibration tables for phase and time delay offsets
         self.tdelays = np.zeros(self.nAntennas) # table to account for constant time delay to antenna, e.g cable length difference
@@ -564,7 +561,7 @@ class ProcessingGPU(object):
         # dictionaries to map usrp array indexes and sequence channels to indexes
         self.channel_to_idx = {}
 
-        with open('rx_cuda_double.cu', 'r') as f:
+        with open('rx_cuda.cu', 'r') as f:
             self.cu_rx = pycuda.compiler.SourceModule(f.read())
             self.cu_rx_multiply_and_add   = self.cu_rx.get_function('multiply_and_add')
             self.cu_rx_multiply_mix_add   = self.cu_rx.get_function('multiply_mix_add')
@@ -605,9 +602,26 @@ class ProcessingGPU(object):
         self.rx_bb_samplingRate = self.rx_rf_samplingRate / self.rx_rf2if_downsamplingRate / self.rx_if2bb_downsamplingRate
 
         # number of taps for baseband and if filters (jeff: 2x downsamplingRate => no aliasing)
-        self.ntaps_rfif = int(self.rx_rf2if_downsamplingRate * self.ntap_rf_if_factor)
-        self.ntaps_ifbb = int(self.rx_if2bb_downsamplingRate * self.ntap_if_bb_factor)
 
+        bw = self.rx_bb_samplingRate
+
+        rfif_atten = float(self.dsp_info['rfif_atten']) # attenation of stop band in dB
+        rfif_rFreq = bw*float(self.dsp_info['rfif_rFreq']) # stop band frequency multiple of pulse bandwidth
+    
+        ifbb_atten = float(self.dsp_info['ifbb_atten']) # attenation of stop band in dB
+        ifbb_rFreq = bw*float(self.dsp_info['ifbb_rFreq']) # stop band frequency multiple of pulse bandwidth
+ 
+        rfif_width = rfif_rFreq/self.rx_rf_samplingRate
+        self.ntaps_rfif,self.beta_rfif = kaiserord(rfif_atten, rfif_width)
+#        self.ntaps_rfif = int( int(self.ntaps_rfif/downRate_rf2if + 1)*downRate_rf2if)
+        self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bw, rfif_width, self.ntaps_rfif)) 
+        
+        if_samplingRate = self.rx_rf_samplingRate/self.rx_rf2if_downsamplingRate
+        ifbb_width = ifbb_rFreq/if_samplingRate
+        self.ntaps_ifbb,self.beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
+#        self.ntaps_ifbb = int( int(self.ntaps_ifbb/downRate_if2bb + 1)*downRate_if2bb)
+        self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bw, ifbb_width, self.ntaps_ifbb))
+        
         # USRP NCO mixing frequency
         self.usrp_mixing_freq = [usrp_mixing_freq, usrp_mixing_freq]
 
@@ -710,11 +724,25 @@ class ProcessingGPU(object):
         for iChannel in range(self.nChannels):
             if self.sequences[swing][iChannel] != None:
                 channelFreqVec[iChannel] = -(self.sequences[swing][iChannel].ctrlprm['rfreq']*1000 - self.usrp_mixing_freq[swing]) # use negative frequency here since filter is not time inverted for convolution
-                self.logger.debug('generating rx filter for ch {}: {} kHz (USRP baseband: {} kHz)'.format(iChannel, self.sequences[swing][iChannel].ctrlprm['rfreq'], self.sequences[swing][iChannel].ctrlprm['rfreq'] - self.usrp_mixing_freq[swing] /1000))
+                self.logger.debug('generating rx filter for ch {}: {} kHz (USRP baseband: {} kHz ntaps_rfif {} beta_rfif {} ntaps_ifbb {} beta_ifbb {})'.format(iChannel, self.sequences[swing][iChannel].ctrlprm['rfreq'], self.sequences[swing][iChannel].ctrlprm['rfreq'] - self.usrp_mixing_freq[swing] /1000, self.ntaps_rfif,self.beta_rfif,self.ntaps_ifbb,self.beta_ifbb))
 
-        self.rx_filtertap_rfif = RF_IF_GAIN * dsp_filters.kaiser_filter_s0(self.ntaps_rfif, channelFreqVec, beta=self.S0_beta, gain=self.S0_gain)
 
-        self.rx_filtertap_ifbb = IF_BB_GAIN * dsp_filters.kaiser_filter_r0(self.ntaps_ifbb, channelFreqVec, beta=self.R0_beta, gain=self.R0_gain)
+        bw = self.rx_bb_samplingRate
+        if_samplingRate = self.rx_rf_samplingRate/self.rx_rf2if_downsamplingRate
+        
+        if_corner = bw/self.rx_rf_samplingRate
+        bb_corner = bw/if_samplingRate
+
+        self.logger.debug("bw: {}  if_samplingRate: {}  if_corner: {}  bb_corner: {}".format(bw,if_samplingRate,if_corner,bb_corner))
+                          
+        self.rx_filtertap_rfif = dsp_filters.firwin(channelFreqVec,if_corner, self.ntaps_rfif, self.beta_rfif)
+        self.rx_filtertap_ifbb = dsp_filters.firwin(channelFreqVec,bb_corner, self.ntaps_ifbb, self.beta_ifbb)
+
+        # for j in range(self.ntaps_rfif):
+        #     self.logger.debug("rf filter tap {}: {}".format(j,self.rx_filtertap_rfif[0,j,0]))
+            
+        # for j in range(self.ntaps_ifbb):
+        #     self.logger.debug("if filter tap {}: {}".format(j,self.rx_filtertap_ifbb[0,j,0]))
 
         # copy filters to GPU
         cuda.memcpy_htod(self.cu_rx_filtertaps_rfif[swing], self.rx_filtertap_rfif)
@@ -727,7 +755,7 @@ class ProcessingGPU(object):
         self.logger.debug("nSamples_rx: bb={}, if={}, rf={}".format(rx_bb_nSamples, rx_if_nSamples, self.rx_rf_nSamples))
 
         self.rx_rf_samples = cuda.managed_empty((self.nAntennas, self.rx_rf_nSamples*2), np.int16, mem_flags=cuda.mem_attach_flags.GLOBAL)
-        self.rx_if_samples = np.float64(np.zeros([self.nAntennas, self.nChannels, 2 * rx_if_nSamples]))
+        self.rx_if_samples = np.float32(np.zeros([self.nAntennas, self.nChannels, 2 * rx_if_nSamples]))
         self.rx_bb_samples = np.float32(np.zeros([self.nAntennas, self.nChannels, 2 * rx_bb_nSamples]))
 
         self.cu_rx_samples_rf = np.intp(self.rx_rf_samples.base.get_device_pointer())

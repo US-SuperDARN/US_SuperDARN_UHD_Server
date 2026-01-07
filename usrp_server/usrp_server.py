@@ -37,6 +37,8 @@ from drivermsg_library import *
 from profiling_tools import *
 import logging_usrp
 
+from scipy.signal import kaiserord
+
 radar_active = np.zeros(2, dtype=bool)
 
 RMSG_PORT = 45000
@@ -2469,19 +2471,36 @@ class RadarHardwareManager:
            nSamples_per_sequence_if = nSequences_per_period
            num_requested_rx_samples = nSequences_per_period
         else:
-           ntap_rf_if_factor = int(self.ini_dsp_info['ntap_rf_if_factor'])
-           ntap_if_bb_factor = int(self.ini_dsp_info['ntap_if_bb_factor'])
+           
+           bb_samplingRate = self.commonChannelParameter['baseband_samplerate']
 
-           # assumes fixed nTaps for filter = 2*downsampling
+           rfif_atten = int(self.ini_dsp_info['rfif_atten']) # attenation of stop band
+           rfif_rFreq = bb_samplingRate*float(self.ini_dsp_info['rfif_rFreq']) # stop band frequency multiple of pulse bandwidth
+
+           ifbb_atten = int(self.ini_dsp_info['ifbb_atten']) # attenation of stop band
+           ifbb_rFreq = bb_samplingRate*float(self.ini_dsp_info['ifbb_rFreq']) # stop band frequency multiple of pulse bandwidth           
+
+           self.usrp_rf_rx_rate
+           rfif_width = rfif_rFreq/self.usrp_rf_rx_rate           
+           ntaps_rfif,beta_rfif = kaiserord(rfif_atten, rfif_width)
+           ntaps_rfif = int( int(ntaps_rfif/downsamplingRates[0] + 1)*downsamplingRates[0])
+           self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bb_samplingRate, rfif_width,  ntaps_rfif)) 
+                                                                                                          
+           if_samplingRate = self.usrp_rf_rx_rate/downsamplingRates[0]
+           ifbb_width = ifbb_rFreq/if_samplingRate
+           ntaps_ifbb,beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
+           ntaps_ifbb = int( int(ntaps_ifbb/downsamplingRates[1] + 1)*downsamplingRates[1])
+           self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bb_samplingRate, ifbb_width,  ntaps_ifbb))
+           
            nSamples_per_sequence_if = (int(downsamplingRates[1])
                                        * ((nSamples_per_sequence*nSequences_per_period) - 1 )
-                                       + int(downsamplingRates[1]*ntap_if_bb_factor))
+                                       + int(ntaps_rfif))
            num_requested_rx_samples = (int(downsamplingRates[0])
                                        * (nSamples_per_sequence_if                      - 1 )
-                                       + int(downsamplingRates[0]*ntap_rf_if_factor))
+                                       + int(ntaps_ifbb))
 
         self.logger.debug("RFIFRATE: {}, IFBBRATE: {}, nSamples_per_sequence_if: {}, nSamples_per_sequence: {}, nSequences_per_period: {}, NTapsRX_ifbb: {}, NTapsRX_rfif: {}".format( \
-                downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, downsamplingRates[0]*2, downsamplingRates[1]*2))
+                                                                                                                                                                                       downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, ntaps_ifbb, ntaps_rfif))
 
         self.logger.info("Effective integration time: {:0.3f}s = {} sequences ({}s) swing {}".format(num_requested_rx_samples /self.usrp_rf_tx_rate, nSequences_per_period, self.commonChannelParameter['integration_period_duration'], self.swingManager.activeSwing))
 
