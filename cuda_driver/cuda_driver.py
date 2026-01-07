@@ -611,13 +611,13 @@ class ProcessingGPU(object):
         ifbb_atten = float(self.dsp_info['ifbb_atten']) # attenation of stop band in dB
         ifbb_rFreq = bw*float(self.dsp_info['ifbb_rFreq']) # stop band frequency multiple of pulse bandwidth
  
-        rfif_width = rfif_rFreq/self.rx_rf_samplingRate
+        rfif_width = 2*rfif_rFreq/self.rx_rf_samplingRate
         self.ntaps_rfif,self.beta_rfif = kaiserord(rfif_atten, rfif_width)
 #        self.ntaps_rfif = int( int(self.ntaps_rfif/downRate_rf2if + 1)*downRate_rf2if)
         self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bw, rfif_width, self.ntaps_rfif)) 
         
         if_samplingRate = self.rx_rf_samplingRate/self.rx_rf2if_downsamplingRate
-        ifbb_width = ifbb_rFreq/if_samplingRate
+        ifbb_width = 2*ifbb_rFreq/if_samplingRate
         self.ntaps_ifbb,self.beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
 #        self.ntaps_ifbb = int( int(self.ntaps_ifbb/downRate_if2bb + 1)*downRate_if2bb)
         self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bw, ifbb_width, self.ntaps_ifbb))
