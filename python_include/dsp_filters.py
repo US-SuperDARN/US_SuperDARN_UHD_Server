@@ -137,3 +137,23 @@ if __name__ == '__main__':
 
     pdb.set_trace()
 
+
+
+def firwin(channelFreqVec,cutoff_freq,nTaps,beta):
+
+    print(cutoff_freq,nTaps,beta)
+    taps = signal.firwin(nTaps,cutoff_freq,window=("kaiser",beta))
+
+    taps /= np.sum(np.abs(taps))
+    
+    filterData = np.zeros((len(channelFreqVec), nTaps,2), dtype=np.float32)
+    for iChannel, channelFreq in enumerate(channelFreqVec):
+        if channelFreq != None:
+
+            for iTap in range(nTaps):
+                filterData[iChannel,iTap,0] = taps[iTap]
+                filterData[iChannel,iTap,1] = taps[iTap]
+                
+    return(filterData)
+
+    
