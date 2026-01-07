@@ -49,7 +49,6 @@ SIDEA = 0 # just for compatibility of shm names
 
 RXDIR = 'rx'
 TXDIR = 'tx'
-CLRDIR = 'clr'
 
 DEBUG = True
 verbose = 1
@@ -605,23 +604,31 @@ class ProcessingGPU(object):
 
         bw = self.rx_bb_samplingRate
 
-        rfif_atten = float(self.dsp_info['rfif_atten']) # attenation of stop band in dB
-        rfif_rFreq = bw*float(self.dsp_info['rfif_rFreq']) # stop band frequency multiple of pulse bandwidth
-    
-        ifbb_atten = float(self.dsp_info['ifbb_atten']) # attenation of stop band in dB
-        ifbb_rFreq = bw*float(self.dsp_info['ifbb_rFreq']) # stop band frequency multiple of pulse bandwidth
- 
+        dsp_filter_str = self.dsp_info['filter_list']
+        filter_list = [int(x) for x in dsp_filter_str.split(",")]
+        rsep = int(3e8 / 2 / bw / 1e3)
+        try:
+           filter_idx = filter_list.index(rsep)
+        except ValueError:
+           filter_idx = 0
+
+        rfif_atten = float(self.dsp_info['rfif_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
+        rfif_rFreq = bw*float(self.dsp_info['rfif_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
+
+        ifbb_atten = float(self.dsp_info['ifbb_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
+        ifbb_rFreq = bw*float(self.dsp_info['ifbb_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
+
         rfif_width = 2*rfif_rFreq/self.rx_rf_samplingRate
         self.ntaps_rfif,self.beta_rfif = kaiserord(rfif_atten, rfif_width)
 #        self.ntaps_rfif = int( int(self.ntaps_rfif/downRate_rf2if + 1)*downRate_rf2if)
-        self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bw, rfif_width, self.ntaps_rfif)) 
-        
+        self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bw, rfif_width, self.ntaps_rfif))
+
         if_samplingRate = self.rx_rf_samplingRate/self.rx_rf2if_downsamplingRate
         ifbb_width = 2*ifbb_rFreq/if_samplingRate
         self.ntaps_ifbb,self.beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
 #        self.ntaps_ifbb = int( int(self.ntaps_ifbb/downRate_if2bb + 1)*downRate_if2bb)
         self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bw, ifbb_width, self.ntaps_ifbb))
-        
+
         # USRP NCO mixing frequency
         self.usrp_mixing_freq = [usrp_mixing_freq, usrp_mixing_freq]
 
@@ -726,21 +733,20 @@ class ProcessingGPU(object):
                 channelFreqVec[iChannel] = -(self.sequences[swing][iChannel].ctrlprm['rfreq']*1000 - self.usrp_mixing_freq[swing]) # use negative frequency here since filter is not time inverted for convolution
                 self.logger.debug('generating rx filter for ch {}: {} kHz (USRP baseband: {} kHz ntaps_rfif {} beta_rfif {} ntaps_ifbb {} beta_ifbb {})'.format(iChannel, self.sequences[swing][iChannel].ctrlprm['rfreq'], self.sequences[swing][iChannel].ctrlprm['rfreq'] - self.usrp_mixing_freq[swing] /1000, self.ntaps_rfif,self.beta_rfif,self.ntaps_ifbb,self.beta_ifbb))
 
-
         bw = self.rx_bb_samplingRate
         if_samplingRate = self.rx_rf_samplingRate/self.rx_rf2if_downsamplingRate
-        
+
         if_corner = bw/self.rx_rf_samplingRate
         bb_corner = bw/if_samplingRate
 
         self.logger.debug("bw: {}  if_samplingRate: {}  if_corner: {}  bb_corner: {}".format(bw,if_samplingRate,if_corner,bb_corner))
-                          
-        self.rx_filtertap_rfif = dsp_filters.firwin(channelFreqVec,if_corner, self.ntaps_rfif, self.beta_rfif)
-        self.rx_filtertap_ifbb = dsp_filters.firwin(channelFreqVec,bb_corner, self.ntaps_ifbb, self.beta_ifbb)
+
+        self.rx_filtertap_rfif = dsp_filters.firwin(channelFreqVec, if_corner, self.ntaps_rfif, self.beta_rfif)
+        self.rx_filtertap_ifbb = dsp_filters.firwin(channelFreqVec, bb_corner, self.ntaps_ifbb, self.beta_ifbb)
 
         # for j in range(self.ntaps_rfif):
         #     self.logger.debug("rf filter tap {}: {}".format(j,self.rx_filtertap_rfif[0,j,0]))
-            
+
         # for j in range(self.ntaps_ifbb):
         #     self.logger.debug("if filter tap {}: {}".format(j,self.rx_filtertap_ifbb[0,j,0]))
 

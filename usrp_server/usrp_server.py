@@ -108,7 +108,7 @@ class integrationTimeManager():
       int_time = self.RHM.commonChannelParameter['integration_period_duration']
       # TODO optimize by tracking times of last periods
       if self.RHM.N_RADARs > 1:
-         overhead_time = 0.50
+         overhead_time = 0.60
       else:
          overhead_time = 0.30
 
@@ -2470,28 +2470,39 @@ class RadarHardwareManager:
         if nSequences_per_period == 0:
            nSamples_per_sequence_if = nSequences_per_period
            num_requested_rx_samples = nSequences_per_period
+           ntaps_rfif = 0
+           ntaps_ifbb = 0
         else:
-           
+
            bb_samplingRate = self.commonChannelParameter['baseband_samplerate']
 
-           rfif_atten = int(self.ini_dsp_info['rfif_atten']) # attenation of stop band
-           rfif_rFreq = bb_samplingRate*float(self.ini_dsp_info['rfif_rFreq']) # stop band frequency multiple of pulse bandwidth
+           # select appropriate filter settings for baseband sample rate
+           dsp_filter_str = self.ini_dsp_info['filter_list']
+           filter_list = [int(x) for x in dsp_filter_str.split(",")]
+           rsep = int(3e8 / 2 / bb_samplingRate / 1e3)
+           try:
+              filter_idx = filter_list.index(rsep)
+           except ValueError:
+              filter_idx = 0
 
-           ifbb_atten = int(self.ini_dsp_info['ifbb_atten']) # attenation of stop band
-           ifbb_rFreq = bb_samplingRate*float(self.ini_dsp_info['ifbb_rFreq']) # stop band frequency multiple of pulse bandwidth           
+           rfif_atten = int(self.ini_dsp_info['rfif_atten'].split(",")[filter_idx]) # attenuation of stop band
+           rfif_rFreq = bb_samplingRate*float(self.ini_dsp_info['rfif_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
+
+           ifbb_atten = int(self.ini_dsp_info['ifbb_atten'].split(",")[filter_idx]) # attenuation of stop band
+           ifbb_rFreq = bb_samplingRate*float(self.ini_dsp_info['ifbb_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
 
            self.usrp_rf_rx_rate
-           rfif_width = 2*rfif_rFreq/self.usrp_rf_rx_rate           
+           rfif_width = 2*rfif_rFreq/self.usrp_rf_rx_rate
            ntaps_rfif,beta_rfif = kaiserord(rfif_atten, rfif_width)
            ntaps_rfif = int( int(ntaps_rfif/downsamplingRates[0] + 1)*downsamplingRates[0])
-           self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bb_samplingRate, rfif_width,  ntaps_rfif)) 
-                                                                                                          
+           self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bb_samplingRate, rfif_width, ntaps_rfif))
+
            if_samplingRate = self.usrp_rf_rx_rate/downsamplingRates[0]
            ifbb_width = 2*ifbb_rFreq/if_samplingRate
            ntaps_ifbb,beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
            ntaps_ifbb = int( int(ntaps_ifbb/downsamplingRates[1] + 1)*downsamplingRates[1])
-           self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bb_samplingRate, ifbb_width,  ntaps_ifbb))
-           
+           self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bb_samplingRate, ifbb_width, ntaps_ifbb))
+
            nSamples_per_sequence_if = (int(downsamplingRates[1])
                                        * ((nSamples_per_sequence*nSequences_per_period) - 1 )
                                        + int(ntaps_rfif))
