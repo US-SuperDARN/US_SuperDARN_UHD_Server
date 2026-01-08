@@ -2491,7 +2491,6 @@ class RadarHardwareManager:
            ifbb_atten = int(self.ini_dsp_info['ifbb_atten'].split(",")[filter_idx]) # attenuation of stop band
            ifbb_rFreq = bb_samplingRate*float(self.ini_dsp_info['ifbb_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
 
-           self.usrp_rf_rx_rate
            rfif_width = 2*rfif_rFreq/self.usrp_rf_rx_rate
            ntaps_rfif,beta_rfif = kaiserord(rfif_atten, rfif_width)
            # ntaps_rfif = int( int(ntaps_rfif/downsamplingRates[0] + 1)*downsamplingRates[0])
@@ -4088,13 +4087,13 @@ class RadarChannelHandler:
             #    rsep=9km  => 16.667 kHz
             #    rsep=6km  => 25 kHz
 
-            goodDownsampleRates = [[20, 75],  # 5M => 3.333k
-                                   [20, 25],  # 5M => 10k
+            goodDownsampleRates = [[30, 50],  # 5M => 3.333k
+                                   [25, 20],  # 5M => 10k
                                    [15, 20],  # 5M => 16.67k
                                    [10, 20],  # 5M => 25k
                                    [10, 75],  # 2.5M => 3.333k
-                                   [30, 100], # 10M => 3.333k
-                                   [20, 50],  # 10M => 10k
+                                   [50, 60],  # 10M => 3.333k
+                                   [40, 25],  # 10M => 10k
                                    [20, 30],  # 10M => 16.67k
                                    [20, 20],  # 10M => 25k
             ]
