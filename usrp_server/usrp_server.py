@@ -2494,13 +2494,13 @@ class RadarHardwareManager:
            self.usrp_rf_rx_rate
            rfif_width = 2*rfif_rFreq/self.usrp_rf_rx_rate
            ntaps_rfif,beta_rfif = kaiserord(rfif_atten, rfif_width)
-           ntaps_rfif = int( int(ntaps_rfif/downsamplingRates[0] + 1)*downsamplingRates[0])
+           # ntaps_rfif = int( int(ntaps_rfif/downsamplingRates[0] + 1)*downsamplingRates[0])
            self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bb_samplingRate, rfif_width, ntaps_rfif))
 
            if_samplingRate = self.usrp_rf_rx_rate/downsamplingRates[0]
            ifbb_width = 2*ifbb_rFreq/if_samplingRate
            ntaps_ifbb,beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
-           ntaps_ifbb = int( int(ntaps_ifbb/downsamplingRates[1] + 1)*downsamplingRates[1])
+           # ntaps_ifbb = int( int(ntaps_ifbb/downsamplingRates[1] + 1)*downsamplingRates[1])
            self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bb_samplingRate, ifbb_width, ntaps_ifbb))
 
            nSamples_per_sequence_if = (int(downsamplingRates[1])
