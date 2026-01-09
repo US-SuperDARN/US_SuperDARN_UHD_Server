@@ -604,21 +604,27 @@ class ProcessingGPU(object):
 
         bw = self.rx_bb_samplingRate
 
-        dsp_filter_str = self.dsp_info['filter_list']
-        filter_list = [int(x) for x in dsp_filter_str.split(",")]
+        # select appropriate filter settings for RX RF sample rate and range separation
+        filter_rate_str = self.dsp_info['rate_list']
+        rate_list = [int(x) for x in filter_rate_str.split(",")]
+        rate = int(self.rx_rf_samplingRate / 1e6)
+
+        filter_rsep_str = self.dsp_info['rsep_list']
+        rsep_list = [int(x) for x in filter_rsep_str.split(",")]
         rsep = int(3e8 / 2 / bw / 1e3)
+
         try:
-           filter_idx = filter_list.index(rsep)
+           filter_idx = [i for i in range(len(rate_list)) if rate_list[i] == rate and rsep_list[i] == rsep][0]
         except ValueError:
            filter_idx = 0
 
         rfif_atten = float(self.dsp_info['rfif_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
-        rfif_rFreq = bw*float(self.dsp_info['rfif_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
+        rfif_width = float(self.dsp_info['rfif_width'].split(",")[filter_idx]) # width of transition region as fraction of Nyquist frequency
+        rfif_rFreq = rfif_width * 0.5 * self.rx_rf_samplingRate # stop band frequency
 
         ifbb_atten = float(self.dsp_info['ifbb_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
         ifbb_rFreq = bw*float(self.dsp_info['ifbb_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
 
-        rfif_width = 2*rfif_rFreq/self.rx_rf_samplingRate
         self.ntaps_rfif,self.beta_rfif = kaiserord(rfif_atten, rfif_width)
 #        self.ntaps_rfif = int( int(self.ntaps_rfif/downRate_rf2if + 1)*downRate_rf2if)
         self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bw, rfif_width, self.ntaps_rfif))

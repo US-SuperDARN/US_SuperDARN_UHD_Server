@@ -2476,22 +2476,27 @@ class RadarHardwareManager:
 
            bb_samplingRate = self.commonChannelParameter['baseband_samplerate']
 
-           # select appropriate filter settings for baseband sample rate
-           dsp_filter_str = self.ini_dsp_info['filter_list']
-           filter_list = [int(x) for x in dsp_filter_str.split(",")]
+           # select appropriate filter settings for RX RF sample rate and range separation
+           filter_rate_str = self.ini_dsp_info['rate_list']
+           rate_list = [int(x) for x in filter_rate_str.split(",")]
+           rate = int(self.usrp_rf_rx_rate / 1e6)
+
+           filter_rsep_str = self.ini_dsp_info['rsep_list']
+           rsep_list = [int(x) for x in filter_rsep_str.split(",")]
            rsep = int(3e8 / 2 / bb_samplingRate / 1e3)
+
            try:
-              filter_idx = filter_list.index(rsep)
+              filter_idx = [i for i in range(len(rate_list)) if rate_list[i] == rate and rsep_list[i] == rsep][0]
            except ValueError:
               filter_idx = 0
 
-           rfif_atten = int(self.ini_dsp_info['rfif_atten'].split(",")[filter_idx]) # attenuation of stop band
-           rfif_rFreq = bb_samplingRate*float(self.ini_dsp_info['rfif_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
+           rfif_atten = float(self.ini_dsp_info['rfif_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
+           rfif_width = float(self.ini_dsp_info['rfif_width'].split(",")[filter_idx]) # width of transition region as fraction of Nyquist frequency
+           rfif_rFreq = rfif_width * 0.5 * self.usrp_rf_rx_rate # stop band frequency
 
-           ifbb_atten = int(self.ini_dsp_info['ifbb_atten'].split(",")[filter_idx]) # attenuation of stop band
+           ifbb_atten = float(self.ini_dsp_info['ifbb_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
            ifbb_rFreq = bb_samplingRate*float(self.ini_dsp_info['ifbb_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
 
-           rfif_width = 2*rfif_rFreq/self.usrp_rf_rx_rate
            ntaps_rfif,beta_rfif = kaiserord(rfif_atten, rfif_width)
            # ntaps_rfif = int( int(ntaps_rfif/downsamplingRates[0] + 1)*downsamplingRates[0])
            self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bb_samplingRate, rfif_width, ntaps_rfif))
