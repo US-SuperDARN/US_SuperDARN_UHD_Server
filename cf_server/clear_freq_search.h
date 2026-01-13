@@ -4,7 +4,7 @@
 #include "ini_parser.h"
 
 #ifndef RESTRICT_NUM
-#define RESTRICT_NUM 50                  // Number of restricted freq bands in the restrict.dat.inst
+#define RESTRICT_NUM 50    // Number of restricted freq bands in the restrict.dat.inst
 #endif
 
 #define VERBOSE 1
@@ -16,7 +16,7 @@ typedef struct sample_meta_data {
     double x_spacing;
     int usrp_rf_rate;
     int usrp_fcenter;
-    double ifbb_freq;
+    double if_rate;
 } sample_meta_data;
 
 typedef struct freq_band {

@@ -608,7 +608,7 @@ class ClearFrequencyService():
     FCENTER_SHM_SIZE        = (1 * INT_SIZE)
     BEAM_NUM_SHM_SIZE       = (1 * INT_SIZE)
     SAMPLE_SEP_SHM_SIZE     = (1 * INT_SIZE)
-    IFBB_FREQ_SHM_SIZE      = (1 * DOUBLE_SIZE)
+    IF_RATE_SHM_SIZE        = (1 * DOUBLE_SIZE)
     META_DATA_SHM_SIZE      = ((META_ELEM + ANTENNA_NUM) * DOUBLE_SIZE)
     ANTENNA_SHM_SIZE        = (1 * INT_SIZE)
     CLR_BAND_SHM_SIZE       = (1 * INT_SIZE * 3)
@@ -626,7 +626,7 @@ class ClearFrequencyService():
     FCENTER_SHM_NAME =        "/fcenter"
     BEAM_NUM_SHM_NAME =       "/beam_num"
     SAMPLE_SEP_SHM_NAME =     "/sample_sep"
-    IFBB_FREQ_SHM_NAME =      "/ifbb_freq"
+    IF_RATE_SHM_NAME =        "/if_rate"
     META_DATA_SHM_NAME =      "/meta_data"
     ANTENNA_SHM_NAME =        "/antenna_num"
     CLRFREQ_SHM_NAME =        "/clear_freq"
@@ -697,7 +697,7 @@ class ClearFrequencyService():
                 self.create_shm_obj(self.CLR_RANGE_SHM_NAME,      self.CLR_RANGE_SHM_SIZE     , self.CLR_RANGE_ELEM_NUM),
                 self.create_shm_obj(self.BEAM_NUM_SHM_NAME,       self.BEAM_NUM_SHM_SIZE      , ),
                 self.create_shm_obj(self.SAMPLE_SEP_SHM_NAME,     self.SAMPLE_SEP_SHM_SIZE    , ),
-                self.create_shm_obj(self.IFBB_FREQ_SHM_NAME,      self.IFBB_FREQ_SHM_SIZE     , ),
+                self.create_shm_obj(self.IF_RATE_SHM_NAME,        self.IF_RATE_SHM_SIZE       , ),
                 self.create_shm_obj(self.META_DATA_SHM_NAME,      self.META_DATA_SHM_SIZE     , self.META_ELEM_NUM),
                 self.create_shm_obj(self.ANTENNA_SHM_NAME,        self.ANTENNA_SHM_SIZE       , ),
                 self.create_shm_obj(self.CLRFREQ_SHM_NAME,        self.CLR_BAND_SHM_SIZE      , self.CLR_BAND_ELEM_NUM),
@@ -1284,7 +1284,7 @@ class ClearFrequencyService():
         return
 
 
-    def request_clr_freq(self, radar_id, channel_id, beam_num=None, sample_sep=None, clr_range=None, fcenter=None, ifbb_freq=None):
+    def request_clr_freq(self, radar_id, channel_id, beam_num=None, sample_sep=None, clr_range=None, fcenter=None, if_rate=None):
         """ Waits for client requests, then processes server data, writes client
             data, and requests server to process new data. When process is
             terminated, the try/finally block cleans up.\
@@ -1297,7 +1297,7 @@ class ClearFrequencyService():
             clr_range,
             beam_num,
             sample_sep,
-            ifbb_freq,
+            if_rate,
         ]
 
         # Special: Halt all future ClearFreqService
@@ -1756,11 +1756,11 @@ class scanManager():
         self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
 
         try:
-           ifbb_freq = RHM.usrp_rf_rx_rate / RHM.commonChannelParameter['downsample_rates'][0]
+           if_rate = RHM.usrp_rf_rx_rate / RHM.commonChannelParameter['downsample_rates'][0]
         except KeyError:
-           ifbb_freq = RHM.usrp_rf_rx_rate / 30.0
+           if_rate = RHM.usrp_rf_rx_rate / 30.0
 
-        clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range, int(metaData['usrp_fcenter']), ifbb_freq)
+        clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range, int(metaData['usrp_fcenter']), if_rate)
 
         #Failsafe for when the search fails WB 7/21/25
         if clearFreq == 0:
