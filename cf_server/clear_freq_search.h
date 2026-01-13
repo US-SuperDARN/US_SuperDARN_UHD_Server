@@ -16,6 +16,7 @@ typedef struct sample_meta_data {
     double x_spacing;
     int usrp_rf_rate;
     int usrp_fcenter;
+    double ifbb_freq;
 } sample_meta_data;
 
 typedef struct freq_band {

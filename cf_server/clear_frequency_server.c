@@ -65,6 +65,7 @@ shm_obj clr_range_obj   = {CLR_RANGE_SHM_NAME, NULL, -1, CLR_RANGE_SHM_SIZE};
 shm_obj fcenter_obj     = {FCENTER_SHM_NAME, NULL, -1, FCENTER_SHM_SIZE};
 shm_obj beam_num_obj    = {BEAM_NUM_SHM_NAME, NULL, -1, BEAM_NUM_SHM_SIZE};
 shm_obj sample_sep_obj  = {SAMPLE_SEP_SHM_NAME, NULL, -1, SAMPLE_SEP_SHM_SIZE};
+shm_obj ifbb_freq_obj   = {IFBB_FREQ_SHM_NAME, NULL, -1, IFBB_FREQ_SHM_SIZE};
 shm_obj meta_obj        = {META_DATA_SHM_NAME, NULL, -1, META_DATA_SHM_SIZE};
 shm_obj antenna_obj     = {ANTENNA_SHM_NAME, NULL, -1, ANTENNA_SHM_SIZE};
 shm_obj clrfreq_obj     = {CLRFREQ_SHM_NAME, NULL, -1, CLR_BAND_SHM_SIZE};
@@ -78,6 +79,7 @@ struct shm_obj *objects[PARAM_NUM] = {
     &clr_range_obj,
     &beam_num_obj,
     &sample_sep_obj,
+    &ifbb_freq_obj,
     &meta_obj,
     &antenna_obj,
     &clrfreq_obj,
@@ -1345,6 +1347,13 @@ int main() {
                 log_debug( "Freq Center reading...");
                 read_single_int( &(meta_data.usrp_fcenter), fcenter_obj.shm_ptr);
                 log_debug("    fcenter: %d", meta_data.usrp_fcenter);
+            }
+
+            // Read IF Frequency
+            if (*(int*) (fcenter_obj.shm_ptr) != 0) {
+                log_debug( "IF Freq reading...");
+                read_single_double( &(meta_data.ifbb_freq), ifbb_freq_obj.shm_ptr);
+                log_debug("    if_freq: %lf", meta_data.ifbb_freq);
             }
 
             // Read Radar ID
