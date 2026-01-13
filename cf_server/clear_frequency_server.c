@@ -1219,8 +1219,6 @@ int main() {
                                 active_antennas[cur_radar],
                                 clr_range[cur_radar][range_idx],
                                 sample_sep,
-                                restricted_freq,
-                                restricted_num,
                                 &meta_data,
                                 array_config,
                                 &(spectra_storage[
@@ -1260,8 +1258,6 @@ int main() {
                             active_antennas[cur_radar],
                             clr_range[cur_radar][cur_range],
                             sample_sep,
-                            restricted_freq,
-                            restricted_num,
                             &meta_data,
                             array_config,
                             &(spectra_storage[

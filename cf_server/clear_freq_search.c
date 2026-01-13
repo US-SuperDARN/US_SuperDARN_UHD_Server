@@ -676,8 +676,6 @@ void phasing_and_beamforming(
  * @param  *active_antennas: Array of active antennas.
  * @param  clear_freq_range: Frequency range for the clear frequencies.
  * @param  smsep: Sample separation in microseconds.
- * @param  *restricted_bands: Array of restricted frequency bands.
- * @param  restrict_num: Number of restricted frequency bands.
  * @param  meta_data: Metadata containing sample information.
  * @param  *beamformed_spectra: Output array for the beamformed spectra.
  * @retval None
@@ -687,8 +685,6 @@ void process_all_beamformed_spectras(
         int *active_antennas,
         int clear_freq_range[],
         int smsep,
-        freq_band *restricted_bands,
-        int restrict_num,
         sample_meta_data *meta_data,
         Config config,
         fftw_complex *beamformed_spectra
