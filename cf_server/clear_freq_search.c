@@ -201,7 +201,7 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
     // log_trace("spect range | %f -- %f |",  freq_vector[0], freq_vector[num_samples - 1]);
 
     // Mask each restricted band
-    for (int i = 0; i < restricted_num; i++) {
+    for (int i = 0; i < restricted_num + RESERV_NUM; i++) {
         // Identify start and end of mask
         int mask_start = (int) restricted_bands[i].f_start;
         int mask_end = (int) restricted_bands[i].f_end;
@@ -1014,7 +1014,7 @@ void process_beam_clr_freq(
  * @param  smsep: Sample separation in microseconds.
  * @param  avg_ratio: Ratio for averaging the spectra.
  * @param  *restricted_bands: Array of restricted frequency bands.
- * @param  restrict_num: Number of restricted frequency bands.
+ * @param  restricted_num: Number of restricted frequency bands.
  * @param  meta_data: Metadata containing sample information.
  * @param  *clr_band: The found clear frequency band.
  * @param  *fft_file: Name of output FFT file.
@@ -1031,7 +1031,7 @@ clear_freq clear_freq_search(
         int smsep,
         int avg_ratio,
         freq_band *restricted_bands,
-        int restrict_num,
+        int restricted_num,
         sample_meta_data meta_data,
         Config config,
         freq_band *clr_band,
@@ -1064,7 +1064,7 @@ clear_freq clear_freq_search(
         active_antennas,
         &meta_data,
         restricted_bands,
-        restrict_num,
+        restricted_num,
         clear_freq_range,
         beam_angle,
         smsep,
