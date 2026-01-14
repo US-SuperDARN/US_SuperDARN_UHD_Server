@@ -276,6 +276,9 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     if (clr_search_sample_end < 0) clr_search_sample_end = 0;
     else if (clr_search_sample_end > spectrum_sample_bw) clr_search_sample_end = spectrum_sample_bw;
 
+    int num_alias = ceil(meta_data.usrp_rf_rate / meta_data.if_rate);
+    int alias_sample = 0;
+
     // Trim Spectrum Data to only Clear Search Range (Used for convolving)
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
     log_info("    Clear Search Bandwidth: %d samples", clr_search_sample_bw);
@@ -283,6 +286,18 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
     memset(clr_search_band, 0, clr_search_sample_bw * sizeof(double));
     for (int i = 0; i < clr_search_sample_bw; i++) {
         clr_search_band[i] = spectrum[i + clr_search_sample_start];
+
+        // Sum power at +/- each multiple of the IF sample rate
+        for (int j = 1; j < num_alias; j++) {
+            alias_sample = i + clr_search_sample_start - (int) (j * meta_data.if_rate / avg_delta_f);
+            if (alias_sample > 0) clr_search_band[i] += spectrum[alias_sample];
+            else break;
+        }
+        for (int j = 1; j < num_alias; j++) {
+            alias_sample = i + clr_search_sample_start + (int) (j * meta_data.if_rate / avg_delta_f);
+            if (alias_sample < spectrum_sample_bw) clr_search_band[i] += spectrum[alias_sample];
+            else break;
+        }
 
         // Debug: Check the Clear Search Range
         // if (i < 2  || i > clr_search_sample_bw - 2) {
