@@ -614,9 +614,10 @@ class ProcessingGPU(object):
         rsep = int(3e8 / 2 / bw / 1e3)
 
         try:
-           filter_idx = [i for i in range(len(rate_list)) if rate_list[i] == rate and rsep_list[i] == rsep][0]
-        except ValueError:
-           filter_idx = 0
+            filter_idx = [i for i in range(len(rate_list)) if rate_list[i] == rate and rsep_list[i] == rsep][0]
+        except:
+            filter_idx = 0
+            self.logger.error('No DSP filter options found in array_config.ini for {} MHz and {} km - using settings for {} MHz and {} km'.format(rate, rsep, rate_list[filter_idx], rsep_list[filter_idx]))
 
         rfif_atten = float(self.dsp_info['rfif_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
         rfif_width = float(self.dsp_info['rfif_width'].split(",")[filter_idx]) # width of transition region as fraction of Nyquist frequency
@@ -634,6 +635,9 @@ class ProcessingGPU(object):
         self.ntaps_ifbb,self.beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
 #        self.ntaps_ifbb = int( int(self.ntaps_ifbb/downRate_if2bb + 1)*downRate_if2bb)
         self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bw, ifbb_width, self.ntaps_ifbb))
+
+        if (if_samplingRate <= rfif_rFreq):
+            self.logger.error('IF sampling rate ({} kHz) <= RF-IF cutoff frequency ({} kHz): adjust DSP filter settings to avoid aliasing'.format(if_samplingRate/1e3, rfif_rFreq/1e3))
 
         # USRP NCO mixing frequency
         self.usrp_mixing_freq = [usrp_mixing_freq, usrp_mixing_freq]

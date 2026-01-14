@@ -2497,8 +2497,9 @@ class RadarHardwareManager:
 
            try:
               filter_idx = [i for i in range(len(rate_list)) if rate_list[i] == rate and rsep_list[i] == rsep][0]
-           except ValueError:
+           except:
               filter_idx = 0
+              self.logger.error('No DSP filter options found in array_config.ini for {} MHz and {} km - using settings for {} MHz and {} km'.format(rate, rsep, rate_list[filter_idx], rsep_list[filter_idx]))
 
            rfif_atten = float(self.ini_dsp_info['rfif_atten'].split(",")[filter_idx]) # attenuation of stop band in dB
            rfif_width = float(self.ini_dsp_info['rfif_width'].split(",")[filter_idx]) # width of transition region as fraction of Nyquist frequency
@@ -2517,6 +2518,9 @@ class RadarHardwareManager:
            # ntaps_ifbb = int( int(ntaps_ifbb/downsamplingRates[1] + 1)*downsamplingRates[1])
            self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bb_samplingRate, ifbb_width, ntaps_ifbb))
 
+           if (if_samplingRate <= rfif_rFreq):
+              self.logger.error('IF sampling rate ({} kHz) <= RF-IF cutoff frequency ({} kHz): adjust DSP filter settings to avoid aliasing'.format(if_samplingRate/1e3, rfif_rFreq/1e3))
+
            nSamples_per_sequence_if = (int(downsamplingRates[1])
                                        * ((nSamples_per_sequence*nSequences_per_period) - 1 )
                                        + int(ntaps_rfif))
@@ -2525,7 +2529,7 @@ class RadarHardwareManager:
                                        + int(ntaps_ifbb))
 
         self.logger.debug("RFIFRATE: {}, IFBBRATE: {}, nSamples_per_sequence_if: {}, nSamples_per_sequence: {}, nSequences_per_period: {}, NTapsRX_ifbb: {}, NTapsRX_rfif: {}".format( \
-                                                                                                                                                                                       downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, ntaps_ifbb, ntaps_rfif))
+                          downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, ntaps_ifbb, ntaps_rfif))
 
         self.logger.info("Effective integration time: {:0.3f}s = {} sequences ({}s) swing {}".format(num_requested_rx_samples /self.usrp_rf_tx_rate, nSequences_per_period, self.commonChannelParameter['integration_period_duration'], self.swingManager.activeSwing))
 
