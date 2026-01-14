@@ -47,7 +47,7 @@ clear_freq clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
                              int restrict_num, sample_meta_data meta_data,
                              Config config, freq_band *clr_band,
                              char *fft_file, char *clr_file,
-                             char *ststr, int channel);
+                             char *ststr, int radar, int channel);
 
 
 int ini_parse(const char* filename, ini_handler handler, void* user);
@@ -72,7 +72,7 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
                            int smsep, freq_band *restricted_bands, int restricted_num,
                            double *avg_freq_vector, int num_avg_samples,
                            sample_meta_data *meta_data, freq_band *clr_band,
-                           char *clr_file, char *ststr, int channel);
+                           char *clr_file, char *ststr, int radar, int channel);
 
 // Define Constants
 #define GB_MULT 1.25                // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw = clear_freq bandwidth)

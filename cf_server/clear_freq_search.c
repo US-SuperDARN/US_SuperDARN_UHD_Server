@@ -193,6 +193,8 @@ void convolve(double* u, int u_size, int* v, int v_size, double* result) {
  * @param  *restricted_bands: The restricted frequencies bands that should not
  * *  be transmitted on and should be masked.
  * @param  restricted_num: Number of restricted frequency bands in restricted_bands.
+ * @param  meta_data: Misc info on operating Radar parameters
+ * @param  radar: Current radar index.
  * @retval None
  */
 void mask_restricted_freq(
@@ -202,12 +204,18 @@ void mask_restricted_freq(
     int delta_f,
     int num_samples,
     freq_band *restricted_bands,
-    int restricted_num
+    int restricted_num,
+    sample_meta_data meta_data,
+    int radar
 ) {
     log_debug("    [mask_restricted] Masking restricted bands...");
     bool is_applied = false;
 
-    // log_trace("spect range | %f -- %f |",  freq_vector[0], freq_vector[num_samples - 1]);
+    int mask_sample_start, mask_sample_end;
+    int alias_start, alias_end;
+    int num_alias = ceil(meta_data.usrp_rf_rate / meta_data.if_rate);
+
+    // log_trace("spect range | %f -- %f |",  f_start, f_end);
 
     // Mask each restricted band
     for (int i = 0; i < restricted_num + RESERV_NUM; i++) {
@@ -217,12 +225,11 @@ void mask_restricted_freq(
 
         // For masks intersecting spectrum's freq range, apply mask
         if (( mask_end <= f_end && mask_end > f_start ) ||
-            ( mask_start < f_end && mask_start >= f_start)) {
+            ( mask_start < f_end && mask_start >= f_start )) {
                 // Debug: Show masks applied
                 if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d |", mask_start/1000, mask_end/1000);
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
-                int mask_sample_start, mask_sample_end;
                 if (mask_start < f_start) mask_sample_start = 0;
                 else mask_sample_start = (mask_start - f_start) / delta_f;
 
@@ -235,6 +242,52 @@ void mask_restricted_freq(
                 // if (VERBOSE) log_trace("    [MASK]              | %d -- %d|", mask_sample_start, mask_sample_end);
 
                 is_applied = true;
+        }
+
+        // Apply mask for the other channel at +/- each multiple of the IF sample rate
+        if (( i >= restricted_num + STATIC_CHANNEL_NUM * radar ) &&
+            ( i <  restricted_num + STATIC_CHANNEL_NUM * (radar+1) ) &&
+            ( mask_start != 0 && mask_end != 0 )) {
+
+            for (int j = 1; j < num_alias; j++) {
+                // Apply spectrum freq range's floor or ceiling to mask's bounds
+                alias_end = mask_end - (int) (j * meta_data.if_rate);
+                if (alias_end < f_start) break;
+                if (alias_end >= f_end) mask_sample_end = num_samples - 1;
+                else mask_sample_end = (alias_end - f_start) / delta_f;
+
+                alias_start = mask_start - (int) (j * meta_data.if_rate);
+                if (alias_start > f_end) continue;
+                if (alias_start < f_start) mask_sample_start = 0;
+                else mask_sample_start = (alias_start - f_start) / delta_f;
+
+                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias)", alias_start/1000, alias_end/1000);
+
+                // Apply mask
+                for (int k = mask_sample_start; k <= mask_sample_end && k <= num_samples; k++) spectrum[k] = RAND_MAX;
+
+                is_applied = true;
+            }
+
+            for (int j = 1; j < num_alias; j++) {
+                // Apply spectrum freq range's floor or ceiling to mask's bounds
+                alias_start = mask_start + (int) (j * meta_data.if_rate);
+                if (alias_start > f_end) break;
+                if (alias_start < f_start) mask_sample_start = 0;
+                else mask_sample_start = (alias_start - f_start) / delta_f;
+
+                alias_end = mask_end + (int) (j * meta_data.if_rate);
+                if (alias_end < f_start) continue;
+                if (alias_end >= f_end) mask_sample_end = num_samples - 1;
+                else mask_sample_end = (alias_end - f_start) / delta_f;
+
+                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias)", alias_start/1000, alias_end/1000);
+
+                // Apply mask
+                for (int k = mask_sample_start; k <= mask_sample_end && k <= num_samples; k++) spectrum[k] = RAND_MAX;
+
+                is_applied = true;
+            }
         }
     }
     if (is_applied) log_info("    [mask_restricted] Mask(s) applied!");
@@ -267,6 +320,7 @@ void mask_restricted_freq(
  * @param  clear_bw: Bandwidth of the Clear Frequency Bands
  * @param  *clr_band: Passed by reference; Overwritten with the
  * * lowest noise freq_band.
+ * @param  radar: Current radar index.
  * @retval None
  */
 void find_clear_freqs(
@@ -278,7 +332,8 @@ void find_clear_freqs(
     double f_start,
     double f_end,
     int clear_bw,
-    freq_band *clr_band
+    freq_band *clr_band,
+    int radar
 ) {
 
     log_debug("Entered find_clear_freqs()...");
@@ -324,12 +379,12 @@ void find_clear_freqs(
         // Debug: Check the Clear Search Range
         // if (i < 2  || i > clr_search_sample_bw - 2) {
         //     log_trace("clr_search_band[%d]: %f", i, clr_search_band[i]);
-        //     log_trace("                   : %f ", spectrum[i + clr_search_sample_start]);
+        //     log_trace("                   : %f", spectrum[i + clr_search_sample_start]);
         // }
     }
 
     // Mask restricted frequencies
-    if (restricted_bands != NULL) mask_restricted_freq(clr_search_band, f_start, f_end, avg_delta_f, clr_search_sample_bw, restricted_bands, restricted_num);
+    if (restricted_bands != NULL) mask_restricted_freq(clr_search_band, f_start, f_end, avg_delta_f, clr_search_sample_bw, restricted_bands, restricted_num, meta_data, radar);
 
     // Scan Search range w/ Bandpass Filter (BPF) to find Clear Freq Band
     // log_debug("[find_clear_freqs()] Scanning Search Range w/ Bandpass...");
@@ -408,6 +463,7 @@ void calc_clear_freq_on_raw_samples(
     char *fft_file,
     char *clr_file,
     char *ststr,
+    int radar,
     int channel
 ) {
     // int **sample_re = NULL;
@@ -545,7 +601,7 @@ void calc_clear_freq_on_raw_samples(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    find_clear_freqs(avg_spectrum, *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
+    find_clear_freqs(avg_spectrum, *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band, radar);
     t2 = clock();
     if (VERBOSE) log_info("find_clear_freqs (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
@@ -961,6 +1017,7 @@ void process_avg_beam_spectra(
  * @param  *clr_band: The found clear frequency band.
  * @param  *clr_file: Name of output clear frequency file.
  * @param  *ststr: Three-letter radar ID.
+ * @param  radar: Current radar index.
  * @param  channel: Current radar channel ID number.
  * @retval None
  */
@@ -977,6 +1034,7 @@ void process_beam_clr_freq(
     freq_band *clr_band,
     char *clr_file,
     char *ststr,
+    int radar,
     int channel
 ) {
     log_debug("Entered process_beam_clr_freq()...");
@@ -1008,7 +1066,7 @@ void process_beam_clr_freq(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
+    find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band, radar);
     t2 = clock();
     log_trace("     find_clear_freqs(s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
@@ -1056,6 +1114,7 @@ void process_beam_clr_freq(
  * @param  *fft_file: Name of output FFT file.
  * @param  *clr_file: Name of output clear frequency file.
  * @param  *ststr: Three-letter radar ID.
+ * @param  radar: Current radar index.
  * @param  channel: Current radar channel ID number.
  * @retval None
  */
@@ -1074,6 +1133,7 @@ clear_freq clear_freq_search(
         char *fft_file,
         char *clr_file,
         char *ststr,
+        int radar,
         int channel
     ) {
 
@@ -1109,6 +1169,7 @@ clear_freq clear_freq_search(
         fft_file,
         clr_file,
         ststr,
+        radar,
         channel
     );
 

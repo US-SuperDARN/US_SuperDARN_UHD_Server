@@ -1596,6 +1596,7 @@ int main() {
                             fft_file[cur_radar][cur_channel],
                             clr_file[cur_radar][cur_channel],
                             ststr[cur_radar],
+                            cur_radar,
                             channel
                         );
                     }
@@ -1632,6 +1633,7 @@ int main() {
                         clr_band,
                         clr_file[cur_radar][cur_channel],
                         ststr[cur_radar],
+                        cur_radar,
                         channel
                     );
                     log_info( "[TCS] Clr Freq @ Beam #%d done...", cur_beam);
