@@ -186,7 +186,8 @@ void convolve(double* u, int u_size, int* v, int v_size, double* result) {
  * @brief  Masks restricted frequency bands in the spectrum by applying RAND_MAX.
  * @note   By DF
  * @param  *spectrum: Spectrum the mask will be applied to.
- * @param  *freq_vector: Used to determine if the mask can be applied and where to start applying the mask element-wise.
+ * @param  f_start: Clear Freq Search Boundary start
+ * @param  f_end: Clear Freq Search Boundary end
  * @param  delta_f: Element step size, used to round the mask start and end bounds
  * @param  num_samples: Number of samples in the spectrum
  * @param  *restricted_bands: The restricted frequencies bands that should not
@@ -194,7 +195,15 @@ void convolve(double* u, int u_size, int* v, int v_size, double* result) {
  * @param  restricted_num: Number of restricted frequency bands in restricted_bands.
  * @retval None
  */
-void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, int num_samples, freq_band *restricted_bands, int restricted_num) {
+void mask_restricted_freq(
+    double *spectrum,
+    double f_start,
+    double f_end,
+    int delta_f,
+    int num_samples,
+    freq_band *restricted_bands,
+    int restricted_num
+) {
     log_debug("    [mask_restricted] Masking restricted bands...");
     bool is_applied = false;
 
@@ -207,18 +216,18 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
         int mask_end = (int) restricted_bands[i].f_end;
 
         // For masks intersecting spectrum's freq range, apply mask
-        if (( mask_end <= freq_vector[num_samples - 1] && mask_end > freq_vector[0] ) ||
-            ( mask_start < freq_vector[num_samples - 1] && mask_start >= freq_vector[0])) {
+        if (( mask_end <= f_end && mask_end > f_start ) ||
+            ( mask_start < f_end && mask_start >= f_start)) {
                 // Debug: Show masks applied
                 if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d |", mask_start/1000, mask_end/1000);
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
                 int mask_sample_start, mask_sample_end;
-                if (mask_start < freq_vector[0]) mask_sample_start = 0;
-                else mask_sample_start = (mask_start - freq_vector[0]) / delta_f;
+                if (mask_start < f_start) mask_sample_start = 0;
+                else mask_sample_start = (mask_start - f_start) / delta_f;
 
-                if (mask_end >= freq_vector[num_samples - 1]) mask_sample_end = num_samples - 1;
-                else mask_sample_end = (mask_end - freq_vector[0]) / delta_f;
+                if (mask_end >= f_end) mask_sample_end = num_samples - 1;
+                else mask_sample_end = (mask_end - f_start) / delta_f;
                 // log_trace("            Sample bounds... | %d -- %d|", mask_sample_start, mask_sample_end);
 
                 // Apply mask
@@ -250,6 +259,9 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
  * @param  *spectrum: Spectrum Data (Power per Sample)
  * @param  meta_data: Misc info on operating Radar parameters
  * @param  avg_delta_f: Frequency step per Sample post spectral averaging
+ * @param  *restricted_bands: The restricted frequencies bands that should not
+ * *  be transmitted on and should be masked.
+ * @param  restricted_num: Number of restricted frequency bands in restricted_bands.
  * @param  f_start: Clear Freq Search Boundary start
  * @param  f_end: Clear Freq Search Boundary end
  * @param  clear_bw: Bandwidth of the Clear Frequency Bands
@@ -257,7 +269,17 @@ void mask_restricted_freq(double *spectrum, double *freq_vector, int delta_f, in
  * * lowest noise freq_band.
  * @retval None
  */
-void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_delta_f, double f_start, double f_end, int clear_bw, freq_band *clr_band) {
+void find_clear_freqs(
+    double *spectrum,
+    sample_meta_data meta_data,
+    double avg_delta_f,
+    freq_band *restricted_bands,
+    int restricted_num,
+    double f_start,
+    double f_end,
+    int clear_bw,
+    freq_band *clr_band
+) {
 
     log_debug("Entered find_clear_freqs()...");
     int clear_sample_bw = ceil(clear_bw / avg_delta_f);  // Always round up to avoid any overlapping bands
@@ -305,6 +327,9 @@ void find_clear_freqs(double *spectrum, sample_meta_data meta_data, double avg_d
         //     log_trace("                   : %f ", spectrum[i + clr_search_sample_start]);
         // }
     }
+
+    // Mask restricted frequencies
+    if (restricted_bands != NULL) mask_restricted_freq(clr_search_band, f_start, f_end, avg_delta_f, clr_search_sample_bw, restricted_bands, restricted_num);
 
     // Scan Search range w/ Bandpass Filter (BPF) to find Clear Freq Band
     // log_debug("[find_clear_freqs()] Scanning Search Range w/ Bandpass...");
@@ -500,8 +525,6 @@ void calc_clear_freq_on_raw_samples(
 
     /// END of Spectrum Calculations
 
-    // Mask restricted frequencies
-    if (restricted_bands != NULL) mask_restricted_freq(avg_spectrum, avg_freq_vector, delta_f_avg, num_avg_samples, restricted_bands, restricted_num);
     log_trace("------f_start: %f      f_end: %f",avg_freq_vector[0]/1000, avg_freq_vector[num_avg_samples - 1]/1000);
 
     // Define Clear Freq Range from Hz to sample index
@@ -522,7 +545,7 @@ void calc_clear_freq_on_raw_samples(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    find_clear_freqs(avg_spectrum, *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
+    find_clear_freqs(avg_spectrum, *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
     t2 = clock();
     if (VERBOSE) log_info("find_clear_freqs (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
@@ -961,8 +984,6 @@ void process_beam_clr_freq(
     double f_start = avg_freq_vector[0];
     int delta_f_avg = avg_freq_vector[1] - avg_freq_vector[0];
 
-    // Mask restricted frequencies
-    if (restricted_bands != NULL) mask_restricted_freq(avg_beam_spectra[cur_beam], avg_freq_vector, delta_f_avg, num_avg_samples, restricted_bands, restricted_num);
     log_trace("------f_start: %f -- f_end: %f", f_start/1000, avg_freq_vector[num_avg_samples - 1]/1000);
 
     log_trace("     num_avg_samples: %d", num_avg_samples);
@@ -987,7 +1008,7 @@ void process_beam_clr_freq(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
+    find_clear_freqs(avg_beam_spectra[cur_beam], *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, clr_band);
     t2 = clock();
     log_trace("     find_clear_freqs(s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
