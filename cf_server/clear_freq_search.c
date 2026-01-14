@@ -505,8 +505,8 @@ void calc_clear_freq_on_raw_samples(
     log_trace("------f_start: %f      f_end: %f",avg_freq_vector[0]/1000, avg_freq_vector[num_avg_samples - 1]/1000);
 
     // Define Clear Freq Range from Hz to sample index
-    int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
-    int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
+    // int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
+    // int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
     log_trace("clear_range: | %d -- %d |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
 
     // Trasmission separation
@@ -969,8 +969,8 @@ void process_beam_clr_freq(
     log_trace("     delta_f_avg: %d", delta_f_avg);
 
     // Define Clear Freq Range from Hz to sample index
-    int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
-    int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
+    // int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
+    // int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
     log_trace("     clear_range: | %d -- %d |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
     // log_trace("         samples: | %d -- %d |", clear_sample_start, clear_sample_end);
     // if (VERBOSE){ for (int i = clear_sample_start; i < clear_sample_end; i++) {
