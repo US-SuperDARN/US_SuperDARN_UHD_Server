@@ -1673,12 +1673,12 @@ class scanManager():
            return
 
         if self.camping:
-            self.logger.debug("Camping beam, no need to increasing current_period.")
+            self.logger.debug("radar {} ch {}: Camping beam, no need to increase current_period.".format(self.channel.rnum, self.channel.cnum))
         elif not self.isLastPeriod:
             self.current_period += 1
-            self.logger.debug("Increasing current_period to {}".format(self.current_period))
+            self.logger.debug("radar {} ch {}: Increasing current_period to {}".format(self.channel.rnum, self.channel.cnum, self.current_period))
         else:
-            self.logger.debug("Last period current_period is still {}".format(self.current_period))
+            self.logger.debug("radar {} ch {}: Last period current_period is still {}".format(self.channel.rnum, self.channel.cnum, self.current_period))
             self.isPostLast = True
 
 
