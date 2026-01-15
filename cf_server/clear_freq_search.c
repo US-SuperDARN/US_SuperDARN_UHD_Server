@@ -227,7 +227,13 @@ void mask_restricted_freq(
         if (( mask_end <= f_end && mask_end > f_start ) ||
             ( mask_start < f_end && mask_start >= f_start )) {
                 // Debug: Show masks applied
-                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d |", mask_start/1000, mask_end/1000);
+                if (VERBOSE) {
+                    if (i < restricted_num) {
+                        log_trace("    [MASK] Applying...  | %5d -- %5d | (restrict.dat)", mask_start/1000, mask_end/1000);
+                    } else {
+                        log_trace("    [MASK] Applying...  | %5d -- %5d | (radar %d ch %d)", mask_start/1000, mask_end/1000, (i-restricted_num)/2, (i-restricted_num)%2);
+                    }
+                }
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
                 if (mask_start < f_start) mask_sample_start = 0;
@@ -261,7 +267,7 @@ void mask_restricted_freq(
                 if (alias_start < f_start) mask_sample_start = 0;
                 else mask_sample_start = (alias_start - f_start) / delta_f;
 
-                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias)", alias_start/1000, alias_end/1000);
+                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias: %5d)", alias_start/1000, alias_end/1000, mask_start/1000);
 
                 // Apply mask
                 for (int k = mask_sample_start; k <= mask_sample_end && k <= num_samples; k++) spectrum[k] = RAND_MAX;
@@ -281,7 +287,7 @@ void mask_restricted_freq(
                 if (alias_end >= f_end) mask_sample_end = num_samples - 1;
                 else mask_sample_end = (alias_end - f_start) / delta_f;
 
-                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias)", alias_start/1000, alias_end/1000);
+                if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias: %5d)", alias_start/1000, alias_end/1000, mask_start/1000);
 
                 // Apply mask
                 for (int k = mask_sample_start; k <= mask_sample_end && k <= num_samples; k++) spectrum[k] = RAND_MAX;
