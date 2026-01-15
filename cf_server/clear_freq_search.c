@@ -359,6 +359,7 @@ void find_clear_freqs(
     if (clr_search_sample_end < 0) clr_search_sample_end = 0;
     else if (clr_search_sample_end > spectrum_sample_bw) clr_search_sample_end = spectrum_sample_bw;
 
+    double atten = pow(10, RFIF_ATTEN/10.);
     int num_alias = ceil(meta_data.usrp_rf_rate / meta_data.if_rate);
     int alias_sample = 0;
 
@@ -373,12 +374,12 @@ void find_clear_freqs(
         // Sum power at +/- each multiple of the IF sample rate
         for (int j = 1; j < num_alias; j++) {
             alias_sample = i + clr_search_sample_start - (int) (j * meta_data.if_rate / avg_delta_f);
-            if (alias_sample > 0) clr_search_band[i] += spectrum[alias_sample];
+            if (alias_sample > 0) clr_search_band[i] += spectrum[alias_sample] / atten;
             else break;
         }
         for (int j = 1; j < num_alias; j++) {
             alias_sample = i + clr_search_sample_start + (int) (j * meta_data.if_rate / avg_delta_f);
-            if (alias_sample < spectrum_sample_bw) clr_search_band[i] += spectrum[alias_sample];
+            if (alias_sample < spectrum_sample_bw) clr_search_band[i] += spectrum[alias_sample] / atten;
             else break;
         }
 

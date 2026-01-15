@@ -37,8 +37,6 @@ typedef struct clear_freq {
 } clear_freq;
 
 
-
-
 #pragma once
 
 clear_freq clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
@@ -48,7 +46,6 @@ clear_freq clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
                              Config config, freq_band *clr_band,
                              char *fft_file, char *clr_file,
                              char *ststr, int radar, int channel);
-
 
 int ini_parse(const char* filename, ini_handler handler, void* user);
 
@@ -74,9 +71,12 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
                            sample_meta_data *meta_data, freq_band *clr_band,
                            char *clr_file, char *ststr, int radar, int channel);
 
+
 // Define Constants
 #define GB_MULT 1.25                // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw = clear_freq bandwidth)
 #define MIN_FREQ_SEP 1500           // Minimum Frequency Separation (in Hz), guard band will be kept at and above this value.
+
+#define RFIF_ATTEN 30               // Attenuation (in dB) applied by RF-IF filter to out of band signals
 
 #define MIN_ANT_PWR_MULT .1         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
 #define MAX_ANT_PWR 25000           // Debug: used to flag high power samples during TCS's process_beamformed_samples
@@ -85,7 +85,6 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 #define IDX_LAST_MA 15              // Last Main Array
 #define PI 3.14159265358979323846
 #define C  299792458.0
-
 
 // Config and Debug Flags
 #define BIN_OR_CSV_LOG  0   // 0 for Bin, otherwise CSV
