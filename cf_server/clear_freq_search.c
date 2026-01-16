@@ -929,7 +929,7 @@ void process_avg_beam_spectra(
     double f_start = meta_data->usrp_fcenter * 1000 - (meta_data->usrp_rf_rate / 2);
 
     // Determine Avg Freq Vector; used in Clear Freq Calculation
-    if (avg_freq_vector == NULL) avg_freq_vector = calloc(sizeof(double), num_avg_samples);
+    if (avg_freq_vector == NULL) avg_freq_vector = calloc(num_avg_samples, sizeof(double));
     int delta_f_avg = delta_f * avg_ratio;
     for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = i * delta_f_avg + f_start;
 
