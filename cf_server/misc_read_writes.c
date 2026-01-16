@@ -262,7 +262,10 @@ void write_clr_freq_bin(
     int channel,
     int beam_num,
     freq_band *clr_band,
-    int* clr_range
+    int* clr_range,
+    double *clr_spectrum,
+    double *freq_vector,
+    int num_samples
 ) {
     FILE *file = NULL;
 
@@ -273,6 +276,9 @@ void write_clr_freq_bin(
     char timestamp[buffer_size];
     char name[buffer_size];
 
+    int freq_start = 0;
+    int dfreq = 0;
+    float f_spectrum[num_samples];
 
     // If file doesn't exists, ...
     if (filename == NULL) {
@@ -298,7 +304,14 @@ void write_clr_freq_bin(
 
     __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
 
-    // Write time, beam number, clear search range, then clear band
+    freq_start = freq_vector[0]/1000;
+    dfreq = (freq_vector[1]-freq_vector[0])/1000;
+
+    for (int i=0; i < num_samples; i++) {
+        f_spectrum[i] = (float) clr_spectrum[i];
+    }
+
+    // Write time, beam number, clear search range, clear band, then clear band spectrum
     fwrite(&t, sizeof(__uint64_t), 1, file);
     fwrite(&beam_num, sizeof(int), 1, file);
     fwrite(&(clr_range[0]), sizeof(int), 1, file);
@@ -306,6 +319,10 @@ void write_clr_freq_bin(
     fwrite(&(clr_band->f_start), sizeof(int), 1, file);
     fwrite(&(clr_band->noise), sizeof(double), 1, file);
     fwrite(&(clr_band->f_end), sizeof(int), 1, file);
+    fwrite(&num_samples, sizeof(int), 1, file);
+    fwrite(&freq_start, sizeof(int), 1, file);
+    fwrite(&dfreq, sizeof(int), 1, file);
+    fwrite(f_spectrum, sizeof(float), num_samples, file);
 
     fclose(file);
 }
