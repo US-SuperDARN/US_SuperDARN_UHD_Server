@@ -915,6 +915,7 @@ int main() {
     int clr_range_overwrite_idx[STATIC_RADAR_NUM] = {0};                  // Index used to track which clr_range to overwrite (increments to next clr_range idx each overwrite)
     bool using_full_usrp_range[STATIC_RADAR_NUM][STATIC_RANGE_NUM] = {false};
     freq_band selected_clr_band = {0};
+    freq_band prev_clr_band = {0};
     int def_low_range[STATIC_RADAR_NUM] = {0};
     int def_high_range[STATIC_RADAR_NUM]= {0};
 
@@ -1498,6 +1499,9 @@ int main() {
 
             }
 
+            // Track current channel's previous frequency band for comparison
+            prev_clr_band = radar_table[cur_radar][cur_channel].clr_band;
+
             // Unmask current channel's old reserved frequency
             log_debug("Unmasking old reserved clr band[%d]: | %5d kHz -- %5d kHz |",
                 restricted_num + cur_radar * STATIC_CHANNEL_NUM + cur_channel,
@@ -1592,6 +1596,7 @@ int main() {
                             restricted_num,
                             meta_data,
                             array_config,
+                            prev_clr_band,
                             clr_band,
                             fft_file[cur_radar][cur_channel],
                             clr_file[cur_radar][cur_channel],
@@ -1630,6 +1635,7 @@ int main() {
                         avg_freq_vector,
                         (int) (meta_data.number_of_samples / avg_ratio),
                         &meta_data,
+                        prev_clr_band,
                         clr_band,
                         clr_file[cur_radar][cur_channel],
                         ststr[cur_radar],

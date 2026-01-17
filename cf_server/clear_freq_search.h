@@ -38,7 +38,7 @@ void clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
                        int clear_freq_range[], int cur_beam, int smsep,
                        int avg_ratio, freq_band *restricted_bands,
                        int restrict_num, sample_meta_data meta_data,
-                       Config config, freq_band *clr_band,
+                       Config config, freq_band prev_clr_band, freq_band *clr_band,
                        char *fft_file, char *clr_file,
                        char *ststr, int radar, int channel);
 
@@ -63,7 +63,7 @@ void process_all_beamformed_spectras(fftw_complex *raw_samples, int *active_ante
 void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_freq_range[],
                            int smsep, freq_band *restricted_bands, int restricted_num,
                            double *avg_freq_vector, int num_avg_samples,
-                           sample_meta_data *meta_data, freq_band *clr_band,
+                           sample_meta_data *meta_data, freq_band prev_clr_band, freq_band *clr_band,
                            char *clr_file, char *ststr, int radar, int channel);
 
 
@@ -72,6 +72,8 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 #define MIN_FREQ_SEP 1500           // Minimum Frequency Separation (in Hz), guard band will be kept at and above this value.
 
 #define RFIF_ATTEN 30               // Attenuation (in dB) applied by RF-IF filter to out of band signals
+
+#define CLR_THRESHOLD 0.10          // Minimum percent improvment in clear band noise required to choose a new band (0-1; 0 to disable)
 
 #define MIN_ANT_PWR_MULT .1         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
 #define MAX_ANT_PWR 25000           // Debug: used to flag high power samples during TCS's process_beamformed_samples
