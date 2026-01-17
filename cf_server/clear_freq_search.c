@@ -1151,24 +1151,24 @@ void process_beam_clr_freq(
  * @param  channel: Current radar channel ID number.
  * @retval None
  */
-clear_freq clear_freq_search(
-        fftw_complex *raw_samples,
-        int *active_antennas,
-        int clear_freq_range[],
-        int cur_beam,
-        int smsep,
-        int avg_ratio,
-        freq_band *restricted_bands,
-        int restricted_num,
-        sample_meta_data meta_data,
-        Config config,
-        freq_band *clr_band,
-        char *fft_file,
-        char *clr_file,
-        char *ststr,
-        int radar,
-        int channel
-    ) {
+void clear_freq_search(
+    fftw_complex *raw_samples,
+    int *active_antennas,
+    int clear_freq_range[],
+    int cur_beam,
+    int smsep,
+    int avg_ratio,
+    freq_band *restricted_bands,
+    int restricted_num,
+    sample_meta_data meta_data,
+    Config config,
+    freq_band *clr_band,
+    char *fft_file,
+    char *clr_file,
+    char *ststr,
+    int radar,
+    int channel
+) {
 
     // Initial Data Variables
     int n_beams = config.array_info.nbeams;
@@ -1212,7 +1212,7 @@ clear_freq clear_freq_search(
 };
 
 
-void process_avg_ant_pwr (
+void process_avg_ant_pwr(
     fftw_complex *raw_samples,
     int num_samples,
     sample_meta_data *meta_data,
