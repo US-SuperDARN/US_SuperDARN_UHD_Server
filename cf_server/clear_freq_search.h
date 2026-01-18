@@ -73,7 +73,8 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 
 #define RFIF_ATTEN 30               // Attenuation (in dB) applied by RF-IF filter to out of band signals
 
-#define CLR_THRESHOLD 0.10          // Minimum percent improvment in clear band noise required to choose a new band (0-1; 0 to disable)
+#define CLR_BAND_MULT 0.90          // Cutoff point relative to noise in previously selected band. Noise must be below cutoff for
+                                    //   a new band to be selected; otherwise the previous clear band will be re-used (0 to disable)
 
 #define MIN_ANT_PWR_MULT .1         // Cutoff point relative to overall average antenna power. Anything below cutoff will be muted.
 #define MAX_ANT_PWR 25000           // Debug: used to flag high power samples during TCS's process_beamformed_samples

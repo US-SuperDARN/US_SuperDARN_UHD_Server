@@ -453,14 +453,14 @@ int find_clear_freqs(
     }
 
     // Calculate noise in previously selected band if in current search range
-    if (CLR_THRESHOLD != 0 && prev_sample_bw != 0) {
+    if (CLR_BAND_MULT != 0 && prev_sample_bw != 0) {
         prev_clr_band.noise = 0;
         for (int i = 0; i < prev_sample_bw; i++) {
             prev_clr_band.noise += clr_search_band[prev_sample_start + i];
         }
         prev_clr_band.noise /= clear_sample_bw;
 
-        if ( (prev_clr_band.noise - clr_band->noise)/prev_clr_band.noise < CLR_THRESHOLD ) {
+        if ( clr_band->noise > prev_clr_band.noise * CLR_BAND_MULT ) {
             log_trace("Noise difference too small, keeping previous clear band:");
             log_trace("    | Prev Band: %.2f -- Min Band: %.2f |", prev_clr_band.noise, clr_band->noise);
             clr_band->f_start = prev_clr_band.f_start;
