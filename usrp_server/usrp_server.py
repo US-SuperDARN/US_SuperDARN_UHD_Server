@@ -2394,6 +2394,9 @@ class RadarHardwareManager:
                 self.commonChannelParameter = {}
                 radar_active[:] = False
 
+            if not self.channels[channelObject.rnum]:
+                radar_active[channelObject.rnum] = False
+
         else:
             self.logger.warning('unregister_channel_from_HardwareManager() channel already deleted')
 
@@ -2942,6 +2945,8 @@ class RadarHardwareManager:
                         self.nRegisteredChannels = 0
                         self.commonChannelParameter = {}
                         radar_active[:] = False
+                     if not self.channels[channel.rnum]:
+                        radar_active[channel.rnum] = False
                   if channel in self.active_channels[channel.rnum]:
                      self.active_channels[channel.rnum].remove(channel)
 
@@ -4482,6 +4487,9 @@ class RadarChannelHandler:
                 RHM.commonChannelParameter = {}
                 RHM.nRegisteredChannels = 0
                 radar_active[:] = False
+
+            if not RHM.channels[channelObject.rnum]:
+                radar_active[channelObject.rnum] = False
         else:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from HardwareManager'.format(channelObject.rnum, channelObject.cnum))
 
