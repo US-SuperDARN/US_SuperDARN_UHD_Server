@@ -4460,11 +4460,11 @@ class RadarChannelHandler:
     def SetInactiveHandler(channelObject, rmsg):
         RHM = channelObject.parent_RadarHardwareManager
         RHM.logger.debug('ROS:SET_INACTIVE received for radar {} ch {}'.format(channelObject.rnum, channelObject.cnum))
-        RHM.logger.debug('radar {} ch {}: RHM active channels objects: {}'.format(channelObject.rnum, channelObject.cnum, RHM.active_channels[channelObject.rnum]))
+        RHM.logger.debug('radar {} ch {}: RHM.active_channels objects: {}'.format(channelObject.rnum, channelObject.cnum, RHM.active_channels[channelObject.rnum]))
 
         if channelObject in RHM.active_channels[channelObject.rnum]:
-            RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE trying to remove channel {} from RHM.active_channels'.format(channelObject.rnum, channelObject.cnum, RHM.channels[channelObject.rnum].index(channelObject)))
             try:
+               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE trying to remove channel idx {} from RHM.active_channels'.format(channelObject.rnum, channelObject.cnum, RHM.channels[channelObject.rnum].index(channelObject)))
                RHM.active_channels[channelObject.rnum].remove(channelObject)
                RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE removing from RHM.active_channels success'.format(channelObject.rnum, channelObject.cnum))
             except:
@@ -4472,14 +4472,15 @@ class RadarChannelHandler:
         else:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from RHM.active_channels'.format(channelObject.rnum, channelObject.cnum))
 
-        RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE trying to remove channels from HardwareManager'.format(channelObject.rnum, channelObject.cnum))
-        if channelObject in np.concatenate(RHM.channels).tolist():
-            RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE removing channel {} from HardwareManager'.format(channelObject.rnum, channelObject.cnum, RHM.channels[channelObject.rnum].index(channelObject)))
+        RHM.logger.debug('radar {} ch {}: RHM.channels objects: {}'.format(channelObject.rnum, channelObject.cnum, RHM.channels[channelObject.rnum]))
+
+        if channelObject in RHM.channels[channelObject.rnum]:
             try:
+               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE trying to remove channel idx {} from RHM.channels'.format(channelObject.rnum, channelObject.cnum, RHM.channels[channelObject.rnum].index(channelObject)))
                RHM.channels[channelObject.rnum].remove(channelObject)
-               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE removing from HardwareManager success'.format(channelObject.rnum, channelObject.cnum))
+               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE removing from RHM.channels success'.format(channelObject.rnum, channelObject.cnum))
             except:
-               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE failed to remove from HardwareManager'.format(channelObject.rnum, channelObject.cnum))
+               RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE failed to remove from RHM.channels'.format(channelObject.rnum, channelObject.cnum))
 
             RHM.nRegisteredChannels -= 1
             if RHM.nRegisteredChannels <= 0:
@@ -4487,11 +4488,11 @@ class RadarChannelHandler:
                 RHM.commonChannelParameter = {}
                 RHM.nRegisteredChannels = 0
                 radar_active[:] = False
-
-            if not RHM.channels[channelObject.rnum]:
-                radar_active[channelObject.rnum] = False
         else:
-            RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from HardwareManager'.format(channelObject.rnum, channelObject.cnum))
+            RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from RHM.channels'.format(channelObject.rnum, channelObject.cnum))
+
+        if not RHM.channels[channelObject.rnum]:
+            radar_active[channelObject.rnum] = False
 
         channelObject.active = False
         RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE sending RMSG_SUCCESS'.format(channelObject.rnum, channelObject.cnum))
