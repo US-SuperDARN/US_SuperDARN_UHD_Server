@@ -1814,6 +1814,7 @@ class RadarHardwareManager:
         self.usrp_setup_semaphore = threading.BoundedSemaphore()
         self.usrp_timeout_semaphore = threading.BoundedSemaphore()
         self.channel_spawn_semaphore = threading.BoundedSemaphore()
+        self.channel_remove_semaphore = threading.BoundedSemaphore()
         self.clear_search_data_semaphore = threading.BoundedSemaphore()
 
         self.ini_file_init()
@@ -2360,6 +2361,8 @@ class RadarHardwareManager:
            # no time.sleep() here because there is not much time between two trigger calls...
             iRun += 1
 
+        self.channel_remove_semaphore.acquire()
+
         if channelObject in self.active_channels[channelObject.rnum]:
            self.active_channels[channelObject.rnum].remove(channelObject)
 
@@ -2372,6 +2375,8 @@ class RadarHardwareManager:
        #     channelObject._waitForState([CS_READY, CS_INACTIVE])
             self.logger.info('unregister_channel_from_HardwareManager() removing channel {} from HardwareManager'.format(self.channels[channelObject.rnum].index(channelObject)))
             self.channels[channelObject.rnum].remove(channelObject)
+
+            self.channel_remove_semaphore.release()
 
             # remove channel from cuda
             self.logger.debug('send CUDA_REMOVE_CHANNEL')
@@ -2398,6 +2403,7 @@ class RadarHardwareManager:
                 radar_active[channelObject.rnum] = False
 
         else:
+            self.channel_remove_semaphore.release()
             self.logger.warning('unregister_channel_from_HardwareManager() channel already deleted')
 
 
@@ -2938,6 +2944,8 @@ class RadarHardwareManager:
                self.logger.debug("end CUDA_REMOVE_CHANNEL")
                if channel.scanManager.isPostLast:
 
+                  self.channel_remove_semaphore.acquire()
+
                   if channel in self.channels[channel.rnum]:
                      self.channels[channel.rnum].remove(channel)
                      self.nRegisteredChannels -= 1
@@ -2945,10 +2953,14 @@ class RadarHardwareManager:
                         self.nRegisteredChannels = 0
                         self.commonChannelParameter = {}
                         radar_active[:] = False
-                     if not self.channels[channel.rnum]:
-                        radar_active[channel.rnum] = False
+
+                  if not self.channels[channel.rnum]:
+                     radar_active[channel.rnum] = False
+
                   if channel in self.active_channels[channel.rnum]:
                      self.active_channels[channel.rnum].remove(channel)
+
+                  self.channel_remove_semaphore.release()
 
            else:
                self.last_period[channel.rnum] = False
@@ -4462,6 +4474,8 @@ class RadarChannelHandler:
         RHM.logger.debug('ROS:SET_INACTIVE received for radar {} ch {}'.format(channelObject.rnum, channelObject.cnum))
         RHM.logger.debug('radar {} ch {}: RHM.active_channels objects: {}'.format(channelObject.rnum, channelObject.cnum, RHM.active_channels[channelObject.rnum]))
 
+        RHM.channel_remove_semaphore.acquire()
+
         if channelObject in RHM.active_channels[channelObject.rnum]:
             try:
                RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE trying to remove channel idx {} from RHM.active_channels'.format(channelObject.rnum, channelObject.cnum, RHM.channels[channelObject.rnum].index(channelObject)))
@@ -4493,6 +4507,8 @@ class RadarChannelHandler:
 
         if not RHM.channels[channelObject.rnum]:
             radar_active[channelObject.rnum] = False
+
+        RHM.channel_remove_semaphore.release()
 
         channelObject.active = False
         RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE sending RMSG_SUCCESS'.format(channelObject.rnum, channelObject.cnum))
