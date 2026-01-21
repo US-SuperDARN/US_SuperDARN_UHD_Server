@@ -73,10 +73,10 @@ __global__ void multiply_and_add(float *samples, float *odata, float *filter, ui
         float q1 = samples[idxSample_if+3];
 
         // get filter values from global memory
-        float p0re = filter[idxSample_filter  ];
-        float p0im = filter[idxSample_filter+1];
-        float p1re = filter[idxSample_filter+2];
-        float p1im = filter[idxSample_filter+3];
+        float p0re = (float)filter[idxSample_filter  ];
+        float p0im = (float)filter[idxSample_filter+1];
+        float p1re = (float)filter[idxSample_filter+2];
+        float p1im = (float)filter[idxSample_filter+3];
 
         // multiply filter
         itemp[iThread_lin] = p0re * i0 - p0im * q0 + p1re * i1 - p1im * q1;
@@ -174,24 +174,28 @@ __global__ void multiply_mix_add(int16_t *samples, float *odata, float *filter, 
         // index in memory (account for I/Q, iAntenna)
         uint32_t idxSample_rf = (iSample_rf - offset) * 2 + iAntenna * nSamples_rf *2;
 
-        double phi0 = fmod(phaseIncrement_NCO_rad[iChannel] * iSample_rf, 2*M_PI);
-        float mc0 = cos(phi0);
-        float ms0 = sin(phi0);
+        float phi0 = fmod((double)phaseIncrement_NCO_rad[iChannel] * (double)iSample_rf, 2*M_PI);
+        float mc0 = (float)cos(phi0);
+        float ms0 = (float)sin(phi0);
 
-        double phi1 = fmod(phaseIncrement_NCO_rad[iChannel] * (iSample_rf+1), 2*M_PI);
-        float mc1 = cos(phi1);
-        float ms1 = sin(phi1);
+        float phi1 = fmod((double)phaseIncrement_NCO_rad[iChannel] * (double)(iSample_rf+1), 2*M_PI);
+        float mc1 = (float)cos(phi1);
+        float ms1 = (float)sin(phi1);
 
-        itemp[iThread_lin] =
-            filter[idxSample_filter  ] * samples[idxSample_rf  ] * mc0 -
-            filter[idxSample_filter+1] * samples[idxSample_rf+1] * ms0 +
-            filter[idxSample_filter+2] * samples[idxSample_rf+2] * mc1 -
-            filter[idxSample_filter+3] * samples[idxSample_rf+3] * ms1;
-        qtemp[iThread_lin] =
-            filter[idxSample_filter  ] * samples[idxSample_rf+1] * mc0 +
-            filter[idxSample_filter+1] * samples[idxSample_rf  ] * ms0 +
-            filter[idxSample_filter+2] * samples[idxSample_rf+3] * mc1 +
-            filter[idxSample_filter+3] * samples[idxSample_rf+2] * ms1;
+        float i0 = (float)samples[idxSample_rf  ];
+        float q0 = (float)samples[idxSample_rf+1];
+        float i1 = (float)samples[idxSample_rf+2];
+        float q1 = (float)samples[idxSample_rf+3];
+
+        // get filter values from global memory
+        float p0re = (float)filter[idxSample_filter  ];
+        float p0im = (float)filter[idxSample_filter+1];
+        float p1re = (float)filter[idxSample_filter+2];
+        float p1im = (float)filter[idxSample_filter+3];
+
+        // multiply filter
+        itemp[iThread_lin] = p0re * i0 * mc0 - p0im * q0 * ms0 + p1re * i1 * mc1 - p1im * q1 * ms1;
+        qtemp[iThread_lin] = p0re * q0 * mc0 + p0im * i0 * ms0 + p1re * q1 * mc1 + p1im * i1 * ms1;
     } else {
         itemp[iThread_lin] = 0;
         qtemp[iThread_lin] = 0;
@@ -244,17 +248,10 @@ __global__ void multiply_mix_add(int16_t *samples, float *odata, float *filter, 
     __syncthreads();
 
     if (threadIdx.x == 0) {
-        // the NCO included in the filter causes a phase error. this is the correction
-//        double phiOffset = fmod(phaseIncrement_NCO_rad[iChannel] * iSampleIF*decimationRate_rf2if, 2*M_PI);
-//        double ltemp = (double) itemp[iThread_lin]; // TODO: avoid numerical errors?? why only itemp? (mgu)
-
-//        itemp[iThread_lin] = itemp[iThread_lin] * cos(phiOffset) - qtemp[iThread_lin] * sin(phiOffset);
-//        qtemp[iThread_lin] = ltemp * sin(phiOffset) + qtemp[iThread_lin] * cos(phiOffset);
-
         // write outout
         uint32_t output_idx = iSampleIF *2 + iChannel * nSamplesIF *2 + iAntenna * nChannels * nSamplesIF *2;
-        odata[output_idx  ] = (float) itemp[iThread_lin];
-        odata[output_idx+1] = (float) qtemp[iThread_lin];
+        odata[output_idx  ] = itemp[iThread_lin];
+        odata[output_idx+1] = qtemp[iThread_lin];
     }
 
 }
