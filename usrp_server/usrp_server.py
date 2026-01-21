@@ -1422,6 +1422,16 @@ class clearFrequencyRawDataManager():
 
         self.metaData = [{} for jrad in range(N_RADARs)]
 
+        self.clr_ant_list = []
+        self.clr_shm_list = []
+        for ant in np.concatenate(self.usrpManager.antennaList_active[0]):
+           name = 'shm_clr_ant_{}_side_0_swing_0'.format(int(ant))
+           memory = posix_ipc.SharedMemory(name)
+           mapfile = mmap.mmap(memory.fd, memory.size)
+           memory.close_fd()
+           self.clr_ant_list.append(int(ant))
+           self.clr_shm_list.append(mapfile)
+
         self.get_raw_data_semaphore = threading.BoundedSemaphore()
         self.select_clear_freq = threading.BoundedSemaphore()
 
@@ -1487,13 +1497,20 @@ class clearFrequencyRawDataManager():
         clrfreq_cmd.transmit()
         time.sleep(0.001)
 
-        output_antenna_idx_list, output_samples_list = clrfreq_cmd.recv_all()
+        output_antenna_idx_list = clrfreq_cmd.recv_all()
 
         try:
             clrfreq_cmd.client_return()
             self.logger.debug("record sample command completed")
         except:
             self.logger.error("CLRFREQ, communication with at least one USRP failed")
+
+        for ant in output_antenna_idx_list:
+           idx = self.clr_ant_list.index(ant)
+           self.clr_shm_list[idx].seek(0)
+           sample_buf_side = np.frombuffer(self.clr_shm_list[idx], dtype=np.int16, count = int(self.number_of_samples*2))
+           sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
+           output_samples_list.append(sample_buf_side)
 
         return output_samples_list, output_antenna_idx_list
 
@@ -3156,8 +3173,16 @@ class RadarHardwareManager:
 
         for ind, cmd in enumerate(cmd_list):
            jrad = jrad_list[ind]
-           antenna_list, clr_samples = cmd.recv_all()
+           antenna_list = cmd.recv_all()
            cmd.client_return()
+
+           clr_samples = []
+           for ant in antenna_list:
+              idx = self.clearFreqRawDataManager.clr_ant_list.index(ant)
+              self.clearFreqRawDataManager.clr_shm_list[idx].seek(0)
+              sample_buf_side = np.frombuffer(self.clearFreqRawDataManager.clr_shm_list[idx], dtype=np.int16, count = int(nSamples_clear_freq*2))
+              sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
+              clr_samples.append(sample_buf_side)
 
            self.clear_search_data_semaphore.acquire()
            if len(antenna_list) != 0 and len(clr_samples) != 0:
