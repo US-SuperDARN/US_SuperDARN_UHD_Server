@@ -462,7 +462,8 @@ int find_clear_freqs(
 
         if ( clr_band->noise > prev_clr_band.noise * CLR_BAND_MULT ) {
             log_trace("Noise difference too small, keeping previous clear band:");
-            log_trace("    | Prev Band: %.2f -- Min Band: %.2f |", prev_clr_band.noise, clr_band->noise);
+            log_trace("    | Prev Band: %.2f -- Min Band: %.2f (%d - %d kHz) |",
+                prev_clr_band.noise, clr_band->noise, clr_band->f_start/1000, clr_band->f_end/1000);
             clr_band->f_start = prev_clr_band.f_start;
             clr_band->f_end   = prev_clr_band.f_end;
             clr_band->noise   = prev_clr_band.noise;
