@@ -356,7 +356,6 @@ class cuda_get_data_handler(cudamsg_handler):
                 self.sock.sendall(samples[iAntenna][channelIndex].tobytes())
 
             channel = recv_dtype(self.sock, np.int32)
-        self.gpu.rx_rf_samples.base.free()
 
 
 # take copy and process IF data from shared memory, send to usrp_server via socks
@@ -1244,6 +1243,15 @@ def main():
         handler.respond()
 
         logger.debug('responded to {}, waiting for next command'.format(cmdname))
+
+        if cmdname == 'CUDA_GET_DATA':
+            logger.debug('Trying to free rx_rf_samples')
+            try:
+                gpu.rx_rf_samples.base.free()
+                logger.debug('Freed rx_rf_samples')
+            except Exception as error:
+                logger.error('Error trying to free rx_rf_samples')
+                logger.exception(error)
 
 
 if __name__ == '__main__':
