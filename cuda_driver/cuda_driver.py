@@ -352,7 +352,7 @@ class cuda_get_data_handler(cudamsg_handler):
                 self.logger.debug('transmitted antenna index {}'.format(iAntenna))
                 transmit_dtype(self.sock, nSamples, np.uint32)
                 self.logger.debug('transmitted number of samples ({})'.format(nSamples))
-                self.logger.debug("rx_bb ant {} transmitting mean abs : {} #sampleTrace".format(iAntenna, np.mean(np.abs(samples[iAntenna][channelIndex]) )))
+                # self.logger.debug("rx_bb ant {} transmitting mean abs : {} #sampleTrace".format(iAntenna, np.mean(np.abs(samples[iAntenna][channelIndex]) )))
                 self.sock.sendall(samples[iAntenna][channelIndex].tobytes())
 
             channel = recv_dtype(self.sock, np.int32)
@@ -388,7 +388,7 @@ class cuda_get_if_data_handler(cudamsg_handler):
                 self.logger.debug('transmitted antenna index {}'.format(iAntenna))
                 transmit_dtype(self.sock, nSamples, np.uint32)
                 self.logger.debug('transmitted number of samples ({})'.format(nSamples))
-                self.logger.debug("rx_if ant {} transmitting mean abs : {} #sampleTrace".format(iAntenna, np.mean(np.abs(samples[iAntenna][channelIndex]) )))
+                # self.logger.debug("rx_if ant {} transmitting mean abs : {} #sampleTrace".format(iAntenna, np.mean(np.abs(samples[iAntenna][channelIndex]) )))
                 self.sock.sendall(samples[iAntenna][channelIndex].tobytes())
 
             channel = recv_dtype(self.sock, np.int32)
