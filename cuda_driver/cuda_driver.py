@@ -715,10 +715,8 @@ class ProcessingGPU(object):
             self.logger.debug(" BB  Sampling Rate     :  {} kHz".format(self.tx_bb_samplingRate / 1000))
             self.logger.debug(" BB  nSamples per Pulse:  {}".format(tx_bb_nSamples_per_pulse))
 
-
             self.logger.debug(" RF  Sampling Rate     :  {} kHz".format(self.tx_rf_samplingRate / 1000))
             self.logger.debug(" RF  nSamples per Pulse:  {}".format(tx_rf_nSamples_per_pulse))
-
 
             self.logger.debug('  TX Block: {}'.format(str(self.tx_block)))
             self.logger.debug('  TX Grid:  {}'.format(str(self.tx_grid )))
@@ -1236,13 +1234,18 @@ def main():
         cmdname = cudamsg_handler_names[cmd]
         logger.debug('received {} command'.format(cmdname))
 
-        handler = cudamsg_handlers[cmd](server_conn, cmd, gpu, antennas, array_info, hardware_limits, dsp_info)
-        handler.process()
+        try:
+            handler = cudamsg_handlers[cmd](server_conn, cmd, gpu, antennas, array_info, hardware_limits, dsp_info)
+            handler.process()
 
-        logger.debug('finished processing {} command, responding'.format(cmdname))
-        handler.respond()
+            logger.debug('finished processing {} command, responding'.format(cmdname))
+            handler.respond()
 
-        logger.debug('responded to {}, waiting for next command'.format(cmdname))
+            logger.debug('responded to {}, waiting for next command'.format(cmdname))
+        except Exception as error:
+            logger.error('Error while command {} ({})'.format(cmdname, cmd))
+            logger.error("Error: {}".format(sys.exc_info()[0]))
+            logger.exception(error)
 
         if cmdname == 'CUDA_GET_DATA':
             logger.debug('Trying to free rx_rf_samples')
