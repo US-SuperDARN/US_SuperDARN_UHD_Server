@@ -945,8 +945,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                             }
                             fprintf(fd, "%s ", get_log_time());
                             int32_t line_count=0;
-                            for (int32_t p_i=0; p_i<number_of_pulses; p_i++) {
-                                fprintf(fd, "%f, ", pulse_time_offsets[p_i]);
+                            for (uint32_t p_i=0; p_i<number_of_pulses; p_i++) {
+                                fprintf(fd, "%f, ", pulse_time_offsets[p_i].get_frac_secs());
                                 line_count++;
                                 if ((line_count % LINE_LENGTH) == 0) fprintf(fd, "\n");
                             }
@@ -1066,7 +1066,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         }
                         // auto clear freq samples
                         for (iSide = 0; iSide < nSides; iSide++) {
-                            for (int iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
+                            for (uint32_t iSample = 0; iSample < nSamples_auto_clear_freq; iSample++) {
                                 rx_auto_clear_freq[iSide][iSample] = rx_data_buffer[iSide][nSamples_rx + nSamples_pause_after_rx + iSample];
                             }
                         }
@@ -1181,7 +1181,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
                             // send samples
                             ssize_t status = send(driverconn, &rx_auto_clear_freq[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-                            if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
+                            if ((unsigned) status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
                                 DEBUG_PRINT("%s: AUTOCLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
                             }
                         }
@@ -1263,7 +1263,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
                             // send back samples
                             ssize_t status = send(driverconn, &clrfreq_data_buffer[jSide][0], sizeof(std::complex<short int>) * num_clrfreq_samples, 0);
-                            if (status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
+                            if ((unsigned) status != sizeof(std::complex<short int>) * num_clrfreq_samples) {
                                 DEBUG_PRINT("%s: CLRFREQ error sending samples for antenna %d (errno %d)\n", get_log_time(), antennaVector[jSide], errno);
                             } else {
                                 DEBUG_PRINT("%s: CLRFREQ samples sent for antenna %d...\n", get_log_time(), antennaVector[jSide]);
