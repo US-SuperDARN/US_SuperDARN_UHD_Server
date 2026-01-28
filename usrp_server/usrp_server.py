@@ -1761,7 +1761,10 @@ class scanManager():
         try:
            if_rate = RHM.usrp_rf_rx_rate / RHM.commonChannelParameter['downsample_rates'][0]
         except KeyError:
-           if_rate = RHM.usrp_rf_rx_rate / 30.0
+           if int(self.RHM.usrp_rf_rx_rate / 1e6) == 10:
+              if_rate = RHM.usrp_rf_rx_rate / 40.0
+           else:
+              if_rate = RHM.usrp_rf_rx_rate / 30.0
 
         clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range, int(metaData['usrp_fcenter']), if_rate)
 
