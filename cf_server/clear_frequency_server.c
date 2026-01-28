@@ -485,7 +485,7 @@ void write_clr_log_csv(freq_band *clr_storage, int clr_num, char *ststr, int cha
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
-    int buffer_size = 128;
+    int buffer_size = 512;
     char timestamp[buffer_size];
     char name[buffer_size];
 

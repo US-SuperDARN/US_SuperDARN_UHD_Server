@@ -108,7 +108,7 @@ void write_spectrum_mag_csv(
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
-    int buffer_size = 100;
+    int buffer_size = 512;
     char timestamp[buffer_size];
     char name[buffer_size];
 
@@ -160,7 +160,7 @@ void write_spectrum_mag_bin(
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
-    int buffer_size = 100;
+    int buffer_size = 512;
     char timestamp[buffer_size];
     char name[buffer_size];
 
@@ -223,7 +223,7 @@ void write_clr_freq_csv(
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
-    int buffer_size = 100;
+    int buffer_size = 512;
     char timestamp[buffer_size];
     char name[buffer_size];
 
@@ -272,7 +272,7 @@ void write_clr_freq_bin(
     // Timestamp Variables
     time_t raw_time;
     struct tm *time_info;
-    int buffer_size = 100;
+    int buffer_size = 512;
     char timestamp[buffer_size];
     char name[buffer_size];
 
