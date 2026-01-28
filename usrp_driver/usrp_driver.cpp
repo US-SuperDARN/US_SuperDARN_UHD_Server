@@ -409,10 +409,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     std::vector<uint32_t> state_vec(nSwings, ST_INIT);
     uint32_t swing; // = SWING0;
 
-    size_t nSamples_rx, nSamples_tx_pulse, nSamples_pause_after_rx, nSamples_auto_clear_freq, nSamples_rx_total;
+    size_t nSamples_rx = 0, nSamples_tx_pulse = 0, nSamples_pause_after_rx = 0, nSamples_auto_clear_freq = 0, nSamples_rx_total= 0;
     size_t auto_clear_freq_available = 0;
 
-    uint32_t npulses, nsequences, nerrors;
+    uint32_t npulses = 0, nsequences = 0, nerrors = 0;
     ssize_t cmd_status;
     uint32_t usrp_driver_base_port, ip_part;
 
