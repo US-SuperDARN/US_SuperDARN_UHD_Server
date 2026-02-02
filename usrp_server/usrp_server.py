@@ -1685,10 +1685,6 @@ class scanManager():
             self.isPostLast = True
 
 
-    def status(self):
-        print("current period: {: >2d}/{}, beam: {}".format(self.current_period, len(self.scan_beam_list), self.current_beam))
-
-
     @property
     def current_beam(self):
        # print("Requesting current beam for period {}".format(self.current_period))
