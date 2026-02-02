@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
 def firwin(channelFreqVec,cutoff_freq,nTaps,beta):
 
-    print(cutoff_freq,nTaps,beta)
+    # print(cutoff_freq,nTaps,beta)
     taps = signal.firwin(nTaps,cutoff_freq,window=("kaiser",beta))
 
     taps /= np.sum(np.abs(taps))
