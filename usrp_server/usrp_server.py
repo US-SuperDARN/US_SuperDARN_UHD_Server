@@ -281,45 +281,45 @@ class usrpSockManager():
    def get_all_main_antenna_socks(self, jrad):
        main_ant_sock_list = []
        for sock, ant in zip(self.socks[jrad], self.antennaList_active[jrad]):
-           if ant not in [16, 17, 18, 19]:
-               main_ant_sock_list.append(sock)
+          if ant not in [16, 17, 18, 19]:
+             main_ant_sock_list.append(sock)
        return main_ant_sock_list
 
 
    def eval_client_return(self, cmd, jrad, fcn=None):
        if fcn is None: # default receive function
-         client_return = cmd.client_return()
+          client_return = cmd.client_return()
        else:
-         client_return = fcn()
+          client_return = fcn()
 
        if CONNECTION_ERROR in client_return:
-         offset = 0
-         for iSock, singleReturn in enumerate(client_return):
-            if singleReturn == CONNECTION_ERROR:
+          offset = 0
+          for iSock, singleReturn in enumerate(client_return):
+             if singleReturn == CONNECTION_ERROR:
 
-               if jrad is None:
-                  socks = np.concatenate(self.socks).tolist()
-                  badsock=socks[iSock-offset]
-                  for jjrad in range(self.RHM.N_RADARs):
-                     if badsock in self.socks[jjrad]:
-                        jrad = jjrad
-                        index = self.socks[jrad].index(badsock)
-               else:
-                  index=iSock-offset
+                if jrad is None:
+                   socks = np.concatenate(self.socks).tolist()
+                   badsock=socks[iSock-offset]
+                   for jjrad in range(self.RHM.N_RADARs):
+                      if badsock in self.socks[jjrad]:
+                         jrad = jjrad
+                         index = self.socks[jrad].index(badsock)
+                else:
+                   index=iSock-offset
 
-               self.logger.error("Connection lost to usrp {} ({}:{}). Removing it from sock list.".format(self.hostnameList_active[jrad][index], self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
+                self.logger.error("Connection lost to usrp {} ({}:{}). Removing it from sock list.".format(self.hostnameList_active[jrad][index], self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
 
-               self.remove_sock(jrad, self.socks[jrad][index])
-               offset += 1
+                self.remove_sock(jrad, self.socks[jrad][index])
+                offset += 1
 
        SomeActiveUSRPs=False
        for jrad in range(self.RHM.N_RADARs):
-         if len(self.socks[jrad]) != 0:
-            SomeActiveUSRPs = True
+          if len(self.socks[jrad]) != 0:
+             SomeActiveUSRPs = True
 
        if not SomeActiveUSRPs:
-         self.logger.error("No connection to USRPs. Exit usrp_server.")
-         self.RHM.exit()
+          self.logger.error("No connection to USRPs. Exit usrp_server.")
+          self.RHM.exit()
 
        return client_return
 
@@ -333,39 +333,39 @@ class usrpSockManager():
        nFullBlocks = int(nInts_shm / nZeros_per_block)
        nInts_rem   = nInts_shm % nZeros_per_block
        for antenna in antenna_list:
-         for direction in direction_list:
-           try:
-              name = 'shm_{}_ant_{}_side_{}_swing_{}'.format(direction, int(antenna), int(side), int(swing))
-              self.logger.debug("Filling SHM with zeros: {}".format(name))
-              memory = posix_ipc.SharedMemory(name)
-              mapfile = mmap.mmap(memory.fd, memory.size)
-              mapfile.seek(0)
-              for iBlock in range(nFullBlocks): # TODO speed up by writing more than one byte at a time?
-                 mapfile.write(zeros_block)
-              mapfile.write(zeros_block[0:int(2*nInts_rem)])
-              memory.close_fd()
-           except:
-              self.logger.debug("Failed filling SHM with zeros: {}".format(name))
+          for direction in direction_list:
+             try:
+                name = 'shm_{}_ant_{}_side_{}_swing_{}'.format(direction, int(antenna), int(side), int(swing))
+                self.logger.debug("Filling SHM with zeros: {}".format(name))
+                memory = posix_ipc.SharedMemory(name)
+                mapfile = mmap.mmap(memory.fd, memory.size)
+                mapfile.seek(0)
+                for iBlock in range(nFullBlocks): # TODO speed up by writing more than one byte at a time?
+                   mapfile.write(zeros_block)
+                mapfile.write(zeros_block[0:int(2*nInts_rem)])
+                memory.close_fd()
+             except:
+                self.logger.debug("Failed filling SHM with zeros: {}".format(name))
 
 
    def watchdog(self, all_usrps_report_failure):
        if all_usrps_report_failure:
-         self.errors_in_a_row += 1
-         self.logger.info("USRP watchdog: {} error in a row.".format(self.errors_in_a_row))
-         if self.errors_in_a_row >= self.error_limit:
-            self.logger.error("All USRPs reported error for GET_DATA {} times in a row. Shutting down usrp_server".format(self.errors_in_a_row))
-            self.RHM.exit()
+          self.errors_in_a_row += 1
+          self.logger.info("USRP watchdog: {} error in a row.".format(self.errors_in_a_row))
+          if self.errors_in_a_row >= self.error_limit:
+             self.logger.error("All USRPs reported error for GET_DATA {} times in a row. Shutting down usrp_server".format(self.errors_in_a_row))
+             self.RHM.exit()
        else:
-         if self.errors_in_a_row:
-            self.logger.info("USRP watchdog: Reset errors_in_a_row to 0.")
-            self.errors_in_a_row = 0
+          if self.errors_in_a_row:
+             self.logger.info("USRP watchdog: Reset errors_in_a_row to 0.")
+             self.errors_in_a_row = 0
 
 
    def restore_lost_connections(self):
 
        nSeconds_since_last_try = (datetime.datetime.now() - self.last_reconnection).total_seconds()
        if self.nSeconds_retry_reconnect > nSeconds_since_last_try:
-         return
+          return
 
        self.logger.info("Try to reconnect to USRPs")
        self.last_reconnection = datetime.datetime.now()
@@ -381,41 +381,41 @@ class usrpSockManager():
 
        do_resync = False
        for jrad in range(self.RHM.N_RADARs):
-         for iUSRP, usrp in enumerate(tmp_address_list[jrad]):
+          for iUSRP, usrp in enumerate(tmp_address_list[jrad]):
 
-            if usrp in self.addressList_active[jrad]:
-               self.logger.error(" Already connected to USRP {}:{}, something went wrong!".format(usrp[0], usrp[1]))
-               #idx_usrp = self.hostnameList_active.index(usrp[0])
-               #self.antennaList_active[idx_usrp].append(usrpConfig['array_idx'])
+             if usrp in self.addressList_active[jrad]:
+                self.logger.error(" Already connected to USRP {}:{}, something went wrong!".format(usrp[0], usrp[1]))
+                #idx_usrp = self.hostnameList_active.index(usrp[0])
+                #self.antennaList_active[idx_usrp].append(usrpConfig['array_idx'])
 
-            try:
-               usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-               usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-               usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
-               if self.sock_timeout != None:
-                  usrpsock.settimeout(self.sock_timeout)
-               time.sleep(0.002)
-               usrpsock.connect(usrp)
+             try:
+                usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+                if self.sock_timeout != None:
+                   usrpsock.settimeout(self.sock_timeout)
+                time.sleep(0.002)
+                usrpsock.connect(usrp)
 
-               self.socks[jrad].append(usrpsock)
-               self.addressList_active[jrad].append(usrp)
-               self.antennaList_active[jrad].append(tmp_antenna_list[jrad][iUSRP])
-               self.hostnameList_active[jrad].append(tmp_hostname_list[jrad][iUSRP])
-               self.driverHostnameList_active[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
-               self.logger.info('reconnection to usrp {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
-               do_resync = True
+                self.socks[jrad].append(usrpsock)
+                self.addressList_active[jrad].append(usrp)
+                self.antennaList_active[jrad].append(tmp_antenna_list[jrad][iUSRP])
+                self.hostnameList_active[jrad].append(tmp_hostname_list[jrad][iUSRP])
+                self.driverHostnameList_active[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
+                self.logger.info('reconnection to usrp {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
+                do_resync = True
 
-            except ConnectionRefusedError:
-               self.logger.warning('reconnection to usrp {} failed'.format(tmp_hostname_list[jrad][iUSRP]))
-               self.addressList_inactive[jrad].append(usrp)
-               self.antennaList_inactive[jrad].append(tmp_antenna_list[jrad][iUSRP])
-               self.hostnameList_inactive[jrad].append(tmp_hostname_list[jrad][iUSRP])
-               self.driverHostnameList_inactive[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
+             except ConnectionRefusedError:
+                self.logger.warning('reconnection to usrp {} failed'.format(tmp_hostname_list[jrad][iUSRP]))
+                self.addressList_inactive[jrad].append(usrp)
+                self.antennaList_inactive[jrad].append(tmp_antenna_list[jrad][iUSRP])
+                self.hostnameList_inactive[jrad].append(tmp_hostname_list[jrad][iUSRP])
+                self.driverHostnameList_inactive[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
 
        # sync to other usrps
        if do_resync:
-         self.RHM._resync_usrps()
-         self.RHM.rxfe_init()
+          self.RHM._resync_usrps()
+          self.RHM.rxfe_init()
 
 
 class usrpMixingFreqManager():
