@@ -3038,7 +3038,7 @@ class RadarHardwareManager:
 
            # check status of usrp drivers
            self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
-           payloadList, pulse_times = self.usrpManager.eval_client_return(cmd, jrad, fcn=cmd.receive_all_metadata)
+           payloadList = self.usrpManager.eval_client_return(cmd, jrad, fcn=cmd.receive_all_metadata)
            self.logger.debug('end receiving all USRP status for radar {}'.format(jrad))
 
            antenna_list_offset = 0
@@ -3080,10 +3080,10 @@ class RadarHardwareManager:
                     #status = USRP_DRIVER_ERROR # TODO: understand what is an error here..
 
            self.usrpManager.pulse_times[jrad] = []
-           time_len = [len(i) for i in pulse_times]
-           time_idx = time_len.index(max(time_len))
-           for seq in range(len(pulse_times[time_idx])):
-              self.usrpManager.pulse_times[jrad].append(pulse_times[time_idx][seq])
+           for iUSRP, ready_return in enumerate(payloadList):
+              if ready_return != CONNECTION_ERROR:
+                 self.usrpManager.pulse_times[jrad] = ready_return["pulse_times"]
+                 break
 
            self.usrpManager.watchdog(all_usrps_report_failure)
 

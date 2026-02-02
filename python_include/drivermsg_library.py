@@ -343,7 +343,6 @@ class usrp_ready_data_command(driver_command):
 
     def receive_all_metadata(self):
        payloadList = []
-       pulse_times = [[] for i in range(len(self.clients))]
        for isock, sock in enumerate(self.clients):
            self.logger.debug("receive metadata for {}".format(sock))
            try:
@@ -352,15 +351,17 @@ class usrp_ready_data_command(driver_command):
               payload['antenna']  = recv_dtype(sock, np.int32)
               payload['nsamples'] = recv_dtype(sock, np.int32)
               payload['fault']    = recv_dtype(sock, np.bool_)
+              pulse_times = []
               for seq in range(self.nsequences):
                   ptime = recv_dtype(sock, np.float64)
-                  pulse_times[isock].append(ptime)
+                  pulse_times.append(ptime)
+              payload['pulse_times'] = pulse_times
               payloadList.append(payload)
               # print("usrp_ready_data_command: ",payload)
            except:
               payloadList.append(CONNECTION_ERROR)
               self.logger.error("Error receiving metadata for {}".format(sock))
-       return payloadList, pulse_times
+       return payloadList
 
 
     def recv_metadata(self, sock):
