@@ -2143,16 +2143,18 @@ class RadarHardwareManager:
           self.logger.error("No connection to USRPs. Exit usrp_server.")
           sys.exit(0)
 
-       socks=np.concatenate(self.usrpManager.socks).tolist()
-
        self.usrp_setup_semaphore.acquire()
 
        while not usrps_synced:
+
+          socks = np.concatenate(self.usrpManager.socks).tolist()
 
           cmd = usrp_sync_time_command(socks)
           cmd.transmit()
           time.sleep(0.001)
           self.usrpManager.eval_client_return(cmd, None)
+
+          socks = np.concatenate(self.usrpManager.socks).tolist()
 
           # once USRPs are connected, synchronize clocks/timers
           cmd = usrp_get_time_command(socks)
