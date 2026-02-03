@@ -3610,16 +3610,15 @@ class RadarChannelHandler:
     def get_current_sequence(self, remove_channel=False):
         if not remove_channel:
             self.update_ctrlprm_class('current')
-            self.logger.debug("Getting current sequence with {} samples (305x1500x {}) rbeam {}".format(self.nrf_rx_samples_per_integration_period, self.nrf_rx_samples_per_integration_period/305/1500, self.ctrlprm_struct.payload['rbeam']))
+            self.logger.debug("Getting current sequence with {} samples ({} x {} x {}) rbeam {}".format(self.nrf_rx_samples_per_integration_period, self.nbb_rx_samples_per_sequence, np.prod(self.parent_RadarHardwareManager.commonChannelParameter['downsample_rates']), self.nSequences_per_period, self.ctrlprm_struct.payload['rbeam']))
 
         seq = sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload )
-
-       # seq = sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.pulse_sequence_offsets_vector, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload )
         return seq
 
 
     def get_next_sequence(self):
         self.update_ctrlprm_class('next')
+        self.logger.debug("Getting next sequence with {} samples ({} x {} x {}) rbeam {}".format(self.nrf_rx_samples_per_integration_period, self.nbb_rx_samples_per_sequence, np.prod(self.parent_RadarHardwareManager.commonChannelParameter['downsample_rates']), self.nSequences_per_period, self.ctrlprm_struct.payload['rbeam']))
         seq = copy.deepcopy( sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload) )
         return seq
 
