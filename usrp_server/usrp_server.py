@@ -278,14 +278,6 @@ class usrpSockManager():
           self.RHM.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.socks[jrad])
 
 
-   def get_all_main_antenna_socks(self, jrad):
-       main_ant_sock_list = []
-       for sock, ant in zip(self.socks[jrad], self.antennaList_active[jrad]):
-          if ant not in [16, 17, 18, 19]:
-             main_ant_sock_list.append(sock)
-       return main_ant_sock_list
-
-
    def eval_client_return(self, cmd, jrad, fcn=None):
        if fcn is None: # default receive function
           client_return = cmd.client_return()
