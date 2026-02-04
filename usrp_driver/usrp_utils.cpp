@@ -25,7 +25,7 @@ char tstr[128];
 char *get_log_time() {
     struct tm *gmt;
     struct timespec err_tm;
-    int stat;
+    int stat __attribute__ ((unused));
 
     stat = clock_gettime(CLOCK_REALTIME, &err_tm);
 

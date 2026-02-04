@@ -442,7 +442,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     // variables to get filename for pulse time log
     struct tm *gmt;
     struct timespec file_tm;
-    int stat;
+    int stat __attribute__ ((unused));
     char PTfname[128];
 
     // process config file for port and SHM sizes
