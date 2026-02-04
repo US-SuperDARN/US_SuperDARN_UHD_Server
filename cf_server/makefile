@@ -2,7 +2,7 @@ CFLAGS= -O3 -pthread -DLOG_USE_COLOR
 
 LIBS= -lfftw3_threads -lfftw3 -lm -lrt
 
-INCLUDE= -I/usr/share/uhd
+INCLUDE=
 
 OBJS=clear_freq_search.o ini_parser.o misc_read_writes.o log.o clear_frequency_server.o
 
