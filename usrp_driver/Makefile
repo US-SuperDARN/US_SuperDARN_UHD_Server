@@ -7,9 +7,7 @@ common_libs=-lm -liniparser -lrt -luhd -lfftw3
 linux_libs=-lboost_thread -lboost_system -pthread -l argtable2 -lboost_date_time -lboost_chrono
 INCLUDES=-I"${HOME}/repos/uhd/host/include" \
 	 -I"${HOME}/repos/uhd/host/include/uhd/types" \
-	 -I"${HOME}/repos/uhd/host/include/uhd/usrp" \
-	 -I"${RSTPATH}/include/base" \
-	 -I"${RSTPATH}/include/superdarn"
+	 -I"${HOME}/repos/uhd/host/include/uhd/usrp"
 
 CPP_SOURCES=usrp_driver.cpp dio.cpp tx_worker.cpp rx_worker.cpp usrp_utils.cpp
 
