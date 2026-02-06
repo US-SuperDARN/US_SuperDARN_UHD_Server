@@ -343,7 +343,7 @@ class usrp_ready_data_command(driver_command):
 
     def receive_all_metadata(self):
        payloadList = []
-       for isock, sock in enumerate(self.clients):
+       for sock in self.clients:
            self.logger.debug("receive metadata for {}".format(sock))
            try:
               payload = {}
