@@ -132,8 +132,6 @@ class driver_command(object):
               # pdb.set_trace()
                returns.append(CONNECTION_ERROR)
 
-            time.sleep(0.001)
-
         return returns
 
 
@@ -250,7 +248,6 @@ class cuda_add_channel_command(driver_command):
     def __init__(self, cudas, sequence = None, swing = -1):
         driver_command.__init__(self, cudas, CUDA_ADD_CHANNEL)
         self.queue(swing, np.uint32, 'swing')
-        time.sleep(0.001)
         self.sequence = sequence
 
 
@@ -404,22 +401,13 @@ class usrp_get_auto_clear_freq_command(driver_command):
         antenna_no = []
         sample_buf = []
 
-        # give non-local usrps some extra time to respond
-        if sock.getpeername()[0] != '127.0.0.1':
-            time.sleep(0.001)
-
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
-
-            # give non-local usrps some extra time to respond
-            if sock.getpeername()[0] != '127.0.0.1':
-                time.sleep(0.002)
 
             antenna_no_side = recv_dtype(sock, np.int32)
 
             nSamples = recv_dtype(sock, np.int32)
 
-            time.sleep(0.001)
             try:
                 sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]
@@ -469,22 +457,13 @@ class usrp_clrfreq_command(driver_command):
         antenna_no = []
         sample_buf = []
 
-        # give non-local usrps some extra time to respond
-        if sock.getpeername()[0] != '127.0.0.1':
-            time.sleep(0.001)
-
         nSides = recv_dtype(sock, np.int32)
         for jside in range(nSides):
-
-            # give non-local usrps some extra time to respond
-            if sock.getpeername()[0] != '127.0.0.1':
-                time.sleep(0.002)
 
             antenna_no_side = recv_dtype(sock, np.int32)
 
             nSamples = recv_dtype(sock, np.int32)
 
-            time.sleep(0.002)
             try:
                 sample_buf_side = recv_dtype(sock, np.int16, nitems = int(2 * nSamples))
                 sample_buf_side = sample_buf_side[0::2] + 1j * sample_buf_side[1::2]

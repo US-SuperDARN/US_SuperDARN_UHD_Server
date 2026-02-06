@@ -2079,14 +2079,7 @@ class RadarHardwareManager:
                                 1, 1, 0, 0, 0, 0, [0], 0)
        cmd.transmit()
 
-       try:
-          # give non-local usrps some extra time to respond
-          if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-             time.sleep(0.001)
-          else:
-             time.sleep(0.002)
-       except:
-          self.logger.error("No USRPs for radar {}".format(jrad))
+       time.sleep(0.001)
 
        rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
        cmd.client_return()
@@ -2644,14 +2637,7 @@ class RadarHardwareManager:
                                           self.swingManager.activeSwing)
                  cmd.transmit()
 
-                 try:
-                    # give non-local usrps some extra time to respond
-                    if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-                       time.sleep(0.001)
-                    else:
-                       time.sleep(0.002)
-                 except:
-                    self.logger.error("No USRPs for radar {}".format(jrad))
+                 time.sleep(0.001)
 
                  rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
                  cmd.client_return()
@@ -3012,15 +2998,6 @@ class RadarHardwareManager:
               cmd_list.append(cmd)
               jrad_list.append(jrad)
 
-              #try:
-              #   # give non-local usrps some extra time to respond
-              #   if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-              #      time.sleep(0.002)
-              #   else:
-              #      time.sleep(0.004)
-              #except:
-              #   self.logger.error("No USRPs for radar {}".format(jrad))
-
         time.sleep(0.002)
 
         for ind, cmd in enumerate(cmd_list):
@@ -3138,15 +3115,6 @@ class RadarHardwareManager:
               cmd.transmit()
               cmd_list.append(cmd)
               jrad_list.append(jrad)
-
-              #try:
-              #   # give non-local usrps some extra time to respond
-              #   if self.usrpManager.socks[jrad][0].getpeername()[0] == '127.0.0.1':
-              #      time.sleep(0.001)
-              #   else:
-              #      time.sleep(0.0025)
-              #except:
-              #   self.logger.error("No USRPs for radar {}".format(jrad))
 
         time.sleep(0.001)
 
