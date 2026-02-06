@@ -107,10 +107,7 @@ class integrationTimeManager():
    def estimate_calc_time(self):
       int_time = self.RHM.commonChannelParameter['integration_period_duration']
       # TODO optimize by tracking times of last periods
-      if self.RHM.N_RADARs > 1:
-         overhead_time = 0.50
-      else:
-         overhead_time = 0.30
+      overhead_time = 0.30
 
       if int(self.RHM.usrp_rf_rx_rate / 1e6) == 10:
          overhead_time += 0.15
