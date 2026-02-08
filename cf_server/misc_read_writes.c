@@ -12,6 +12,7 @@
 #include "log.h"
 #include <inttypes.h>
 
+
 void file_access_error(const char *filepath) {
     log_error("ERROR: accessing filepath: %s\n", filepath);
     perror("Error");
@@ -43,6 +44,7 @@ void add_ptr_no_global(void **ptr, void **temp_ptrs, int *temp_ptrs_num) {
 
 }
 
+
 void update_ptr_no_global(void *old_ptr, void *new_ptr, void** temp_ptrs, int temp_ptrs_num) {
     // Check if the old pointer exists in the array
     for (int i = 0; i < temp_ptrs_num; i++) {
@@ -56,6 +58,7 @@ void update_ptr_no_global(void *old_ptr, void *new_ptr, void** temp_ptrs, int te
     // If the old pointer is not found, add the new pointer to the array
     add_ptr_no_global((void **)&new_ptr, temp_ptrs, &temp_ptrs_num);
 }
+
 
 void gen_filename(char *name_template, char *ext, char *name) {
     time_t raw_time;
@@ -71,6 +74,7 @@ void gen_filename(char *name_template, char *ext, char *name) {
     log_trace("generated filename: %s", name);
 }
 
+
 void gen_filename_to_hour(char *name_template, char *ext, char *name) {
     time_t raw_time;
     struct tm *time_info;
@@ -84,6 +88,7 @@ void gen_filename_to_hour(char *name_template, char *ext, char *name) {
     snprintf(name, buffer_size, name_template, timestamp, ext);
     log_trace("generated filename: %s", name);
 }
+
 
 /**
  * @brief  Writes a magnitude Frequency Spectrum to csv file to be plotted in python.
@@ -145,6 +150,7 @@ void write_spectrum_mag_csv(
 
     fclose(file);
 }
+
 
 void write_spectrum_mag_bin(
     char *filename,
@@ -256,6 +262,7 @@ void write_clr_freq_csv(
     fclose(file);
 }
 
+
 void write_clr_freq_bin(
     char *filename,
     char *ststr,
@@ -327,6 +334,7 @@ void write_clr_freq_bin(
     fclose(file);
 }
 
+
 /**
  * @brief  Writes the Real/Imaginary magnitude to csv file to be plotted in python.
  * @note   By DF
@@ -353,6 +361,7 @@ void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_ve
     fclose(file);
 }
 
+
 void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector) {
     int num_samples = 0;
     int status = 0;
@@ -374,6 +383,7 @@ void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector
 
     fclose(file);
 }
+
 
 void read_clr_freq_bin(char *filename, freq_band *clr_band, int *clr_start, int *clr_end) {
     int status = 0;
@@ -439,13 +449,15 @@ int read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_nu
     return 0;
 }
 
+
 void get_timestamp( char* buffer){
-	time_t rawtime;
-	struct tm *timeinfo;
-	time(&rawtime);
-	timeinfo = gmtime (&rawtime);
-	strftime(buffer,32,"%Y.%m%d.%H%M%S",timeinfo);
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = gmtime (&rawtime);
+    strftime(buffer,32,"%Y.%m%d.%H%M%S",timeinfo);
 }
+
 
 void get_file_name(char* filename, char* filepath){
     char timestamp[32];
@@ -453,12 +465,13 @@ void get_file_name(char* filename, char* filepath){
     sprintf(filename, filepath, timestamp);
 }
 
+
 FILE* get_log_file( char *filepath) {
     // Create logs directory if it doesn't exist
     struct stat st = {0};
-	if (stat("/data/log/", &st) == -1) {
-		mkdir("/data/log", 0700);
-	}
+    if (stat("/data/log/", &st) == -1) {
+        mkdir("/data/log", 0700);
+    }
     if (stat("/data/log/cfs", &st) == -1) {
         mkdir("/data/log/cfs", 0700);
     }
@@ -467,22 +480,23 @@ FILE* get_log_file( char *filepath) {
     get_file_name(filename, filepath);
 
     // Create log file with timestamp
-	FILE* file = NULL;
-	if (file == NULL){
-		file = fopen(filename, "w");
-	}
+    FILE* file = NULL;
+    if (file == NULL){
+        file = fopen(filename, "w");
+    }
     return file;
 }
 
+
 FILE* init_log(int level, int file_level, char *filepath) {
     log_set_level(level);
-	log_set_quiet(0);
-	FILE *file = get_log_file(filepath);
-	int result = log_add_fp(file, 0);
-	if (result == 0){
-		log_info("CFS Logger initialized...\n");
-		return file;
-	}
-	perror("Failed to initialize Log File");
-	exit(EXIT_FAILURE);
+    log_set_quiet(0);
+    FILE *file = get_log_file(filepath);
+    int result = log_add_fp(file, 0);
+    if (result == 0){
+        log_info("CFS Logger initialized...\n");
+        return file;
+    }
+    perror("Failed to initialize Log File");
+    exit(EXIT_FAILURE);
 }
