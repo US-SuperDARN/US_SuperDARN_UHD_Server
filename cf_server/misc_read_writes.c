@@ -174,6 +174,12 @@ void write_spectrum_mag_bin(
     int dfreq = 0;
     float f_spectrum[num_samples];
 
+    // Create fft_spectrum directory if it doesn't exist
+    struct stat st = {0};
+    if (stat("/data/log/fft_spectrum/", &st) == -1) {
+        mkdir("/data/log/fft_spectrum", 0700);
+    }
+
     // If file doesn't exists, create it
     if (filename == NULL) {
         // Generate timestamp
@@ -286,6 +292,12 @@ void write_clr_freq_bin(
     int freq_start = 0;
     int dfreq = 0;
     float f_spectrum[num_samples];
+
+    // Create clr_freq directory if it doesn't exist
+    struct stat st = {0};
+    if (stat("/data/log/clr_freq/", &st) == -1) {
+        mkdir("/data/log/clr_freq", 0700);
+    }
 
     // If file doesn't exists, ...
     if (filename == NULL) {
