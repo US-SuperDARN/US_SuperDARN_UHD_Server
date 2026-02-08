@@ -98,7 +98,6 @@ typedef struct {
     double max_tpulse;
     double min_chip;
     double max_dutycycle;
-    double max_integration;
     double minimum_tfreq;
     double maximum_tfreq;
     double min_tr_to_pulse;

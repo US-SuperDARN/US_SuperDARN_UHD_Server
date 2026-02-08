@@ -32,8 +32,6 @@ static int config_ini_handler(void* user, const char* section, const char* name,
             pconfig->hardware_limits.min_chip = atof(value);
         } else if (strcmp(name, "max_dutycycle") == 0) {
             pconfig->hardware_limits.max_dutycycle = atof(value);
-        } else if (strcmp(name, "max_integration") == 0) {
-            pconfig->hardware_limits.max_integration = atof(value);
         } else if (strcmp(name, "minimum_tfreq") == 0) {
             pconfig->hardware_limits.minimum_tfreq = atof(value);
         } else if (strcmp(name, "maximum_tfreq") == 0) {
