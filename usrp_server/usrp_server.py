@@ -1836,7 +1836,7 @@ class RadarHardwareManager:
         self.swingManager    = swingManager()
 
         self.skip_calc_period = False
-        self.processing_swing_invalid = False
+        self.processing_swing_invalid = [False for jrad in range(self.N_RADARs)]
         self.trigger_next_function_running = False
         self.commonChannelParameter = {}
         self.integration_time_manager = integrationTimeManager(self)
@@ -2750,8 +2750,8 @@ class RadarHardwareManager:
 
            allProcessingChannelStates = [ch.processing_state for ch in self.channels[jrad]]
            self.logger.debug("radar {} allProcessingChannelStates: {}".format(jrad, allProcessingChannelStates))
-           if self.processing_swing_invalid: # TODO check if this works (in control program or data files)
-              self.logger.warning("Last swing has been invalid. Preparing 0 sequences to transmit")
+           if self.processing_swing_invalid[jrad]: # TODO check if this works (in control program or data files)
+              self.logger.warning("radar {} Last swing has been invalid. Preparing 0 sequences to transmit".format(jrad))
               for iChannel, channel in enumerate(self.channels[jrad]):
                  if channel.processing_state is CS_PROCESSING:
                     channel.update_ctrlprm_class("current")
@@ -2773,7 +2773,7 @@ class RadarHardwareManager:
                  os.rename("tmpRawData.pkl", "liveRawData.pkl")
                  os.remove("./bufferLiveData.flag")
 
-              self.processing_swing_invalid = False
+              self.processing_swing_invalid[jrad] = False
            else:
               if CS_PROCESSING in allProcessingChannelStates:
                  # CUDA_GET_DATA
@@ -3131,7 +3131,7 @@ class RadarHardwareManager:
 
         if not trigger_next_period:
            self.logger.info("This swing has not been triggered, setting processing_swing_invalid.")
-           self.processing_swing_invalid = True # set for next call of trigger_next_period
+           self.processing_swing_invalid[:] = True # set for next call of trigger_next_period
 
         self.trigger_next_function_running = False
 
