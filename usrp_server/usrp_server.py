@@ -4470,7 +4470,7 @@ class RadarChannelHandler:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from RHM.channels'.format(channelObject.rnum, channelObject.cnum))
 
         if not RHM.channels[channelObject.rnum]:
-            RHM.processing_swing_invalid[:] = False
+            RHM.processing_swing_invalid[channelObject.rnum] = False
             radar_active[channelObject.rnum] = False
 
         RHM.channel_remove_semaphore.release()
