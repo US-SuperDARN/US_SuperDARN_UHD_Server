@@ -2602,56 +2602,55 @@ class RadarHardwareManager:
            self.swingManager.nextSwingToTrigger = self.swingManager.processingSwing
            self.logger.debug("setting nextSwingToTrigger to swing {}".format(self.swingManager.nextSwingToTrigger))
 
-           if transmittingChannelAvailable[jrad]:
-              if trigger_next_period:
-                 # USRP SETUP
-                 self.logger.debug('triggering period no {}, swing {}'.format(channel.scanManager.current_period + 1 - channel.scanManager.isPrePeriod, self.swingManager.activeSwing))
-                 self.logger.debug("start USRP_SETUP")
-                 if self.auto_collect_clrfrq_after_rx:
-                    nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
-                    nSamples_pause_before_autoclearfreq = int(self.auto_pause_time * self.usrp_rf_rx_rate)
-                    collect_auto_clear_freq_samples = True
-                    auto_clear_freq_meta_data = dict(sampling_rate=self.usrp_rf_rx_rate, center_freq=self.mixingFreqManager.current_mixing_freq[jrad]*1000)
-                 else:
-                    nSamples_clear_freq = 0
-                    nSamples_pause_before_autoclearfreq = 0
-                    collect_auto_clear_freq_samples = False
-                    auto_clear_freq_meta_data = None
+           if transmittingChannelAvailable[jrad] and trigger_next_period:
+              # USRP SETUP
+              self.logger.debug('triggering period no {}, swing {}'.format(channel.scanManager.current_period + 1 - channel.scanManager.isPrePeriod, self.swingManager.activeSwing))
+              self.logger.debug("start USRP_SETUP")
+              if self.auto_collect_clrfrq_after_rx:
+                 nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
+                 nSamples_pause_before_autoclearfreq = int(self.auto_pause_time * self.usrp_rf_rx_rate)
+                 collect_auto_clear_freq_samples = True
+                 auto_clear_freq_meta_data = dict(sampling_rate=self.usrp_rf_rx_rate, center_freq=self.mixingFreqManager.current_mixing_freq[jrad]*1000)
+              else:
+                 nSamples_clear_freq = 0
+                 nSamples_pause_before_autoclearfreq = 0
+                 collect_auto_clear_freq_samples = False
+                 auto_clear_freq_meta_data = None
 
-                 self.logger.debug('radar {} usrp_setup pars: pulses:{}  total_samples: {} nsamples_pause: {} nsamples_clearfreq: {} nsamples_per_pulse: {}'.format(jrad, self.nPulses_per_integration_period, channel.nrf_rx_samples_per_integration_period, nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
+              self.logger.debug('radar {} usrp_setup pars: pulses:{}  total_samples: {} nsamples_pause: {} nsamples_clearfreq: {} nsamples_per_pulse: {}'.format(jrad, self.nPulses_per_integration_period, channel.nrf_rx_samples_per_integration_period, nSamples_pause_before_autoclearfreq, nSamples_clear_freq, nSamples_per_pulse))
 
-                 self.usrp_setup_semaphore.acquire()
+              self.usrp_setup_semaphore.acquire()
 
-                 cmd = usrp_setup_command(self.usrpManager.socks[jrad], \
-                                          self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
-                                          self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
-                                          self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, \
-                                          self.nPulses_per_integration_period, \
-                                          self.nSequences_per_period, \
-                                          channel.nrf_rx_samples_per_integration_period, \
-                                          nSamples_pause_before_autoclearfreq, nSamples_clear_freq, \
-                                          nSamples_per_pulse, \
-                                          channel.integration_period_pulse_sample_offsets, \
-                                          self.swingManager.activeSwing)
-                 cmd.transmit()
+              cmd = usrp_setup_command(self.usrpManager.socks[jrad], \
+                                       self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
+                                       self.mixingFreqManager.current_mixing_freq[jrad]*1000, \
+                                       self.usrp_rf_tx_rate, self.usrp_rf_rx_rate, \
+                                       self.nPulses_per_integration_period, \
+                                       self.nSequences_per_period, \
+                                       channel.nrf_rx_samples_per_integration_period, \
+                                       nSamples_pause_before_autoclearfreq, nSamples_clear_freq, \
+                                       nSamples_per_pulse, \
+                                       channel.integration_period_pulse_sample_offsets, \
+                                       self.swingManager.activeSwing)
+              cmd.transmit()
 
-                 time.sleep(0.001)
+              time.sleep(0.001)
 
-                 rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
-                 cmd.client_return()
+              rxrate,rxfreq,txrate,txfreq = cmd.receive_settings()
+              cmd.client_return()
 
-                 self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate {} txfreq {}".format(rxrate, rxfreq, txrate, txfreq))
+              self.logger.debug("USRP_SETUP received  rxrate {} rxfreq {} txrate {} txfreq {}".format(rxrate, rxfreq, txrate, txfreq))
 
-                 # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
+              # self.mixingFreqManager.current_mixing_freq[jrad] = rxfreq/1000
 
-                 self.logger.debug("end USRP_SETUP")
+              self.logger.debug("end USRP_SETUP")
 
-                 self.usrp_setup_semaphore.release()
+              self.usrp_setup_semaphore.release()
 
-                 # wait if periods should be time synchronized
-                 for tmpChannel in self.channels[jrad]:
-                    if (tmpChannel is not None) and (not tmpChannel.scanManager.isLastPeriod):
-                       tmpChannel.scanManager.wait_for_next_trigger()
+              # wait if periods should be time synchronized
+              for tmpChannel in self.channels[jrad]:
+                 if (tmpChannel is not None) and (not tmpChannel.scanManager.isLastPeriod):
+                    tmpChannel.scanManager.wait_for_next_trigger()
 
         # USRP_TRIGGER - END OF SETUP NEW LOOP OVER RADARS
         self.logger.debug("start USRP_GET_TIME")
@@ -3067,17 +3066,16 @@ class RadarHardwareManager:
         cmd_list = []
         jrad_list = []
         for jrad in range(self.N_RADARs):
-           if transmittingChannelAvailable[jrad]:
-              if trigger_next_period:
-                 # CUDA_PROCESS for processingSwing
-                 self.logger.debug('start CUDA_PROCESS radar {}'.format(jrad))
-                 self.logger.debug("cuda process radar {} active {}".format(jrad, radar_active[jrad]))
-                 if radar_active[jrad]:
-                    self.logger.debug("cuda process radar {} socks {}".format(jrad, self.cudasocks[jrad]))
-                    cmd = cuda_process_command(self.cudasocks[jrad], swing=self.swingManager.processingSwing, nSamples=nSamples_rx_requested_of_last_trigger)
-                    cmd.transmit()
-                    cmd_list.append(cmd)
-                    jrad_list.append(jrad)
+           if transmittingChannelAvailable[jrad] and trigger_next_period:
+              # CUDA_PROCESS for processingSwing
+              self.logger.debug('start CUDA_PROCESS radar {}'.format(jrad))
+              self.logger.debug("cuda process radar {} active {}".format(jrad, radar_active[jrad]))
+              if radar_active[jrad]:
+                 self.logger.debug("cuda process radar {} socks {}".format(jrad, self.cudasocks[jrad]))
+                 cmd = cuda_process_command(self.cudasocks[jrad], swing=self.swingManager.processingSwing, nSamples=nSamples_rx_requested_of_last_trigger)
+                 cmd.transmit()
+                 cmd_list.append(cmd)
+                 jrad_list.append(jrad)
 
         time.sleep(0.001)
 
@@ -3087,20 +3085,22 @@ class RadarHardwareManager:
 
            self.logger.debug('end CUDA_PROCESS radar {}'.format(jrad))
 
-           # repeat CLR_FREQ record for 2nd period (if executed for 1st)
-           if self.clearFreqRawDataManager.repeat_request_for_2nd_period:
-              self.logger.debug("Setting outstanding_request for CLR_FREQ for 2nd period.")
-              self.clearFreqRawDataManager.repeat_request_for_2nd_period = False
-              self.clearFreqRawDataManager.outstanding_request[jrad] = True
+        for jrad in range(self.N_RADARs):
+           if transmittingChannelAvailable[jrad]:
+             # repeat CLR_FREQ record for 2nd period (if executed for 1st)
+             if self.clearFreqRawDataManager.repeat_request_for_2nd_period:
+                self.logger.debug("Setting outstanding_request for CLR_FREQ for 2nd period.")
+                self.clearFreqRawDataManager.repeat_request_for_2nd_period = False
+                self.clearFreqRawDataManager.outstanding_request[jrad] = True
 
-           # automatic trigger of second period (without ROS:SET_READY)
-           for channel in self.channels[jrad]:
-              if channel.scanManager.isFirstPeriod:
-                 channel.logger.debug('setting active state (radar {} ch {}, swing {}) to CS_TRIGGER to start second period'.format(channel.rnum, channel.cnum, self.swingManager.activeSwing))
-                 channel.active_state = CS_TRIGGER
-                 channel.triggered_swing_list.insert(0, self.swingManager.nextSwingToTrigger)
+             # automatic trigger of second period (without ROS:SET_READY)
+             for channel in self.channels[jrad]:
+                if channel.scanManager.isFirstPeriod:
+                   channel.logger.debug('setting active state (radar {} ch {}, swing {}) to CS_TRIGGER to start second period'.format(channel.rnum, channel.cnum, self.swingManager.activeSwing))
+                   channel.active_state = CS_TRIGGER
+                   channel.triggered_swing_list.insert(0, self.swingManager.nextSwingToTrigger)
 
-                 channel.scanManager.isFirstPeriod = False
+                   channel.scanManager.isFirstPeriod = False
 
         # GET AUTO CLEAR FREQ DATA
         cmd_list = []
