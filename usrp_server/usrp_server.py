@@ -1836,7 +1836,7 @@ class RadarHardwareManager:
         self.swingManager    = swingManager()
 
         self.skip_calc_period = False
-        self.processing_swing_invalid = [False for jrad in range(self.N_RADARs)]
+        self.processing_swing_invalid = np.zeros(self.N_RADARs, dtype=bool)
         self.trigger_next_function_running = False
         self.commonChannelParameter = {}
         self.integration_time_manager = integrationTimeManager(self)
@@ -2383,6 +2383,7 @@ class RadarHardwareManager:
             if self.nRegisteredChannels <= 0:
                 self.nRegisteredChannels = 0
                 self.commonChannelParameter = {}
+                self.processing_swing_invalid[:] = False
                 radar_active[:] = False
 
             if not self.channels[channelObject.rnum]:
@@ -2931,6 +2932,7 @@ class RadarHardwareManager:
                      if self.nRegisteredChannels <= 0:
                         self.nRegisteredChannels = 0
                         self.commonChannelParameter = {}
+                        self.processing_swing_invalid[:] = False
                         radar_active[:] = False
 
                   if not self.channels[channel.rnum]:
@@ -4461,6 +4463,7 @@ class RadarChannelHandler:
                 RHM.logger.debug("radar {} ch {}: No channels left, removing commonChannelParameter".format(channelObject.rnum, channelObject.cnum))
                 RHM.commonChannelParameter = {}
                 RHM.nRegisteredChannels = 0
+                RHM.processing_swing_invalid[:] = False
                 radar_active[:] = False
         else:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from RHM.channels'.format(channelObject.rnum, channelObject.cnum))
