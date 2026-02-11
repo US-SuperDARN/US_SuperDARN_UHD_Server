@@ -4337,6 +4337,7 @@ class RadarChannelHandler:
            self.parent_RadarHardwareManager.active_channels[self.rnum].append(self)
            self.logger.debug("Added radar {} ch {} to RHM.active_channels list".format(self.rnum, self.cnum))
 
+        self.parent_RadarHardwareManager.processing_swing_invalid[self.rnum] = False
         self.received_first_SETPAR = False
         self.logger.debug('SetActiveHandler starting')
 
@@ -4469,6 +4470,7 @@ class RadarChannelHandler:
             RHM.logger.debug('radar {} ch {}: ROS:SET_INACTIVE no channels to remove from RHM.channels'.format(channelObject.rnum, channelObject.cnum))
 
         if not RHM.channels[channelObject.rnum]:
+            RHM.processing_swing_invalid[:] = False
             radar_active[channelObject.rnum] = False
 
         RHM.channel_remove_semaphore.release()
