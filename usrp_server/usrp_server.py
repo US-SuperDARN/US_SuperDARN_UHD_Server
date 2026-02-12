@@ -2652,23 +2652,24 @@ class RadarHardwareManager:
                  if (tmpChannel is not None) and (not tmpChannel.scanManager.isLastPeriod):
                     tmpChannel.scanManager.wait_for_next_trigger()
 
-        # USRP_TRIGGER - END OF SETUP NEW LOOP OVER RADARS
-        self.logger.debug("start USRP_GET_TIME")
+        if any(transmittingChannelAvailable) and trigger_next_period:
+           # USRP_TRIGGER - END OF SETUP NEW LOOP OVER RADARS
+           self.logger.debug("start USRP_GET_TIME")
 
-        cmd = usrp_get_time_command(self.usrpManager.socks[0][0]) # grab current usrp time from one usrp_driver
-        cmd.transmit()
-        time.sleep(0.001)
+           cmd = usrp_get_time_command(self.usrpManager.socks[0][0]) # grab current usrp time from one usrp_driver
+           cmd.transmit()
+           time.sleep(0.001)
 
-        # TODO: tag time using a better source? this will have a few hundred microseconds of uncertainty
-        # maybe measure offset between usrp time and computer clock time somewhere, then calculate from there
-        usrp_time = cmd.recv_time(self.usrpManager.socks[0][0])
-        cmd.client_return()
+           # TODO: tag time using a better source? this will have a few hundred microseconds of uncertainty
+           # maybe measure offset between usrp time and computer clock time somewhere, then calculate from there
+           usrp_time = cmd.recv_time(self.usrpManager.socks[0][0])
+           cmd.client_return()
 
-        self.logger.debug("end USRP_GET_TIME")
+           self.logger.debug("end USRP_GET_TIME")
 
-        trigger_time = usrp_time + self.integration_time_manager.get_usrp_delay_time()
+           trigger_time = usrp_time + self.integration_time_manager.get_usrp_delay_time()
 
-        usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
+           usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
 
         cmd_list = []
         jrad_list = []
