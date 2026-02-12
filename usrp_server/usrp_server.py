@@ -2570,7 +2570,7 @@ class RadarHardwareManager:
 
         #self.apply_channel_scaling() # currently does nothing
 
-        if all(self.last_period):
+        if any(radar_active) and all([self.last_period[i] for i,x in enumerate(radar_active) if x]):
             # set to True for last period so data aren't marked as invalid if too close to scan boundary
             trigger_next_period = True
         else:
