@@ -110,7 +110,7 @@ class integrationTimeManager():
       overhead_time = 0.30
 
       if int(self.RHM.usrp_rf_rx_rate / 1e6) == 10:
-         overhead_time += 0.15
+         overhead_time += 0.20
 
       return overhead_time
 
