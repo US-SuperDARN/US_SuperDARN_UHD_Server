@@ -2570,11 +2570,15 @@ class RadarHardwareManager:
 
         #self.apply_channel_scaling() # currently does nothing
 
-        if not self.skip_calc_period:
-            self._calc_period_details()
+        if all(self.last_period):
+            # set to True for last period so data aren't marked as invalid if too close to scan boundary
+            trigger_next_period = True
         else:
-            self.skip_calc_period = False
-        trigger_next_period = self.nSequences_per_period != 0 # don't trigger if no time left
+            if not self.skip_calc_period:
+                self._calc_period_details()
+            else:
+                self.skip_calc_period = False
+            trigger_next_period = self.nSequences_per_period != 0 # don't trigger if no time left
 
         nSamples_per_pulse = int(np.round((self.commonChannelParameter['pulseLength'] / 1e6 * self.usrp_rf_tx_rate) + 2 * (self.commonChannelParameter['tr_to_pulse_delay']/1e6 * self.usrp_rf_tx_rate)))
         for ch in np.concatenate(self.channels).tolist():
@@ -4338,6 +4342,7 @@ class RadarChannelHandler:
            self.parent_RadarHardwareManager.active_channels[self.rnum].append(self)
            self.logger.debug("Added radar {} ch {} to RHM.active_channels list".format(self.rnum, self.cnum))
 
+        self.parent_RadarHardwareManager.last_period[self.rnum] = False
         self.parent_RadarHardwareManager.processing_swing_invalid[self.rnum] = False
         self.received_first_SETPAR = False
         self.logger.debug('SetActiveHandler starting')
