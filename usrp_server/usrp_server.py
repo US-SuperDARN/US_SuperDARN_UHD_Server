@@ -3142,8 +3142,8 @@ class RadarHardwareManager:
         ch_do_not_increase_period = []
         for ch in np.concatenate(self.channels).tolist():
             if ch is not None:
-                  ch_do_not_increase_period.append(ch.scanManager.isPrePeriod or ch.scanManager.isLastPeriod)
-                  ch.scanManager.period_finished()
+                ch_do_not_increase_period.append(ch.scanManager.isPrePeriod or ch.scanManager.isLastPeriod)
+                ch.scanManager.period_finished()
 
 
     def apply_channel_scaling(self, rnum, nChannelsWillBeAdded=0):
