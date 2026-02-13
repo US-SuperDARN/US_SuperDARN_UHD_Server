@@ -249,7 +249,7 @@ void read_sample_shm(fftw_complex *temp_samples, void *samples_shm_ptr, int ante
 
             // Debug: Print 5 complex of each antenna batch
             // if (j < 4 || j > samples_num - 4 || j == 2499) {
-            //     log_trace("shm[%d]      =   %d + i%d", (i * samples_num + j)*2, ((int*) samples_shm_ptr)[(i * samples_num + j) * 2], ((int*) samples_shm_ptr)[(i * samples_num + j * 2) + 1]);
+            //     log_trace("shm[%d]      =   %d + i%d", (i * samples_num + j)*2, ((int*) samples_shm_ptr)[(i * samples_num + j) * 2], ((int*) samples_shm_ptr)[(i * samples_num + j) * 2 + 1]);
             //     log_trace("vs");
             //     log_trace("temp_samples[%d] =  %f + i%f", i * samples_num + j, creal(temp_samples[i*samples_num+j]), cimag(temp_samples[i*samples_num+j]));
             // }
