@@ -374,6 +374,41 @@ void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_ve
 }
 
 
+void write_sample_mag_bin(char *filename, fftw_complex *raw_samples, sample_meta_data *meta_data) {
+    FILE *file = NULL;
+
+    int num_samples = 0;
+    int num_antennas = 0;
+    float samp_real, samp_imag;
+
+    file = fopen(filename, "ab");
+    if (file == NULL) {
+        file_access_error(filename);
+        return;
+    }
+
+    __uint64_t t = (__uint64_t) time(NULL); // Restrict bytes
+
+    num_samples = meta_data->number_of_samples;
+    num_antennas = meta_data->num_antennas;
+
+    fwrite(&t, sizeof(__uint64_t), 1, file);
+    fwrite(&num_antennas, sizeof(int), 1, file);
+    fwrite(&num_samples, sizeof(int), 1, file);
+
+    for (unsigned int j = 0; j < num_antennas; j++) {
+        for (unsigned int i = 0; i < num_samples; i++) {
+            samp_real = (float) creal(raw_samples[j * num_samples + i]);
+            samp_imag = (float) cimag(raw_samples[j * num_samples + i]);
+            fwrite(&samp_real, sizeof(float), 1, file);
+            fwrite(&samp_imag, sizeof(float), 1, file);
+        }
+    }
+
+    fclose(file);
+}
+
+
 void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector) {
     int num_samples = 0;
     int status = 0;

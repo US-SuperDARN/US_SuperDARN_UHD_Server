@@ -666,6 +666,8 @@ void calc_clear_freq_on_raw_samples(
     if (access(SPECTRAL_LOG_FILE, F_OK) == 0) {
         // Write logs if its folder accessable
         if (BIN_OR_CSV_LOG == 0) {
+            // write_sample_mag_bin(samp_file, raw_samples, meta_data); // Used to check complex sample before beamforming
+
             write_spectrum_mag_bin(
                 fft_file,
                 ststr,

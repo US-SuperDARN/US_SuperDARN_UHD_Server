@@ -25,6 +25,7 @@ void write_clr_freq_bin(char *filename, char *ststr, int channel, int beam_num, 
 
 // Sample writing
 void write_sample_mag_csv(char *filename, int **raw_samples_mag, double *freq_vector, sample_meta_data *meta_data);
+void write_sample_mag_bin(char *filename, fftw_complex *raw_samples, sample_meta_data *meta_data);
 
 // Spectrum reading
 void read_spectrum_mag_bin(char *filename, double *spectrum, double *freq_vector);
