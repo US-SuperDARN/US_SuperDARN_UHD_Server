@@ -2673,7 +2673,7 @@ class RadarHardwareManager:
 
            trigger_time = usrp_time + self.integration_time_manager.get_usrp_delay_time()
 
-           usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
+        usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
 
         cmd_list = []
         jrad_list = []
