@@ -320,6 +320,7 @@ void read_meta_data(sample_meta_data *result, void *shm_ptr, int ant_num) {
 
     // Read in meta data elements
     result->number_of_samples = (int) ref_ptr[0];
+    result->usrp_rf_rate = (int) ref_ptr[1];
     log_trace("Finished reading meta_elem; reading antenna_list...");
 
     // Read in antenna_list elements
@@ -781,7 +782,7 @@ int main() {
     }
 
     // Get Clear Frequency Resolution
-    log_debug( "Reading Avg_ratio and RF sampling rate from driver_config.ini ...");
+    log_debug( "Reading Avg_ratio from driver_config.ini ...");
     ini_check = ini_parse(DRIVER_CONFIG_FILEPATH, config_ini_handler, &array_config);
     if (ini_check < 0) {
         log_fatal( "Error reading driver configuration file");
@@ -789,8 +790,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
     int avg_ratio = array_config.clr_settings.avg_ratio;
-    meta_data.usrp_rf_rate = array_config.cuda_settings.fsamprx;
-    log_debug( "Done reading Average Ratio and RF sampling rate...");
+    log_debug( "Done reading Average Ratio...");
 
     // Allocate temp mem for shm varibles
     temp_samples = fftw_alloc_complex(STATIC_ANTENNA_NUM * SAMPLES_NUM);
@@ -1068,6 +1068,7 @@ int main() {
             }
             log_debug("     num_antennas: %d", meta_data.num_antennas);
             log_debug("     num_samples : %d", meta_data.number_of_samples);
+            log_debug("     rf_rate     : %d", meta_data.usrp_rf_rate);
 
             sem_post(sl_init.sem);
         }

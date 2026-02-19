@@ -69,6 +69,7 @@ INTEGRATION_PERIOD_SYNC_TIME = .2
 PULSE_SEQUENCE_PADDING_TIME = .033
 
 DEFAULT_USRP_MIXING_FREQ = 13000
+DEFAULT_USRP_RF_RATE = 5000
 
 # channel states (CS) for each channel
 CS_INACTIVE      = 'CS_INACTIVE'
@@ -412,12 +413,12 @@ class usrpMixingFreqManager():
         at a time can call add_new_freq_band(). """
 
     def __init__(self, cFreq, bandWidth, N_RADARs):
+       self.usrp_bandwidth      = None                                # in kHz (to be compatible with control program)
        self.current_mixing_freq = [cFreq for jrad in range(N_RADARs)] # in kHz (to be compatible with control program)
-       self.usrp_bandwidth      = bandWidth - USRP_BANDWIDTH_RESTRICTION*2/1000   # in kHz (to be compatible with control program)
-       self.semaphore = threading.BoundedSemaphore()
        self.channelRangeList    = [[] for jrad in range(N_RADARs)]
        self.channelUniqueList   = [[] for jrad in range(N_RADARs)]
        self.channelList         = [[] for jrad in range(N_RADARs)]
+       self.semaphore = threading.BoundedSemaphore()
 
 
     def add_new_freq_band(self, channel):
@@ -445,7 +446,14 @@ class usrpMixingFreqManager():
        self.semaphore.acquire()
        channel.logger.debug("radar {} ch {}: acquired semaphore of usrpMixingFreqManager".format(channel.rnum, channel.cnum))
 
-       if newLower >= (self.current_mixing_freq[jrad] - self.usrp_bandwidth/2) and newUpper <= (self.current_mixing_freq[jrad] + self.usrp_bandwidth/2):
+       # common USRP bandwidth is not set until CheckChannelCompatibility,
+       # so use channel's requested RF rate for initial test
+       if self.usrp_bandwidth:
+          bandwidth = self.usrp_bandwidth
+       else:
+          bandwidth = (channel.rfrate - USRP_BANDWIDTH_RESTRICTION*2)/1000
+
+       if newLower >= (self.current_mixing_freq[jrad] - bandwidth/2) and newUpper <= (self.current_mixing_freq[jrad] + bandwidth/2):
           channel.logger.debug("radar {} ch {}: channel range is within USRP bandwidth".format(channel.rnum, channel.cnum))
           result = True
        else:
@@ -457,15 +465,15 @@ class usrpMixingFreqManager():
              allCh_lower = min(allCh_lower, otherChRange[0])
              allCh_upper = max(allCh_upper, otherChRange[1])
 
-          if (allCh_upper - allCh_lower) > self.usrp_bandwidth:
+          if (allCh_upper - allCh_lower) > bandwidth:
              channel.logger.error("radar {} ch {}: new channel can not be added. USRP bandwidth too small".format(channel.rnum, channel.cnum))
              result = False
           else:
              channel.logger.debug("radar {} ch {}: trying to adjust mixing frequency to support new channel".format(channel.rnum, channel.cnum))
              newMixingFreq = (allCh_upper - allCh_lower)/2 + allCh_lower
              # adjust mixing freq that everything is in overall bandwidth
-             newMixingFreq = max(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][0]+self.usrp_bandwidth/2)
-             newMixingFreq = min(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][1]-self.usrp_bandwidth/2)
+             newMixingFreq = max(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][0]+bandwidth/2)
+             newMixingFreq = min(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][1]-bandwidth/2)
              result = newMixingFreq
 
        # adjust mixing freq to avoid overlap with channel search ranges
@@ -481,8 +489,8 @@ class usrpMixingFreqManager():
              for idx, tmpCh in enumerate(uniqueList):
                 while ( ((tmpCh[0] < newMixingFreq+50) and
                          (newMixingFreq-50 < tmpCh[1])) or
-                        (tmpCh[0] < newMixingFreq - self.usrp_bandwidth/2) or
-                        (tmpCh[1] > newMixingFreq + self.usrp_bandwidth/2) ):
+                        (tmpCh[0] < newMixingFreq - bandwidth/2) or
+                        (tmpCh[1] > newMixingFreq + bandwidth/2) ):
 
                    # conflict with this range, so must check all others after adjusting
                    invalid[:] = [True] * len(uniqueList)
@@ -588,7 +596,7 @@ class ClearFrequencyService():
     SAMPLES_NUM         = 5000
     ANTENNA_NUM         = 16
     STATIC_ANTENNA_NUM  = 20
-    META_ELEM           = 1                             # 1 = 2 - 1 (fcenter has unique obj)
+    META_ELEM           = 2                             # 2 = 3 - 1 (fcenter has unique obj)
 
     SAMPLES_ELEM_NUM    = ANTENNA_NUM * SAMPLES_NUM * 2
     CLR_RANGE_ELEM_NUM  = 2
@@ -1148,6 +1156,7 @@ class ClearFrequencyService():
         meta_data_list = [
                         meta_data['antenna_list'],
                         meta_data['number_of_samples'],
+                        meta_data['usrp_rf_rate'],
                     ]
 
         # Special: Halt all future ClearFreqService
@@ -1397,7 +1406,7 @@ class ClearFrequencyService():
 class clearFrequencyRawDataManager():
     """ Buffers the raw clearfrequency data for all channels
     """
-    def __init__(self, usrpManager, N_RADARs):
+    def __init__(self, usrpManager, N_RADARs, avg_ratio, clrfreq_res):
         self.rawData     = [None for jrad in range(N_RADARs)]
         self.antennaList = [None for jrad in range(N_RADARs)]
         self.recordTime  = [None for jrad in range(N_RADARs)]
@@ -1414,6 +1423,9 @@ class clearFrequencyRawDataManager():
 
         self.metaData = [{} for jrad in range(N_RADARs)]
 
+        self.avg_ratio = avg_ratio
+        self.clrfreq_res = clrfreq_res
+
         self.get_raw_data_semaphore = threading.BoundedSemaphore()
         self.select_clear_freq = threading.BoundedSemaphore()
 
@@ -1427,16 +1439,17 @@ class clearFrequencyRawDataManager():
         self.usrp_socks[jrad] = usrp_driver_socks
 
 
-    def set_clrfreq_search_span(self, jrad, center_freq, clrfreq_sampling_rate, number_of_clrfreq_samples):
+    def set_clrfreq_search_span(self, jrad, center_freq, clrfreq_sampling_rate):
         self.center_freq[jrad] = center_freq
 
         self.sampling_rate = clrfreq_sampling_rate
-        self.number_of_samples = number_of_clrfreq_samples
+        self.number_of_samples = int(self.avg_ratio * self.sampling_rate / self.clrfreq_res)
 
         self.logger.debug('clearFrequencyRawDataManager set_clrfreq_search_span: center {} rate {} number {}'.format(self.center_freq[jrad], self.sampling_rate, self.number_of_samples))
 
         self.metaData[jrad]['usrp_fcenter'] = self.center_freq[jrad]
         self.metaData[jrad]['number_of_samples'] = self.number_of_samples
+        self.metaData[jrad]['usrp_rf_rate'] = self.sampling_rate
 
 
     def update_auto_clear_freq_data(self, jrad, antenna_list, raw_data, meta_data_dict):
@@ -1446,6 +1459,9 @@ class clearFrequencyRawDataManager():
         self.antennaList[jrad] = antenna_list
         self.metaData[jrad]['antenna_list'] = antenna_list
         self.sampling_rate = meta_data_dict['sampling_rate']
+        self.metaData[jrad]['usrp_rf_rate'] = self.sampling_rate
+        self.number_of_samples = int(self.avg_ratio * self.sampling_rate / self.clrfreq_res)
+        self.metaData[jrad]['number_of_samples'] = self.number_of_samples
         self.center_freq[jrad] = meta_data_dict['center_freq'] /1000
         self.CFS.send_samples(self.rawData[jrad], int(jrad), int(self.center_freq[jrad]), meta_data=self.metaData[jrad])
         self.logger.debug("Updated clear freq raw data with auto_clear_freq data")
@@ -1744,12 +1760,12 @@ class scanManager():
         self.logger.debug(f"antenna sample sets: {len(rawData)}   antennas: {metaData['antenna_list']}")
 
         try:
-           if_rate = RHM.usrp_rf_rx_rate / RHM.commonChannelParameter['downsample_rates'][0]
+           if_rate = RHM.commonChannelParameter['rfrate'] / RHM.commonChannelParameter['downsample_rates'][0]
         except KeyError:
-           if int(self.RHM.usrp_rf_rx_rate / 1e6) == 10:
-              if_rate = RHM.usrp_rf_rx_rate / 40.0
+           if int(self.channel.rfrate / 1e6) == 10:
+              if_rate = self.channel.rfrate / 40.0
            else:
-              if_rate = RHM.usrp_rf_rx_rate / 30.0
+              if_rate = self.channel.rfrate / 30.0
 
         clearFreq, noise = self.clearFreqService.request_clr_freq(int(jrad), int(cnum), int(beamNo), int(self.channel.raw_export_data['smsep']), clear_freq_range, int(metaData['usrp_fcenter']), if_rate)
 
@@ -1821,11 +1837,11 @@ class RadarHardwareManager:
         self.nControlPrograms = 0  # number of control programs, also include unregistered channels
         self.channel_manager_consecutive_number = 10 # serial number shown in logger of channel_manager
 
-        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.usrpManager, self.N_RADARs)
+        self.clearFreqRawDataManager = clearFrequencyRawDataManager(self.usrpManager, self.N_RADARs, self.avg_ratio, self.clrfreq_res)
         for jrad in range(self.N_RADARs):
            self.clearFreqRawDataManager.set_usrp_driver_connections(jrad, self.usrpManager.socks[jrad])
 
-           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate, int(self.avg_ratio * self.usrp_rf_rx_rate / self.clrfreq_res))
+           self.clearFreqRawDataManager.set_clrfreq_search_span(jrad, self.mixingFreqManager.current_mixing_freq[jrad], self.usrp_rf_rx_rate)
 
            self.send_usrp_setup_command(jrad)
 
@@ -2059,9 +2075,9 @@ class RadarHardwareManager:
 
     def usrp_init(self):
         self.usrpManager = usrpSockManager(self)
-        self.usrp_rf_tx_rate   = int(self.ini_cuda_settings['FSampTX'])
-        self.usrp_rf_rx_rate   = int(self.ini_cuda_settings['FSampRX'])
-        self.mixingFreqManager = usrpMixingFreqManager(DEFAULT_USRP_MIXING_FREQ, self.usrp_rf_tx_rate/1000, self.N_RADARs)
+        self.usrp_rf_tx_rate   = int(DEFAULT_USRP_RF_RATE*1e3)
+        self.usrp_rf_rx_rate   = int(DEFAULT_USRP_RF_RATE*1e3)
+        self.mixingFreqManager = usrpMixingFreqManager(DEFAULT_USRP_MIXING_FREQ, DEFAULT_USRP_RF_RATE, self.N_RADARs)
         self._resync_usrps(first_sync = True)
         self.logger.debug("usrp_init() complete")
 
@@ -2097,6 +2113,7 @@ class RadarHardwareManager:
          cmd_list = []
          for jrad in range(self.N_RADARs):
             cmd = cuda_setup_command(self.cudasocks[jrad], \
+                                     self.commonChannelParameter['rfrate'], \
                                      self.commonChannelParameter['upsample_rate'], \
                                      self.commonChannelParameter['downsample_rates'][0], \
                                      self.commonChannelParameter['downsample_rates'][1], \
@@ -3113,7 +3130,7 @@ class RadarHardwareManager:
         for jrad in range(self.N_RADARs):
            if transmittingChannelAvailable[jrad] and trigger_next_period and self.auto_collect_clrfrq_after_rx:
               #self.clear_search_data_semaphore.acquire()
-              nSamples_clear_freq = self.clearFreqRawDataManager.number_of_samples
+              nSamples_clear_freq = int(self.avg_ratio * self.usrp_rf_rx_rate / self.clrfreq_res)
               self.logger.debug("Getting auto clear freq data for radar {}. nSamples_clear_freq: {}".format(jrad, nSamples_clear_freq))
               cmd = usrp_get_auto_clear_freq_command(self.usrpManager.socks[jrad], int(nSamples_clear_freq))
               cmd.transmit()
@@ -3412,6 +3429,7 @@ class RadarChannelHandler:
         self.channelScalingFactor = 0
         self.rnum = 'unknown'
         self.cnum = 'unknown'
+        self.rfrate = 'unknown'
         self.resultDict_list = []
 
         self.swingManager = parent_RadarHardwareManager.swingManager # reference to global swingManager of RadarHardwareManager
@@ -4059,7 +4077,7 @@ class RadarChannelHandler:
         self.logger.debug('checking channel compatibility for radar {} ch {}'.format(self.rnum, self.cnum))
         hardwareManager = self.parent_RadarHardwareManager
         commonParList_ctrl = ['number_of_samples', 'baseband_samplerate']
-        commonParList_seq  = ['npulses_per_sequence', 'pulse_sequence_offsets_vector', 'tr_to_pulse_delay', 'integration_period_duration', 'tx_time']
+        commonParList_seq  = ['npulses_per_sequence', 'pulse_sequence_offsets_vector', 'tr_to_pulse_delay', 'integration_period_duration', 'tx_time', 'rfrate']
 
         if all([self.pulse_lens[0]==self.pulse_lens[i] for i in range(1,len(self.pulse_lens))]):
             pulseLength = self.pulse_lens[0]
@@ -4076,6 +4094,10 @@ class RadarChannelHandler:
             hardwareManager.commonChannelParameter = {key: getattr(self, key) for key in commonParList_seq}
             hardwareManager.commonChannelParameter.update({key: self.ctrlprm_struct.payload[key] for key in commonParList_ctrl})
             hardwareManager.commonChannelParameter.update({'pulseLength':pulseLength})
+
+            hardwareManager.usrp_rf_tx_rate = self.rfrate
+            hardwareManager.usrp_rf_rx_rate = self.rfrate
+            hardwareManager.mixingFreqManager.usrp_bandwidth = self.rfrate/1000 - USRP_BANDWIDTH_RESTRICTION*2/1000
 
             # upsampling rates
             #  it looks like tx_bb_samplingRate has to be 100 kHz for phase coding (but there is no documentation...)
@@ -4120,6 +4142,10 @@ class RadarChannelHandler:
             return True
 
         else:   # not first channel => check if new parameters are compatible
+
+            if self.rfrate != hardwareManager.commonChannelParameter['rfrate']:
+                self.logger.error('USRP RF rate must be equal ({} != {})'.format(self.rfrate, hardwareManager.commonChannelParameter['rfrate']))
+                return False
 
             if self.npulses_per_sequence != hardwareManager.commonChannelParameter['npulses_per_sequence']:
                 self.logger.error('Number of pulses in each sequence must be equal ({} != {})'.format(self.npulses_per_sequence, hardwareManager.commonChannelParameter['npulses_per_sequence']))
@@ -4303,6 +4329,7 @@ class RadarChannelHandler:
         self.ststr = temp.decode("utf-8")[-4:-1]
         self.rnum = recv_dtype(self.conn, np.int32)
         self.cnum = recv_dtype(self.conn, np.int32)
+        self.rfrate = int(recv_dtype(self.conn, np.int32) * 1e6)
 
         if [self.rnum, self.cnum] in [[[ch.rnum, ch.cnum]] for ch in np.concatenate(self.parent_RadarHardwareManager.channels).tolist() if ch is not None and ch is not self]:
            self.logger.error("New channel (cnum {}) can not be added on radar {} because channel with this cnum already active.".format(self.cnum, self.rnum))
@@ -4420,8 +4447,7 @@ class RadarChannelHandler:
         addFreqResult = self.parent_RadarHardwareManager.mixingFreqManager.add_new_freq_band(self)
 
         if addFreqResult == True:
-            #self.swingManager.reset()
-            #self.logger.debug("Resetting swing manager (active={}, processing={})".format(self.swingManager.activeSwing, self.swingManager.processingSwing))
+            self.parent_RadarHardwareManager.clearFreqRawDataManager.set_clrfreq_search_span(self.rnum, self.parent_RadarHardwareManager.mixingFreqManager.current_mixing_freq[self.rnum], self.rfrate)
             return RMSG_SUCCESS
         elif addFreqResult == False:
             self.logger.error("Freq range of new channel (radar {} ch {}) is not in USRP bandwidth. (freq_range_list[0][0] = {})".format(self.rnum, self.cnum, freq_range_list[0][0]))
@@ -4431,10 +4457,7 @@ class RadarChannelHandler:
             return RMSG_FAILURE
         else: # new mixing freq
             self.parent_RadarHardwareManager.send_cuda_setup_command()
-            self.parent_RadarHardwareManager.clearFreqRawDataManager.center_freq[self.rnum] = self.parent_RadarHardwareManager.mixingFreqManager.current_mixing_freq[self.rnum]
-            self.parent_RadarHardwareManager.clearFreqRawDataManager.metaData[self.rnum]['usrp_fcenter'] = self.parent_RadarHardwareManager.mixingFreqManager.current_mixing_freq[self.rnum]
-            #self.swingManager.reset()
-            #self.logger.debug("Resetting swing manager (active={}, processing={})".format(self.swingManager.activeSwing, self.swingManager.processingSwing))
+            self.parent_RadarHardwareManager.clearFreqRawDataManager.set_clrfreq_search_span(self.rnum, self.parent_RadarHardwareManager.mixingFreqManager.current_mixing_freq[self.rnum], self.rfrate)
             return RMSG_SUCCESS
 
 

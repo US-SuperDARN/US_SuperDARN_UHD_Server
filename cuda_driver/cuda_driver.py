@@ -440,8 +440,9 @@ class cuda_setup_handler(cudamsg_handler):
         downsampleRate_if2bb = cmd.payload['downsampleRate_if2bb']
         upsampleRate         = cmd.payload['upsampleRate']
         usrp_mixing_freq     = cmd.payload['usrp_mixing_freq']
+        usrp_rfrate          = cmd.payload['usrp_rfrate']
 
-        self.gpu.init_conversionRates_and_mixingFreq(upsampleRate, downsampleRate_rf2if, downsampleRate_if2bb, usrp_mixing_freq)
+        self.gpu.init_conversionRates_and_mixingFreq(upsampleRate, downsampleRate_rf2if, downsampleRate_if2bb, usrp_mixing_freq, usrp_rfrate)
 
 
 cudamsg_handlers = {\
@@ -516,7 +517,7 @@ def sigint_handler(signum, frame):
 # bb_signal is now [NANTS, NPULSES, NCHANNELS, NSAMPLES]
 class ProcessingGPU(object):
 
-    def __init__(self, antennas, dsp_info, maxchannels, maxpulses, fsamptx, fsamprx):
+    def __init__(self, antennas, dsp_info, maxchannels, maxpulses):
 
         self.logger = logging.getLogger("cuda_gpu")
         self.logger.info('initializing cuda gpu')
@@ -537,8 +538,8 @@ class ProcessingGPU(object):
         self.usrp_mixing_freq = [None, None]
 
         # USRP rx/tx sampling rates
-        self.tx_rf_samplingRate = int(fsamptx)
-        self.rx_rf_samplingRate = int(fsamprx)
+        self.tx_rf_samplingRate = None
+        self.rx_rf_samplingRate = None
 
         # calibration tables for phase and time delay offsets
         self.tdelays = np.zeros(self.nAntennas) # table to account for constant time delay to antenna, e.g cable length difference
@@ -589,11 +590,13 @@ class ProcessingGPU(object):
             self.phase_offsets[iAntenna] = float(phase_offset)
 
 
-    def init_conversionRates_and_mixingFreq(self, upRate, downRate_rf2if, downRate_if2bb, usrp_mixing_freq):
+    def init_conversionRates_and_mixingFreq(self, upRate, downRate_rf2if, downRate_if2bb, usrp_mixing_freq, usrp_rfrate):
         self.logger.debug("CUDA_SETUP: upRate: {}x, downRates: {}x and {}x, usrp_mixing_freq: {} MHz".format(upRate, downRate_rf2if, downRate_if2bb, usrp_mixing_freq/1e6))
         self.tx_upsamplingRate         = int(upRate)
         self.rx_rf2if_downsamplingRate = int(downRate_rf2if)
         self.rx_if2bb_downsamplingRate = int(downRate_if2bb)
+        self.tx_rf_samplingRate        = int(usrp_rfrate)
+        self.rx_rf_samplingRate        = int(usrp_rfrate)
 
         # calc base band sampling rates
         self.tx_bb_samplingRate = self.tx_rf_samplingRate / self.tx_upsamplingRate

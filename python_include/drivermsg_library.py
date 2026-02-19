@@ -235,12 +235,13 @@ class cuda_process_command(driver_command):
 
 
 class cuda_setup_command(driver_command):
-    def __init__(self, cudas, upsampleRate=0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0):
+    def __init__(self, cudas, rfrate=0, upsampleRate=0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0):
         driver_command.__init__(self, cudas, CUDA_SETUP)
         self.queue(upsampleRate, np.uint32, 'upsampleRate')
         self.queue(downsampleRate_rf2if, np.uint32, 'downsampleRate_rf2if')
         self.queue(downsampleRate_if2bb, np.uint32, 'downsampleRate_if2bb')
         self.queue(usrp_mixing_freq, np.uint32, 'usrp_mixing_freq')
+        self.queue(rfrate, np.uint32, 'usrp_rfrate')
 
 
 # add a pulse sequence/channel
