@@ -45,7 +45,7 @@ RMSG_PORT = 45000
 USRP_SERVER_HOST = 'localhost'
 
 MAX_CHANNELS = 4
-USRP_BANDWIDTH_RESTRICTION = 300000 # in Hz. No channels allowed on both edges of the URSP bandwidth to avoid aliasing
+USRP_BANDWIDTH_RESTRICTION = 300000 # in Hz. No channels allowed on both edges of the USRP bandwidth to avoid aliasing
 
 RMSG_SUCCESS = 0
 RMSG_FAILURE = -1
@@ -55,7 +55,7 @@ CHANNEL_STATE_TIMEOUT = 120
 # TODO: move this out to a config file
 nSwings = 2
 
-# seconds of delay in usrp clock time at the start of an integration period before the first pulse
+# seconds of delay in USRP clock time at the start of an integration period before the first pulse
 # to allow for the usrp_drivers receive a command..
 INTEGRATION_PERIOD_SYNC_TIME_ONESEC = .2
 INTEGRATION_PERIOD_SYNC_TIME = .2
@@ -81,7 +81,7 @@ CS_LAST_SWING    = 'CS_LAST_SWING'
 
 
 class integrationTimeManager():
-   """ Estimates the time the integration period has to be reduced to be able to setup usrp copy samples etc"""
+   """ Estimates the time the integration period has to be reduced to be able to setup USRP copy samples etc"""
    def __init__(self, RHM):
       self.RHM = RHM
       self.last_start = None # of trigger next function
@@ -221,7 +221,7 @@ class usrpSockManager():
                self.antennaList_active[jrad].append([usrpConfig['array_idx']])
                self.hostnameList_active[jrad].append(usrpConfig['usrp_hostname'])
                self.driverHostnameList_active[jrad].append(usrpConfig['driver_hostname'])
-               self.logger.debug('connected to usrp driver on port {}'.format(port))
+               self.logger.debug('connected to USRP driver on port {}'.format(port))
 
          except ConnectionRefusedError:
             self.logger.error('USRP server connection failed: {}:{}'.format(usrpConfig['driver_hostname'], port))
@@ -252,7 +252,7 @@ class usrpSockManager():
 
    def remove_sock(self, jrad, sock_to_remove):
        iSock = self.socks[jrad].index(sock_to_remove)
-       self.logger.error("Removing usrp {} ({}:{}).".format(self.hostnameList_active[jrad][iSock], self.addressList_active[jrad][iSock][0], self.addressList_active[jrad][iSock][1]))
+       self.logger.error("Removing USRP {} ({}:{}).".format(self.hostnameList_active[jrad][iSock], self.addressList_active[jrad][iSock][0], self.addressList_active[jrad][iSock][1]))
        self.addressList_inactive[jrad].append(self.addressList_active[jrad][iSock])
        del self.addressList_active[jrad][iSock]
 
@@ -297,7 +297,7 @@ class usrpSockManager():
                 else:
                    index=iSock-offset
 
-                self.logger.error("Connection lost to usrp {} ({}:{}). Removing it from sock list.".format(self.hostnameList_active[jrad][index], self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
+                self.logger.error("Connection lost to USRP {} ({}:{}). Removing it from sock list.".format(self.hostnameList_active[jrad][index], self.addressList_active[jrad][index][0], self.addressList_active[jrad][index][1]))
 
                 self.remove_sock(jrad, self.socks[jrad][index])
                 offset += 1
@@ -392,11 +392,11 @@ class usrpSockManager():
                 self.antennaList_active[jrad].append(tmp_antenna_list[jrad][iUSRP])
                 self.hostnameList_active[jrad].append(tmp_hostname_list[jrad][iUSRP])
                 self.driverHostnameList_active[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
-                self.logger.info('reconnection to usrp {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
+                self.logger.info('reconnection to USRP {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
                 do_resync = True
 
              except ConnectionRefusedError:
-                self.logger.warning('reconnection to usrp {} failed'.format(tmp_hostname_list[jrad][iUSRP]))
+                self.logger.warning('reconnection to USRP {} failed'.format(tmp_hostname_list[jrad][iUSRP]))
                 self.addressList_inactive[jrad].append(usrp)
                 self.antennaList_inactive[jrad].append(tmp_antenna_list[jrad][iUSRP])
                 self.hostnameList_inactive[jrad].append(tmp_hostname_list[jrad][iUSRP])
@@ -409,7 +409,7 @@ class usrpSockManager():
 
 
 class usrpMixingFreqManager():
-    """ Manages usrp mixing frequency based on channels. Ensures that only one channel
+    """ Manages USRP mixing frequency based on channels. Ensures that only one channel
         at a time can call add_new_freq_band(). """
 
     def __init__(self, cFreq, bandWidth, N_RADARs):
@@ -521,7 +521,7 @@ class usrpMixingFreqManager():
           if newMixingFreq == self.current_mixing_freq[jrad]:
              result = True
           else:
-             channel.logger.info("radar {} ch {}: calculated new usrp mixing frequency: {} kHz (old was {} kHz)".format(channel.rnum, channel.cnum, newMixingFreq, self.current_mixing_freq[jrad]))
+             channel.logger.info("radar {} ch {}: calculated new USRP mixing frequency: {} kHz (old was {} kHz)".format(channel.rnum, channel.cnum, newMixingFreq, self.current_mixing_freq[jrad]))
              self.current_mixing_freq[jrad] = newMixingFreq
              result = newMixingFreq
 
@@ -1507,7 +1507,7 @@ class clearFrequencyRawDataManager():
 
 
     def record_new_data(self, jrad):
-        assert self.usrp_socks[jrad] != None, "no usrp drivers assigned to clear frequency search data manager"
+        assert self.usrp_socks[jrad] != None, "no USRP drivers assigned to clear frequency search data manager"
         assert self.center_freq[jrad] != None, "no center frequency assigned to clear frequency search manager"
 
         if self.recordTime[jrad] == None:
@@ -1798,7 +1798,7 @@ class scanManager():
         return self.current_period + 1 == len(self.scan_beam_list) and len(self.scan_beam_list) != 1 # for one beam scan: first is not last
 
 
-# handle arbitration with multiple channels accessing the usrp hardware
+# handle arbitration with multiple channels accessing the USRP hardware
 # track state of a grouping of usrps
 # merge information from multiple control programs, handle disparate settings
 # e.g, ready flags and whatnot
@@ -2553,7 +2553,7 @@ class RadarHardwareManager:
         pulse_sequence_offsets_samples = self.commonChannelParameter['pulse_sequence_offsets_vector'] * self.usrp_rf_tx_rate
 
         # then, calculate sample indices at which pulses start within an integration period (all possible for cuda, only transmitted for usrp_driver)
-        # TODO if the pulse offsets change in one scan, this has to be changed (calc next pulse period for cuda, current for usrp driver)
+        # TODO if the pulse offsets change in one scan, this has to be changed (calc next pulse period for cuda, current for USRP driver)
         all_possible_integration_period_pulse_sample_offsets = np.zeros(nPulses_per_sequence * nSequences_per_period_max, dtype=np.uint64)
         for iSequence in range(nSequences_per_period_max):
             for iPulse in range(nPulses_per_sequence):
@@ -2677,12 +2677,12 @@ class RadarHardwareManager:
            # USRP_TRIGGER - END OF SETUP NEW LOOP OVER RADARS
            self.logger.debug("start USRP_GET_TIME")
 
-           cmd = usrp_get_time_command(self.usrpManager.socks[0][0]) # grab current usrp time from one usrp_driver
+           cmd = usrp_get_time_command(self.usrpManager.socks[0][0]) # grab current USRP time from one usrp_driver
            cmd.transmit()
            time.sleep(0.001)
 
            # TODO: tag time using a better source? this will have a few hundred microseconds of uncertainty
-           # maybe measure offset between usrp time and computer clock time somewhere, then calculate from there
+           # maybe measure offset between USRP time and computer clock time somewhere, then calculate from there
            usrp_time = cmd.recv_time(self.usrpManager.socks[0][0])
            cmd.client_return()
 
@@ -2742,7 +2742,7 @@ class RadarHardwareManager:
                  cmd = usrp_trigger_pulse_command(self.usrpManager.socks[jrad], trigger_time, self.commonChannelParameter['tr_to_pulse_delay'], self.swingManager.activeSwing)
                  self.logger.debug('sending trigger pulse command for swing {}'.format(self.swingManager.activeSwing))
                  cmd.transmit()
-                 self.logger.debug('radar {} current usrp time: {}, trigger time of: {}'.format(jrad, usrp_time, trigger_time))
+                 self.logger.debug('radar {} current USRP time: {}, trigger time of: {}'.format(jrad, usrp_time, trigger_time))
                  cmd_list.append(cmd)
                  jrad_list.append(jrad)
               else:
@@ -2760,7 +2760,7 @@ class RadarHardwareManager:
            self.logger.debug('waiting for trigger return on radar {}'.format(jrad_list[ind]))
            returns = self.usrpManager.eval_client_return(cmd, jrad_list[ind])
            if TRIGGER_BUSY in returns:
-              self.logger.error('could not trigger radar {}, usrp driver is busy'.format(jrad_list[ind]))
+              self.logger.error('could not trigger radar {}, USRP driver is busy'.format(jrad_list[ind]))
               # pdb.set_trace()
            self.logger.debug('end USRP_TRIGGER radar {}'.format(jrad_list[ind]))
 
@@ -2785,7 +2785,7 @@ class RadarHardwareManager:
                        if item.name == 'rbeam':
                           channel.logger.debug("saving dataqueue to resultDict (rbeam={})".format(item.data))
 
-              # save BB samples if usrp live view is active
+              # save BB samples if USRP live view is active
               if os.path.isfile("./bufferLiveData.flag"):
                  self.logger.info("Buffering raw data to disk.")
                  chResExportList = [ ch.resultDict_list[-1] for ch in np.concatenate(self.channels).tolist() if ch.processing_state == CS_PROCESSING]
@@ -2889,7 +2889,7 @@ class RadarHardwareManager:
 
                  self.logger.debug('end rx beamforming')
 
-                 # save BB samples if usrp live view is active
+                 # save BB samples if USRP live view is active
                  if os.path.isfile("./bufferLiveData.flag"):
                     self.logger.info("Buffering raw data to disk.")
                     chResExportList = [ ch.resultDict_list[-1] for ch in np.concatenate(self.channels).tolist() if ch.processing_state == CS_PROCESSING]
@@ -3023,7 +3023,7 @@ class RadarHardwareManager:
         for ind, cmd in enumerate(cmd_list):
            jrad = jrad_list[ind]
 
-           # check status of usrp drivers
+           # check status of USRP drivers
            self.logger.debug('start receiving all USRP status for radar {}'.format(jrad))
            payloadList = self.usrpManager.eval_client_return(cmd, jrad, fcn=cmd.receive_all_metadata)
            self.logger.debug('end receiving all USRP status for radar {}'.format(jrad))
