@@ -3970,7 +3970,6 @@ class RadarChannelHandler:
     # receive a ctrlprm struct
     #@timeit
     def SetParametersHandler(self, rmsg):
-        # TODO: check if new freq is possible with usrp_centerFreq
         # TODO divide compatibility check in sequence and ctrlprm check?
         # TODO add compatibility check in parameter prediction function
         self.received_first_SETPAR = True
