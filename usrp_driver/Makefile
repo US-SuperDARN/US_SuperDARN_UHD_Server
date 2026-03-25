@@ -2,8 +2,8 @@ OS:=$(shell uname -s)
 
 CCpp=g++
 CFLAGS=-c -Wall -pthread -std=c++0x -O3
-LFLAGS=-L"${HOME}/repos/iniparser/build" -L"${HOME}/repos/uhd/host/build/lib"
-common_libs=-lm -liniparser -lrt -luhd -lfftw3
+LFLAGS=-L"${HOME}/repos/uhd/host/build/lib"
+common_libs=-lm -lrt -luhd -lfftw3
 linux_libs=-lboost_thread -lboost_system -pthread -l argtable2 -lboost_date_time -lboost_chrono
 INCLUDES=-I"${HOME}/repos/uhd/host/include" \
 	 -I"${HOME}/repos/uhd/host/include/uhd/types" \
