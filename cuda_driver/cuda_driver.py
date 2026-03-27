@@ -513,7 +513,7 @@ def sigint_handler(signum, frame):
 # class to contain references to gpu-side information
 # handle launching signal processing kernels
 # and host/gpu communication and initialization
-# bb_signal is now [NANTS, NPULSES, NCHANNELS, NSAMPLES]
+# bb_signal is now [NCHANNELS, NANTS, NPULSES, NSAMPLES]
 class ProcessingGPU(object):
 
     def __init__(self, antennas, dsp_info, maxchannels, maxpulses):
