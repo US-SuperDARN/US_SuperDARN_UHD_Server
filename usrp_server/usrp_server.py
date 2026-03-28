@@ -3728,18 +3728,13 @@ class RadarChannelHandler:
         tx_tsg_len = self.seqprm_struct.get_data('len')
         tx_tsg_step = self.seqprm_struct.get_data('step')
 
-        # ratio between tsg step (units of microseconds) to baseband sampling period
-        # TODO: calculate this from TXUpsampleRate, FSampTX in cuda_config.ini
-        # however, it should always be 1..
-        tsg_bb_per_step = 1
-
         # psuedo-run length encoded tsg
         tx_tsg_rep = self.seq_rep
         tx_tsg_code = self.seq_code
 
         seq_buf = []
         for i in range(tx_tsg_len):
-            for j in range(0, np.int32(tsg_bb_per_step * tx_tsg_rep[i])):
+            for j in range(0, np.int32(tx_tsg_rep[i])):
                 seq_buf.append(tx_tsg_code[i])
         seq_buf = np.uint8(np.array(seq_buf))
 
@@ -4099,8 +4094,7 @@ class RadarChannelHandler:
             hardwareManager.mixingFreqManager.usrp_bandwidth = self.rfrate/1000 - USRP_BANDWIDTH_RESTRICTION*2/1000
 
             # upsampling rates
-            #  it looks like tx_bb_samplingRate has to be 100 kHz for phase coding (but there is no documentation...)
-            upsample_rate = hardwareManager.usrp_rf_tx_rate / 100000
+            upsample_rate = int(np.round(hardwareManager.usrp_rf_tx_rate * (self.seqprm_struct.payload['step'] * 1e-6)))
             hardwareManager.commonChannelParameter.update({"upsample_rate":upsample_rate})
             self.logger.debug("Setting cuda upsampling rate to {}".format(upsample_rate))
 
