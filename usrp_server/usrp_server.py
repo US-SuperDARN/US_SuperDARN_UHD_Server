@@ -2841,7 +2841,7 @@ class RadarHardwareManager:
                     transmit_dtype(cudasock, -1, np.int32) # to end transfer process
 
                  cmd.client_return()
-                 self.logger.debug('end CUDA_GET_DATA')
+                 self.logger.debug('end CUDA_GET_DATA radar {}'.format(jrad))
 
                  # BEAMFORMING
                  self.logger.debug('start rx beamforming')
