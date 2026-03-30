@@ -807,12 +807,10 @@ class ProcessingGPU(object):
     def rx_pre_init(self, swing):
         """ pre init of rx: before synth of pulses. put all posible rx_init() stuff into the waiting period. (here exact integration period is still unknown) """
         self.logger.debug("rx_pre_init()")
-        # build arrays based on first sequence.
-        ### seq = self.sequences[swing][0] # TODO: check if seq[0] exists
+
         iActiveChannel = 0
         while self.sequences[swing][iActiveChannel] == None:
             iActiveChannel += 1
-            print(iActiveChannel)
         ctrlprm = self.sequences[swing][iActiveChannel].ctrlprm
 
         rx_bb_samplingRate = ctrlprm['baseband_samplerate']
@@ -821,19 +819,9 @@ class ProcessingGPU(object):
             self.logger.error(errorMsg)
         assert np.abs(rx_bb_samplingRate - self.rx_bb_samplingRate) < 0.1, errorMsg
 
-       # [NCHANNELS][NTAPS][I/Q]
+        # [NCHANNELS][NTAPS][I/Q]
         self.rx_filtertap_rfif = np.float32(np.zeros([self.nChannels, self.ntaps_rfif, 2]))
         self.rx_filtertap_ifbb = np.float32(np.zeros([self.nChannels, self.ntaps_ifbb, 2]))
-
-   ##     # generate filters
-   ##     channelFreqVec = [None for i in range(self.nChannels)]
-   ##     for iChannel in range(self.nChannels):
-   ##         if self.sequences[swing][iChannel] != None:
-   ##            channelFreqVec[iChannel] = -(self.sequences[swing][iChannel].ctrlprm['rfreq']*1000 - self.usrp_mixing_freq[swing]) # use negative frequency here since filter is not time inverted for convolution
-   ##            self.logger.debug('generating rx filter for ch {}: {} kHz (USRP baseband: {} kHz)'.format(iChannel, self.sequences[swing][iChannel].ctrlprm['rfreq'], self.sequences[swing][iChannel].ctrlprm['rfreq'] - self.usrp_mixing_freq[swing] /1000))
-   ##     self.rx_filtertap_rfif = RF_IF_GAIN * dsp_filters.kaiser_filter_s0(self.ntaps_rfif, channelFreqVec, self.rx_rf_samplingRate)
-   ##     # dsp_filters.rolloff_filter_s1()
-   ##     self.rx_filtertap_ifbb = IF_BB_GAIN * dsp_filters.raisedCosine_filter(self.ntaps_ifbb, self.nChannels)
 
 
     # synthesize rf waveform (beamforming, apply phase_masks, mixing in cuda)
