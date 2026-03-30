@@ -96,7 +96,7 @@ class cudamsg_handler(object):
         raise NotImplementedError('The process method for this driver message is unimplemented')
 
 
-# take copy and process data from shared memory, send to usrp_server via socks
+# generate rf tx samples and store them in shared memory for usrp_driver
 class cuda_generate_pulse_handler(cudamsg_handler):
     def process(self):
         self.logger.debug('enter cuda_generate_pulse_handler.process')
