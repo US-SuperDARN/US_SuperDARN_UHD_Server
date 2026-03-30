@@ -3728,7 +3728,7 @@ class RadarChannelHandler:
         tx_tsg_len = self.seqprm_struct.get_data('len')
         tx_tsg_step = self.seqprm_struct.get_data('step')
 
-        # psuedo-run length encoded tsg
+        # pseudo-run length encoded tsg
         tx_tsg_rep = self.seq_rep
         tx_tsg_code = self.seq_code
 
