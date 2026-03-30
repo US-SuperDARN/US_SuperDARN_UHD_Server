@@ -773,7 +773,7 @@ class ProcessingGPU(object):
         self.rx_if_samples = np.float32(np.zeros([self.nAntennas, self.nChannels, 2 * rx_if_nSamples]))
         self.rx_bb_samples = np.float32(np.zeros([self.nAntennas, self.nChannels, 2 * rx_bb_nSamples]))
 
-        self.cu_rx_samples_rf = np.intp(self.rx_rf_samples.base.get_device_pointer())
+        self.cu_rx_rf_samples = np.intp(self.rx_rf_samples.base.get_device_pointer())
         self.cu_rx_if_samples = cuda.mem_alloc_like(self.rx_if_samples)
         self.cu_rx_bb_samples = cuda.mem_alloc_like(self.rx_bb_samples)
 
@@ -904,7 +904,7 @@ class ProcessingGPU(object):
     # kick off async data processing
     def rxsamples_process(self, swing):
         self.logger.debug('processing rf -> if')
-        self.cu_rx_multiply_mix_add(self.cu_rx_samples_rf, self.cu_rx_if_samples, self.cu_rx_filtertaps_rfif[swing], np.uint32(self.rx_rf_nSamples), block = self.rx_if_block, grid = self.rx_if_grid, stream = self.streams[swing])
+        self.cu_rx_multiply_mix_add(self.cu_rx_rf_samples, self.cu_rx_if_samples, self.cu_rx_filtertaps_rfif[swing], np.uint32(self.rx_rf_nSamples), block = self.rx_if_block, grid = self.rx_if_grid, stream = self.streams[swing])
         self.logger.debug("  block: {}, grid : {}".format(self.rx_if_block, self.rx_if_grid))
         self.logger.debug('processing if -> bb')
         self.cu_rx_multiply_and_add(self.cu_rx_if_samples, self.cu_rx_bb_samples, self.cu_rx_filtertaps_ifbb[swing], np.uint32(self.rx_if_grid[0]), block = self.rx_bb_block, grid = self.rx_bb_grid, stream = self.streams[swing])
