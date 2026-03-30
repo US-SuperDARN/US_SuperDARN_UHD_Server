@@ -379,6 +379,7 @@ class usrpSockManager():
                 #self.antennaList_active[idx_usrp].append(usrpConfig['array_idx'])
 
              try:
+                self.logger.debug('Trying to reconnect to USRP {}'.format(tmp_hostname_list[jrad][iUSRP]))
                 usrpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 usrpsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
@@ -392,11 +393,11 @@ class usrpSockManager():
                 self.antennaList_active[jrad].append(tmp_antenna_list[jrad][iUSRP])
                 self.hostnameList_active[jrad].append(tmp_hostname_list[jrad][iUSRP])
                 self.driverHostnameList_active[jrad].append(tmp_driverHostname_list[jrad][iUSRP])
-                self.logger.info('reconnection to USRP {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
+                self.logger.info('Reconnection to USRP {} successful'.format(tmp_hostname_list[jrad][iUSRP]))
                 do_resync = True
 
              except ConnectionRefusedError:
-                self.logger.warning('reconnection to USRP {} failed'.format(tmp_hostname_list[jrad][iUSRP]))
+                self.logger.warning('Reconnection to USRP {} failed'.format(tmp_hostname_list[jrad][iUSRP]))
                 self.addressList_inactive[jrad].append(usrp)
                 self.antennaList_inactive[jrad].append(tmp_antenna_list[jrad][iUSRP])
                 self.hostnameList_inactive[jrad].append(tmp_hostname_list[jrad][iUSRP])
