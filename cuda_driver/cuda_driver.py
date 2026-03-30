@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # driver to process chunks of samples using CUDA
 # uses shared memory to get samples from usrp_drivers
-# spawn one cude driver per computer
+# spawn one cuda driver per computer
 # sends processed samples to usrp_server using sockets
 # requires python 3 (need mmap with buffer interface to move samples directly between shared memory and gpu)
 
