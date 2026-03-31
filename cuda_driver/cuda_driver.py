@@ -67,8 +67,6 @@ tx_sem_list = [ [] for iSwing in allSwings]
 shm_list = []
 sem_list = []
 
-# TODO: write decorator for acquring/releasing semaphores
-
 # python3 or greater is needed for direct transfers between shm and gpu memory
 if sys.hexversion < 0x030300F0:
     logging.error('this code requires python 3.3 or greater')
