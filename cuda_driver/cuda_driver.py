@@ -284,6 +284,7 @@ class cuda_add_channel_handler(cudamsg_handler):
                 self.gpu.channelNumbers[swing][chIdx] = channelNumber
             else:
                 self.logger.error("all channels active, can not add channel")
+                release_sem(rx_sem_list[swing])
                 return # TODO return error?
 
         self.gpu.sequences[swing][chIdx] = sequence
