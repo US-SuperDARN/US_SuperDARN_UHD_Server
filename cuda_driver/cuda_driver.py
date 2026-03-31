@@ -661,7 +661,7 @@ class ProcessingGPU(object):
             if self.sequences[swing][iChannel] != None:  # if channel is defined
                 for (iAntenna, ant) in enumerate(self.antenna_index_list):
                     # skip interferometer antennas
-                    if (ant % nAntennas_per_polarization > 15):
+                    if ant % nAntennas_per_polarization > 15:
                         continue
                     for iPulse in range(bb_signal[iChannel].shape[1]):
                         # bb_signal[channel][nantennas, nPulses, len(pulsesamps)]
@@ -1075,7 +1075,7 @@ class ProcessingGPU(object):
     # copy rf samples to shared memory for transmission by usrp driver
     def txsamples_host_to_shm(self, swing):
         for (iAntenna, ant_number) in enumerate(self.antenna_index_list):
-            if (ant_number % nAntennas_per_polarization) > 15:
+            if ant_number % nAntennas_per_polarization > 15:
                 self.logger.debug('Skipping copy tx samples to shm for interferometer antenna (swing {}, ant {})'.format(swing, ant_number))
                 continue
             tx_shm_list[swing][iAntenna].seek(0)
