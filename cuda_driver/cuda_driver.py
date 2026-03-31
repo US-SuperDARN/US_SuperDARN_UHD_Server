@@ -160,11 +160,12 @@ class cuda_generate_pulse_handler(cudamsg_handler):
 
         tbuffer = float(channel.tr_to_pulse_delay) / 1e6 # convert microseconds tbuffer in config file to seconds
 
-        trise = ctrlprm['trise'] / 1e9 # read in rise time in seconds (TODO: fix units..)
-        # TODO assert trise < tx_bb_samplingRate when I'm sure what is trise
+        trise = ctrlprm['trise'] / 1e9 # read in rise time, convert from ns to seconds
+
         assert tbuffer >= int(self.hardware_limits['min_tr_to_pulse']) / 1e6, 'time between TR gate and RF pulse too short for hardware'
         assert tpulse > int(self.hardware_limits['min_chip']) / 1e6, 'pulse length ({} micro s) is too short for hardware (min is {} micro s)'.format(tpulse*1e6, self.hardware_limits['min_chip'])
         assert tpulse < int(self.hardware_limits['max_tpulse']) / 1e6, 'pulse length is too long for hardware'
+        assert trise < 1/self.gpu.tx_bb_samplingRate, 'rise time ({} micro s) is too long for baseband sampling rate (max is {} micro s)'.format(trise*1e6, 1e6/self.gpu.tx_bb_samplingRate)
 
         if not (tx_center_freq >= int(self.hardware_limits['minimum_tfreq'])):
             self.logger.error('transmit center frequency ({}) too low for hardware'.format(tx_center_freq))
