@@ -528,6 +528,10 @@ class ProcessingGPU(object):
         self.nPulses   = int(maxpulses)
         self.nPulses_per_period = int(maxpulses)
 
+        self.old_nChannels = None
+        self.old_nAntennas = None
+        self.old_rx_if_nSamples = None
+
         # this will be initialized later when ratios are known ( function init_conversionRates_and_mixingFreq() )
         self.tx_upsamplingRate = None
         self.rx_rf2if_downsamplingRate = None
@@ -770,7 +774,12 @@ class ProcessingGPU(object):
         self.logger.debug("nSamples_rx: bb={}, if={}, rf={}".format(rx_bb_nSamples, rx_if_nSamples, self.rx_rf_nSamples))
 
         self.rx_rf_samples = cuda.managed_empty((self.nAntennas, self.rx_rf_nSamples*2), np.int16, mem_flags=cuda.mem_attach_flags.GLOBAL)
-        self.rx_if_samples = np.float32(np.zeros([self.nAntennas, self.nChannels, 2 * rx_if_nSamples]))
+        if (rx_if_nSamples != self.old_rx_if_nSamples) or (self.nAntennas != self.old_nAntennas) or (self.nChannels != self.old_nChannels):
+            # only re-initialize rx_if_samples if dimensions have changed
+            self.rx_if_samples = np.float32(np.zeros([self.nAntennas, self.nChannels, 2 * rx_if_nSamples]))
+            self.old_nChannels = self.nChannels
+            self.old_nAntennas = self.nAntennas
+            self.old_rx_if_nSamples = rx_if_nSamples
         self.rx_bb_samples = np.float32(np.zeros([self.nAntennas, self.nChannels, 2 * rx_bb_nSamples]))
 
         self.cu_rx_rf_samples = np.intp(self.rx_rf_samples.base.get_device_pointer())
