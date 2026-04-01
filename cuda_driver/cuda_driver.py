@@ -230,27 +230,25 @@ class cuda_generate_pulse_handler(cudamsg_handler):
 
         nPad = len(padding)
 
+        # apply phase shifting to pulse using phase_mask
+        # (assumes phase_mask of all pulses are identical)
+        pulsesamps[nPad:-nPad] *= np.exp(1j * np.pi * channel.phase_masks[0])
+        # TODO: support non-1us resolution phase masks
+
+        # apply filtering function
+        if shapefilter != None:
+            pulsesamps = shapefilter(pulsesamps, trise, self.gpu.tx_bb_samplingRate)
+
+        # apply gain control
+        pulsesamps *= channel.channelScalingFactor
+
         for iPulse in range(nPulses):
-            # apply phase shifting to pulse using phase_mask
-            psamp = np.copy(pulsesamps)
-            psamp[nPad:-nPad] *= np.exp(1j * np.pi * channel.phase_masks[iPulse % channel.npulses])
-            # TODO: support non-1us resolution phase masks
-
-            # apply filtering function
-            if shapefilter != None:
-                psamp = shapefilter(psamp, trise, self.gpu.tx_bb_samplingRate)
-
-            # apply gain control
-            psamp *= channel.channelScalingFactor
-
             # constant phase over complete integration period
             t = channel.pulse_offsets_vector[iPulse]
             offset_factor = np.exp(-1j*omega*t)
 
-            psamp *= offset_factor
-
-            # apply beamforming
-            bb_signal[:,iPulse,:] = psamp * beamforming_arr
+            # apply phase and beamforming
+            bb_signal[:,iPulse,:] = pulsesamps * offset_factor * beamforming_arr
 
         return bb_signal
 
