@@ -106,7 +106,6 @@ class integrationTimeManager():
 
 
    def estimate_calc_time(self):
-      int_time = self.RHM.commonChannelParameter['integration_period_duration']
       # TODO optimize by tracking times of last periods
       overhead_time = 0.30
 
