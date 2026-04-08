@@ -393,7 +393,12 @@ void kodiak_set_rxfe(
 
     rxfe_dio = (~rxfe_dio) & 0xFF; // invert all, since high means amp  and att off
 
-    DEBUG_PRINT("%s: DIO.cpp: received rf_settings: \n   amp1: %d\n   amp2: %d\n   att 0.5 dB: %d\n   att 1 dB  : %d\n   att 2 dB  : %d\n   att 4 dB  : %d\n   att 8 dB  : %d\n   att 16 dB : %d\n", get_log_time(), rf_settings.amp1, rf_settings.amp2, rf_settings.att_05_dB, rf_settings.att_1_dB, rf_settings.att_2_dB, rf_settings.att_4_dB, rf_settings.att_8_dB, rf_settings.att_16_dB );
+    DEBUG_PRINT("%s: DIO.cpp: received rf_settings: \n   amp1: %d\n   amp2: %d\n"
+                "   att 0.5 dB: %d\n   att 1 dB  : %d\n   att 2 dB  : %d\n"
+                "   att 4 dB  : %d\n   att 8 dB  : %d\n   att 16 dB : %d\n",
+                get_log_time(), rf_settings.amp1, rf_settings.amp2,
+                rf_settings.att_05_dB, rf_settings.att_1_dB, rf_settings.att_2_dB,
+                rf_settings.att_4_dB, rf_settings.att_8_dB, rf_settings.att_16_dB);
     DEBUG_PRINT("%s: DIO.cpp: sending rxfe_dio:  %d\n", get_log_time(), rxfe_dio);
 
     usrp->set_gpio_attr("RXA", "OUT", rxfe_dio, RXFE_MASK);
