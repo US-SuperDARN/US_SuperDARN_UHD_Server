@@ -572,7 +572,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     uhd::stream_args_t stream_args("sc16", "sc16");
 
     if (usrp->get_rx_num_channels() < nSides || usrp->get_tx_num_channels() < nSides) {
-       DEBUG_PRINT("%s: ERROR: Number of defined channels (%i) is smaller than avaialable channels:\n    usrp->get_rx_num_channels(): %lu \n    usrp->get_tx_num_channels(): %lu \n\n", get_log_time(), nSides, usrp->get_rx_num_channels(), usrp->get_tx_num_channels());
+       DEBUG_PRINT("%s: ERROR: Number of defined channels (%i) is smaller than avaialable channels:\n"
+                   "    usrp->get_rx_num_channels(): %lu \n    usrp->get_tx_num_channels(): %lu \n\n",
+                   get_log_time(), nSides, usrp->get_rx_num_channels(), usrp->get_tx_num_channels());
        return -1;
     }
 
