@@ -979,7 +979,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         }
 
                         usleep(usecs);
-                        uhd_threads.create_thread(boost::bind(send_timing_for_sequence, usrp, start_time, pulse_time_offsets, pulseLength, mimic_active, mimic_delay, nSides));
+                        uhd_threads.create_thread(boost::bind(send_timing_for_sequence, usrp, start_time, pulse_time_offsets, pulseLength, mimic_active, mimic_delay, nSides, nsequences));
 
                         usleep(usecs);
                         sock_send_uint8(driverconn, TRIGGER_PULSE);

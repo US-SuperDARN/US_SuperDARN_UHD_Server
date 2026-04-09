@@ -254,7 +254,8 @@ void send_timing_for_sequence(
     double pulseLength,
     bool mimic_active,
     float mimic_delay,
-    int nSides
+    int nSides,
+    int nSequences
 ) {
 
     char bank_name[4];
@@ -262,6 +263,8 @@ void send_timing_for_sequence(
     //int iSide;
     time_t current_time;
     struct tm *gmt;
+
+    size_t nPulsesPerSequence = pulse_times.size() / nSequences;
 
     float priority=1;
     bool realtime=true;
@@ -272,26 +275,50 @@ void send_timing_for_sequence(
     GPIOCommand c;
     std::priority_queue<GPIOCommand, std::vector<GPIOCommand>, CompareTime> cmdq;
 
-    // set SYNC to high
     c.gpiocmd  = "OUT";
-    c.mask     = SYNC_PINS;
-    c.value    = SYNC_PINS;
-    c.cmd_time = offset_time_spec(start_time, SYNC_OFFSET_START);
-    c.port     = bank_name;
-    cmdq.push(c);
 
-    // lower SYNC pin
-    c.value = 0;
-    c.cmd_time = offset_time_spec(start_time, SYNC_OFFSET_END);
-    c.port     = bank_name;
-    cmdq.push(c);
+    // one sync pulse at start of integration period
+    if (!SYNC_FOR_EACH_SEQUENCE) {
+        // set SYNC to high
+        c.mask     = SYNC_PINS;
+        c.value    = SYNC_PINS;
+        c.cmd_time = offset_time_spec(start_time, SYNC_OFFSET_START);
+        c.port     = bank_name;
+        cmdq.push(c);
 
-    //debug
-    fprintf(stderr, "DIO setting start of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_START).get_real_secs() );
-    fprintf(stderr, "DIO setting end   of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_END).get_real_secs() );
+        // lower SYNC pin
+        c.value = 0;
+        c.cmd_time = offset_time_spec(start_time, SYNC_OFFSET_END);
+        c.port     = bank_name;
+        cmdq.push(c);
+
+        //debug
+        fprintf(stderr, "DIO setting start of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_START).get_real_secs() );
+        fprintf(stderr, "DIO setting end   of SYNC to %2.11f\n", offset_time_spec(start_time, SYNC_OFFSET_END).get_real_secs() );
+    }
 
     // set TX and RX line for each pulse
     for (size_t iPulse = 0; iPulse < pulse_times.size(); iPulse++) {
+
+        // add sync pulse at start of each sequence
+        if (SYNC_FOR_EACH_SEQUENCE && (iPulse % nPulsesPerSequence == 0)) {
+            // set SYNC to high
+            c.mask     = SYNC_PINS;
+            c.value    = SYNC_PINS;
+            c.cmd_time = offset_time_spec(pulse_times[iPulse], SYNC_OFFSET_START);
+            c.port     = bank_name;
+            cmdq.push(c);
+
+            // lower SYNC pin
+            c.value    = 0;
+            c.cmd_time = offset_time_spec(pulse_times[iPulse], SYNC_OFFSET_END);
+            c.port     = bank_name;
+            cmdq.push(c);
+
+            // debug
+            // fprintf(stderr, "DIO SYNC at pulse %li  start time %2.11f\n", iPulse, offset_time_spec(pulse_times[iPulse], SYNC_OFFSET_START).get_real_secs());
+        }
+
         // set TX high, RX low
         c.mask     = TR_PINS;
         c.value    = TR_TX;
