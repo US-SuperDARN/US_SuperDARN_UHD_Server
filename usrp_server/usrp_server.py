@@ -315,26 +315,25 @@ class usrpSockManager():
 
    def fill_shm_with_zeros(self, antenna_list, swing, direction_list):
        side = 0
-       # direction_list = ['rx', 'tx']
-       nInts_shm = int(self.RHM.ini_shm_settings['rxshm_size']) / 2 # two bytes per int16
        nZeros_per_block = 10000   # write zeros in blocks
        zeros_block = np.zeros(nZeros_per_block, dtype=np.int16).tobytes()
-       nFullBlocks = int(nInts_shm / nZeros_per_block)
-       nInts_rem   = nInts_shm % nZeros_per_block
-       for antenna in antenna_list:
-          for direction in direction_list:
-             try:
-                name = 'shm_{}_ant_{}_side_{}_swing_{}'.format(direction, int(antenna), int(side), int(swing))
-                self.logger.debug("Filling SHM with zeros: {}".format(name))
-                memory = posix_ipc.SharedMemory(name)
-                mapfile = mmap.mmap(memory.fd, memory.size)
-                mapfile.seek(0)
-                for iBlock in range(nFullBlocks): # TODO speed up by writing more than one byte at a time?
-                   mapfile.write(zeros_block)
-                mapfile.write(zeros_block[0:int(2*nInts_rem)])
-                memory.close_fd()
-             except:
-                self.logger.debug("Failed filling SHM with zeros: {}".format(name))
+       for direction in direction_list:
+           nInts_shm   = int(self.RHM.ini_shm_settings[direction+'shm_size']) / 2 # two bytes per int16
+           nFullBlocks = int(nInts_shm / nZeros_per_block)
+           nInts_rem   = nInts_shm % nZeros_per_block
+           for antenna in antenna_list:
+               try:
+                   name = 'shm_{}_ant_{}_side_{}_swing_{}'.format(direction, int(antenna), int(side), int(swing))
+                   self.logger.debug("Filling SHM with zeros: {}".format(name))
+                   memory = posix_ipc.SharedMemory(name)
+                   mapfile = mmap.mmap(memory.fd, memory.size)
+                   mapfile.seek(0)
+                   for iBlock in range(nFullBlocks): # TODO speed up by writing more than one byte at a time?
+                       mapfile.write(zeros_block)
+                   mapfile.write(zeros_block[0:int(2*nInts_rem)])
+                   memory.close_fd()
+               except:
+                   self.logger.debug("Failed filling SHM with zeros: {}".format(name))
 
 
    def watchdog(self, all_usrps_report_failure):
