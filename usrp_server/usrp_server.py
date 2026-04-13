@@ -3333,21 +3333,15 @@ class RadarHardwareManager:
                 abs_max_value = max(abs(real_mat).max(), abs(imag_mat).max())
                 RHM.logger.debug("Main array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
 
+                # check for clipping
                 real_mx = np.max(np.abs(real_mat))
                 imag_mx = np.max(np.abs(imag_mat))
                 if (real_mx > maxInt16value) or (imag_mx > maxInt16value):
-                   RHM.logger.warning("Overflow error while casting main array beamformed rx samples to complex int16s.")
-                   OverflowError("calc_beamforming: overflow error in casting main array data to complex int")
+                   #RHM.logger.warning("Overflow error while casting main array beamformed rx samples to complex int16s.")
+                   #OverflowError("calc_beamforming: overflow error in casting main array data to complex int")
                    scale_value = maxInt16value/np.max([real_mx,imag_mx])
                    real_mat = scale_value*real_mat
                    imag_mat = scale_value*imag_mat
-
-                # # check for clipping
-                # if (real_mat > maxInt16value).any() or (real_mat < minInt16value).any() or (imag_mat > maxInt16value).any() or (imag_mat < minInt16value).any():
-                #    RHM.logger.warning("Overflow error while casting main array beamformed rx samples to complex int16s.")
-                #    OverflowError("calc_beamforming: overflow error in casting data to complex int")
-                #    real_mat = np.clip(real_mat, minInt16value, maxInt16value)
-                #    imag_mat = np.clip(imag_mat, minInt16value, maxInt16value)
 
                 complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.uint16(imag_mat)
                 beamformed_main_samples[iChannel] = complexInt32_pack_mat.tolist()[0]
@@ -3380,21 +3374,15 @@ class RadarHardwareManager:
                 abs_max_value = max(abs(real_mat).max(), abs(imag_mat).max())
                 RHM.logger.debug("Back array abs max_value is {:.2f} (int16_max= {}, max_value / int16_max = {})".format(abs_max_value, maxInt16value, abs_max_value / maxInt16value))
 
+                # check for clipping
                 real_mx = np.max(np.abs(real_mat))
                 imag_mx = np.max(np.abs(imag_mat))
                 if (real_mx > maxInt16value) or (imag_mx > maxInt16value):
-                   RHM.logger.warning("Overflow error while casting back array beamformed rx samples to complex int16s.")
-                   OverflowError("calc_beamforming: overflow error in casting back array data to complex int")
+                   #RHM.logger.warning("Overflow error while casting back array beamformed rx samples to complex int16s.")
+                   #OverflowError("calc_beamforming: overflow error in casting back array data to complex int")
                    scale_value = maxInt16value/np.max([real_mx,imag_mx])
                    real_mat = scale_value*real_mat
                    imag_mat = scale_value*imag_mat
-
-                # # check for clipping
-                # if (real_mat > maxInt16value).any() or (real_mat < minInt16value).any() or (imag_mat > maxInt16value).any() or (imag_mat < minInt16value).any():
-                #    RHM.logger.warning("Overflow error while casting back array beamformed rx samples to complex int16s.")
-                #    OverflowError("calc_beamforming: overflow error in casting data to complex int")
-                #    real_mat = np.clip(real_mat, minInt16value, maxInt16value)
-                #    imag_mat = np.clip(imag_mat, minInt16value, maxInt16value)
 
                 complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.int16(imag_mat)
                 beamformed_back_samples[iChannel] = complexInt32_pack_mat.tolist()[0]
