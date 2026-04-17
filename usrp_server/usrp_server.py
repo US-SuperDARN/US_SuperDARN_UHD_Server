@@ -3343,7 +3343,7 @@ class RadarHardwareManager:
                    real_mat = scale_value*real_mat
                    imag_mat = scale_value*imag_mat
 
-                complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.uint16(imag_mat)
+                complexInt32_pack_mat = np.uint32(real_mat) << np.uint32(16) | np.uint32(imag_mat) & 0xffff
                 beamformed_main_samples[iChannel] = complexInt32_pack_mat.tolist()[0]
 
                 if debugPlot:
@@ -3384,7 +3384,7 @@ class RadarHardwareManager:
                    real_mat = scale_value*real_mat
                    imag_mat = scale_value*imag_mat
 
-                complexInt32_pack_mat = (np.uint32(np.int16(real_mat)) << 16) + np.int16(imag_mat)
+                complexInt32_pack_mat = np.uint32(real_mat) << np.uint32(16) | np.uint32(imag_mat) & 0xffff
                 beamformed_back_samples[iChannel] = complexInt32_pack_mat.tolist()[0]
 
                 if debugPlot:
