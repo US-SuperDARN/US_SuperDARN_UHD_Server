@@ -467,8 +467,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     boost::property_tree::ptree pt_array;
     DEBUG_PRINT("%s: USRP_DRIVER starting to read array_config.ini\n", get_log_time());
     boost::property_tree::ini_parser::read_ini("../array_config.ini", pt_array);
-    mimic_active = std::stof(pt_array.get<std::string>("mimic.mimic_active")) != 0;
-    mimic_delay  = std::stof(pt_array.get<std::string>("mimic.mimic_delay"));
+    mimic_active = std::stof(pt_array.get<std::string>("mimic.mimic_active","0")) != 0;
+    mimic_delay  = std::stof(pt_array.get<std::string>("mimic.mimic_delay","0"));
     fprintf(stderr, "read from ini: mimic_active=%d, mimic_delay=%f\n", mimic_active, mimic_delay);
 
     init_all_dirs();
