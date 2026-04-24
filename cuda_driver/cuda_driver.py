@@ -114,8 +114,6 @@ class cuda_generate_pulse_handler(cudamsg_handler):
             return
 
         # create empty baseband transmit waveform vector
-        nPulses   = self.gpu.nPulses
-        nAntennas = self.gpu.nAntennas
         nChannels = self.gpu.nChannels
 
         # generate base band signals incl. beamforming, phase_masks and pulse filtering
@@ -263,8 +261,6 @@ class cuda_add_channel_handler(cudamsg_handler):
         cmd.receive(self.sock)
         swing    = cmd.payload['swing']
         sequence = cmd.sequence
-      #  self.gpu.nPulses = sequence.npulses
-        self.gpu.nPulses_per_sequence = sequence.npulses
         self.gpu.nPulses = len(sequence.pulse_offsets_vector)
         self.logger.debug('ADD_CHANNEL: received sequence: swing {}, tbeam={}, rbeam={}, tfreq={}, rfreq={}'.format(swing, sequence.ctrlprm['tbeam'], sequence.ctrlprm['rbeam'], sequence.ctrlprm['tfreq'], sequence.ctrlprm['rfreq']))
 
@@ -524,7 +520,6 @@ class ProcessingGPU(object):
         self.nChannels = int(maxchannels)
         self.nAntennas = len(antennas)
         self.nPulses   = int(maxpulses)
-        self.nPulses_per_period = int(maxpulses)
 
         self.old_nChannels = None
         self.old_nAntennas = None
