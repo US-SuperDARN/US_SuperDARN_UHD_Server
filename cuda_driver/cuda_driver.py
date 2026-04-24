@@ -510,16 +510,17 @@ def sigint_handler(signum, frame):
 # bb_signal is now [NCHANNELS, NANTS, NPULSES, NSAMPLES]
 class ProcessingGPU(object):
 
-    def __init__(self, antennas, dsp_info, maxchannels, maxpulses):
+    def __init__(self, antennas, dsp_info, maxchannels):
 
         self.logger = logging.getLogger("cuda_gpu")
         self.logger.info('initializing cuda gpu')
         self.antenna_index_list = np.int16(antennas)
         self.dsp_info = dsp_info
+
         # maximum supported channels
         self.nChannels = int(maxchannels)
         self.nAntennas = len(antennas)
-        self.nPulses   = int(maxpulses)
+        self.nPulses   = None
 
         self.old_nChannels = None
         self.old_nAntennas = None
