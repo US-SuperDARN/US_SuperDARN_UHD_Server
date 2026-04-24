@@ -25,20 +25,6 @@ static int config_ini_handler(void* user, const char* section, const char* name,
         } else if (strcmp(name, "nradars") == 0) {
             pconfig->array_info.nradars = atoi(value);
         }
-    } else if (strcmp(section, "hardware_limits") == 0) {
-        if (strcmp(name, "max_tpulse") == 0) {
-            pconfig->hardware_limits.max_tpulse = atof(value);
-        } else if (strcmp(name, "min_chip") == 0) {
-            pconfig->hardware_limits.min_chip = atof(value);
-        } else if (strcmp(name, "max_dutycycle") == 0) {
-            pconfig->hardware_limits.max_dutycycle = atof(value);
-        } else if (strcmp(name, "minimum_tfreq") == 0) {
-            pconfig->hardware_limits.minimum_tfreq = atof(value);
-        } else if (strcmp(name, "maximum_tfreq") == 0) {
-            pconfig->hardware_limits.maximum_tfreq = atof(value);
-        } else if (strcmp(name, "min_tr_to_pulse") == 0) {
-            pconfig->hardware_limits.min_tr_to_pulse = atof(value);
-        }
     } else if (strcmp(section, "gain_control") == 0) {
         if (strcmp(name, "mute_antenna_idx") == 0) {
             char *value_copy = strdup(value);
@@ -57,16 +43,8 @@ static int config_ini_handler(void* user, const char* section, const char* name,
             free(value_copy);
         }
     } else if (strcmp(section, "clr_settings") == 0) {
-        if (strcmp(name, "min_clrfreq_delay") == 0) {
-            pconfig->clr_settings.min_clrfreq_delay = atof(value);
-        } else if (strcmp(name, "clrfreq_res") == 0) {
-            pconfig->clr_settings.clrfreq_res = atof(value);
-        } else if (strcmp(name, "avg_ratio") == 0) {
+        if (strcmp(name, "avg_ratio") == 0) {
             pconfig->clr_settings.avg_ratio = atoi(value);
-        } else if (strcmp(name, "auto_max_age") == 0) {
-            pconfig->clr_settings.auto_max_age = atof(value);
-        } else if (strcmp(name, "auto_pause_time") == 0) {
-            pconfig->clr_settings.auto_pause_time = atof(value);
         }
     }
 

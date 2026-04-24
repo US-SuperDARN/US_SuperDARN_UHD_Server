@@ -95,30 +95,16 @@ typedef struct {
 } ArrayInfo;
 
 typedef struct {
-    double max_tpulse;
-    double min_chip;
-    double max_dutycycle;
-    double minimum_tfreq;
-    double maximum_tfreq;
-    double min_tr_to_pulse;
-} HardwareLimits;
-
-typedef struct {
     int mute_antenna_ids[STATIC_ANTENNA_NUM];
     int num_mute_antennas;
 } GainControl;
 
 typedef struct {
-    double min_clrfreq_delay;
-    double clrfreq_res;
-    int    avg_ratio;
-    double auto_max_age;
-    double auto_pause_time;
+    int avg_ratio;
 } ClrSettings;
 
 typedef struct {
     ArrayInfo array_info;
-    HardwareLimits hardware_limits;
     GainControl gain_control;
     ClrSettings clr_settings;
 } Config;
