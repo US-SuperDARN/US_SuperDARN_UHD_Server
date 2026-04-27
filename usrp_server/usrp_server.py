@@ -2485,7 +2485,6 @@ class RadarHardwareManager:
         nSequences_per_period_max = int((self.commonChannelParameter['integration_period_duration']
                                          - self.integration_time_manager.get_usrp_delay_time()
                                          - self.integration_time_manager.estimate_calc_time() ) / pulse_sequence_period)
-        ### sampling_duration = pulse_sequence_period * nSequences_per_period   # just record full number of sequences
 
         # calculate the number of RF transmit and receive samples
         downsamplingRates = self.commonChannelParameter["downsample_rates"]
@@ -4402,7 +4401,7 @@ class RadarChannelHandler:
         self.parent_RadarHardwareManager.usrp_timeout_semaphore.release()
 
         if self.scanManager.camping:
-            # if camping==True control progam uses SetActive for every new beam but no paramater should change
+            # if camping==True control progam uses SetActive for every new beam but no parameter should change
             # in this case skip reset of scanManager and swingManager to be able to use two swings parallel
             assert(fixFreq == self.scanManager.fixFreq)
             assert(scan_beam_list == self.scanManager.scan_beam_list)
