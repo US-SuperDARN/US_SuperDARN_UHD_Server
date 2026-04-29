@@ -2688,8 +2688,6 @@ class RadarHardwareManager:
            cmd.transmit()
            time.sleep(0.001)
 
-           # TODO: tag time using a better source? this will have a few hundred microseconds of uncertainty
-           # maybe measure offset between USRP time and computer clock time somewhere, then calculate from there
            usrp_time = cmd.recv_time(self.usrpManager.socks[0][0])
            cmd.client_return()
 
@@ -2718,19 +2716,8 @@ class RadarHardwareManager:
               auto_clear_freq_meta_data['record_time'] = usrp_integration_period_start_clock_time + (nSamples_rx_requested_of_last_trigger / self.usrp_rf_rx_rate)
 
            if transmittingChannelAvailable[jrad]:
-              # calculate sequence times for control program
-              n_sequence_times = max(self.nSequences_per_period,1) # at least one time to transmit to control program
-              sequence_start_time_secs  = np.zeros(n_sequence_times, dtype=np.uint64)
-              sequence_start_time_usecs = np.zeros(n_sequence_times, dtype=np.uint32)
-              for iSequence in range(n_sequence_times):
-                 pulse_start_time = usrp_integration_period_start_clock_time + iSequence * self.nsamples_per_sequence / self.usrp_rf_rx_rate
-                 sequence_start_time_secs[iSequence]  = int(pulse_start_time)
-                 sequence_start_time_usecs[iSequence] = int(( pulse_start_time - int(pulse_start_time) ) *1e6)
-
               # save data for returning results to control program
               resultDict = {}
-              resultDict['sequence_start_time_secs']      = sequence_start_time_secs
-              resultDict['sequence_start_time_usecs']     = sequence_start_time_usecs
               resultDict['number_of_samples']             = self.commonChannelParameter['number_of_samples']
               resultDict['nSequences_per_period']         = self.nSequences_per_period
               resultDict['pulse_sequence_offsets_vector'] = self.commonChannelParameter['pulse_sequence_offsets_vector']
