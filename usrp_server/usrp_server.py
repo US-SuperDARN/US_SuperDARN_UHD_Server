@@ -4058,8 +4058,7 @@ class RadarChannelHandler:
         if all([self.pulse_lens[0]==self.pulse_lens[i] for i in range(1,len(self.pulse_lens))]):
             pulseLength = self.pulse_lens[0]
         else:
-            self.logger.error("Pulse lengths in one sequence have to be equal!") # TODO raise error?
-            pdb.set_trace()
+            self.logger.error("Pulse lengths in one sequence have to be equal!")
             return False
 
         if hardwareManager.nRegisteredChannels == 1 and (len(np.concatenate(hardwareManager.channels).tolist()) == 0 or np.concatenate(hardwareManager.channels).tolist()[0] == self):
@@ -4137,7 +4136,6 @@ class RadarChannelHandler:
             idxOffsetVec = commonParList_seq.index('pulse_sequence_offsets_vector')  # convert vector of bool to scalar
             parCompatibleList_seq[idxOffsetVec] = parCompatibleList_seq[idxOffsetVec].all()
 
-         #   pdb.set_trace()
             if (not all(parCompatibleList_seq)) or (not all(parCompatibleList_ctrl)) or (pulseLength != hardwareManager.commonChannelParameter['pulseLength']):
                 self.logger.error('Unable to add new channel. Parameters not compatible with active channels.')
                 for iPar, isCompatible in enumerate(parCompatibleList_seq):
