@@ -99,8 +99,7 @@ def waitFor(nSeconds):
    for i in range(nSeconds):
       print('.', end="", flush=True)
       time.sleep(1)
-   else:
-      print()
+   print()
 
 
 ######################
