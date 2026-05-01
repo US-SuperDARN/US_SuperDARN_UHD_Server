@@ -3265,7 +3265,7 @@ class RadarHardwareManager:
                             RHM.logger.debug("not scaling antenna {} because of small variance: {} (< threshold)".format(RHM.antenna_idx_list_back[jrad][iAntenna], var_list[iAntenna+nAntennas_main]))
                             scale_factor = 1
                     else:
-                        RHM.logger.debug("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_back[jrad][iAntenna], var_list[iAntenna+nAntennas_main]))
+                        RHM.logger.debug("muting antenna {} (defined in array_config.ini)".format(RHM.antenna_idx_list_back[jrad][iAntenna]))
 
 #                print("list var: {}".format(np.sqrt(var_list)))
             RHM.logger.debug("end normalizing rx samples")
