@@ -2693,6 +2693,7 @@ class RadarHardwareManager:
            self.logger.debug("end USRP_GET_TIME")
 
            trigger_time = usrp_time + self.integration_time_manager.get_usrp_delay_time()
+           trigger_time = np.ceil(trigger_time * 10000) / 10000.0 - self.commonChannelParameter['pulse_sequence_offsets_vector'][0]
 
         usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
 
