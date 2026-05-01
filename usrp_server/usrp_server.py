@@ -43,7 +43,6 @@ radar_active = np.zeros(2, dtype=bool)
 RMSG_PORT = 45000
 USRP_SERVER_HOST = 'localhost'
 
-MAX_CHANNELS = 4
 USRP_BANDWIDTH_RESTRICTION = 300000 # in Hz. No channels allowed on both edges of the USRP bandwidth to avoid aliasing
 
 RMSG_SUCCESS = 0
@@ -1969,7 +1968,7 @@ class RadarHardwareManager:
 
         # end of radar_main_control_loop()
 
-        self.client_sock.listen(MAX_CHANNELS)
+        self.client_sock.listen(self.max_channels)
         client_threads = []
         usrp_server_logger = logging.getLogger('usrp_server')
 
@@ -2062,6 +2061,8 @@ class RadarHardwareManager:
         self.avg_ratio         =   int(self.ini_clr_settings['avg_ratio'])
         self.auto_max_age      = float(self.ini_clr_settings['auto_max_age'])
         self.auto_pause_time   = float(self.ini_clr_settings['auto_pause_time'])
+
+        self.max_channels = int(self.ini_cuda_settings['MaxChannels']) * self.N_RADARs
 
         # READ usrp_config.ini
         usrp_config = configparser.ConfigParser()
