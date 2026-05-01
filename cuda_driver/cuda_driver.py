@@ -1172,7 +1172,6 @@ def main():
     # parse gpu config file
     cudadriverconfig = configparser.ConfigParser()
     cudadriverconfig.read('../driver_config.ini')
-    log_settings = cudadriverconfig['log_settings']
     shm_settings = cudadriverconfig['shm_settings']
     cuda_settings = cudadriverconfig['cuda_settings']
     network_settings = cudadriverconfig['network_settings']

@@ -2052,7 +2052,6 @@ class RadarHardwareManager:
         # READ driver_config.ini
         driver_config = configparser.ConfigParser()
         driver_config.read('../driver_config.ini')
-        self.ini_log_settings     = driver_config['log_settings']
         self.ini_clr_settings     = driver_config['clr_settings']
         self.ini_shm_settings     = driver_config['shm_settings']
         self.ini_cuda_settings    = driver_config['cuda_settings']
