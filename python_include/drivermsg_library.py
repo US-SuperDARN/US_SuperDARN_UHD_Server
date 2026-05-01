@@ -2,11 +2,8 @@
 import numpy as np
 import uuid
 import collections
-import pdb
 import logging
-import time
 from socket_utils import *
-from termcolor import cprint
 
 checkSwing = True # check if transmitted swing is declared
 
@@ -77,7 +74,6 @@ class driver_command(object):
 
 
     def queue(self, data, dtype, name = '', nitems = 1):
-        # pdb.set_trace()
         self.dataqueue.append(self.socket_data(data, dtype, name, nitems = nitems))
 
 
@@ -103,12 +99,10 @@ class driver_command(object):
                    transmit_dtype(clientsock, np.uint8(self.command))
 
                for item in self.dataqueue:
-                  # pdb.set_trace()
                    if checkSwing and item.name == "swing" and item.data == np.uint32(-1):
                       raise ValueError("swing has been not defined!")
                    item.transmit(clientsock)
 
-                  # cprint('transmitting {}: {}'.format(item.name, item.data), 'yellow')
             except:
 #               self.logger.error("Error transmitting command {} to cient {}:{} (from {};{})".format(self.command, clientsock.getpeername()[0], clientsock.getpeername()[1], clientsock.getsockname()[0], clientsock.getsockname()[1]))
 #               self.logger.error("Error transmitting command {}  (from {};{})".format(self.command, clientsock.getsockname()[0], clientsock.getsockname()[1]))
@@ -129,7 +123,6 @@ class driver_command(object):
             except Exception as error:
                self.logger.error("Error receiving client_return for command '{}'({}) from client {}:{}".format(chr(self.command), self.command, client.getsockname()[0], client.getsockname()[1]))
                self.logger.exception(error)
-              # pdb.set_trace()
                returns.append(CONNECTION_ERROR)
 
         return returns
@@ -261,7 +254,6 @@ class cuda_add_channel_command(driver_command):
         if self.sequence == None:
             print('cannot send undefined sequence to channel')
             self.logger.error("Cannot send undefined sequence to channel (CUDA_ADD_CHANNEL)")
-            pdb.set_trace()
         super().transmit()
         for sock in self.clients:
             pickle_send(sock, self.sequence)

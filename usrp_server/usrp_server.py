@@ -16,7 +16,6 @@ import os
 import numpy as np
 import threading
 import logging
-import pdb
 import socket
 import time
 import datetime
@@ -2755,7 +2754,6 @@ class RadarHardwareManager:
            returns = self.usrpManager.eval_client_return(cmd, jrad_list[ind])
            if TRIGGER_BUSY in returns:
               self.logger.error('could not trigger radar {}, USRP driver is busy'.format(jrad_list[ind]))
-              # pdb.set_trace()
            self.logger.debug('end USRP_TRIGGER radar {}'.format(jrad_list[ind]))
 
         # Block to process last swing
@@ -3591,7 +3589,6 @@ class RadarChannelHandler:
 
     def DefaultHandler(self, rmsg):
         self.logger.error("Unexpected command: {}".format(chr(rmsg.payload['type'])))
-        pdb.set_trace()
         return RMSG_FAILURE
 
 
@@ -4177,7 +4174,6 @@ class RadarChannelHandler:
         self.logger.debug('radar {} ch {}: sending dprm struct'.format(self.rnum, self.cnum))
 
         if self.rnum < 0 or self.cnum < 0:
-            pdb.set_trace()
             return RMSG_FAILURE
 
         # TODO investigate possible race conditions

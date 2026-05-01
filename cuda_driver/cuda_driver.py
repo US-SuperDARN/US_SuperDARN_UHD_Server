@@ -6,19 +6,15 @@
 # requires python 3 (need mmap with buffer interface to move samples directly between shared memory and gpu)
 
 import socket
-import pdb
 import numpy as np
-import scipy.special
 import mmap
 import os
 import sys
-import argparse
-import signal
 import functools
 import configparser
 import logging
 
-import ctypes # only for debug
+#import ctypes # only for debug
 
 import posix_ipc
 import pycuda.driver as cuda
@@ -396,7 +392,6 @@ class cuda_process_handler(cudamsg_handler):
 
         swing = cmd.payload['swing']
         self.logger.debug('enter cuda_process_handler (swing {}) on {}'.format(swing,os.uname().nodename))
-#        pdb.set_trace()
 
 #        acquire_sem(rx_sem_list[swing])
         self.gpu.rx_init(swing, cmd.payload['nSamples'])
@@ -662,13 +657,12 @@ class ProcessingGPU(object):
                         # create interleaved real/complex bb vector
                         bb_vec_interleaved = np.zeros(tx_bb_nSamples_per_pulse * 2)
                         try:
-                          #  self.logger.debug('synth_tx_rf_pulses: copying baseband signals ch:{}, ant:{}, pulse:{}'.format(iChannel, iAntenna, iPulse))
+                            # self.logger.debug('synth_tx_rf_pulses: copying baseband signals ch:{}, ant:{}, pulse:{}'.format(iChannel, iAntenna, iPulse))
                             bb_vec_interleaved[0::2] = np.real(bb_signal[iChannel][iAntenna][iPulse][:])
                             bb_vec_interleaved[1::2] = np.imag(bb_signal[iChannel][iAntenna][iPulse][:])
                             self.tx_bb_indata[iAntenna][iChannel][iPulse][:] = bb_vec_interleaved[:]
                         except:
                             self.logger.error('error while merging baseband tx vectors..')
-                            pdb.set_trace()
 
         self._set_tx_mixerfreq(swing)
         self._set_tx_phasedelay(swing)
@@ -961,7 +955,6 @@ class ProcessingGPU(object):
             plt.plot(np.imag(rf_down))
             plt.title("fc={}, f={}".format(fc,f))
             cuda.memcpy_dtoh(self.rx_if_samples, self.cu_rx_if_samples)
-            import pickle
             with open('debug_export.pkl', 'wb') as fName:
                 pickle.dump([rf_data, time_range, fc, self.rx_if_samples, self.rx_rf_samples ], fName, pickle.HIGHEST_PROTOCOL)
             plt.show()

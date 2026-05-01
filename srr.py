@@ -52,11 +52,9 @@
 import sys
 import os
 import subprocess
-import re
 import socket
 import numpy as np
 import configparser
-import subprocess
 import time
 import errno
 import signal
