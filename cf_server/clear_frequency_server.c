@@ -295,11 +295,6 @@ void read_int(int *result, void *shm_ptr, int elem_num) {
     }
 }
 
-void read_int_single(int result, int *shm_ptr) {
-    result = *shm_ptr;
-    if (VERBOSE) log_trace("    read_int: %d", result);
-}
-
 void read_double(double *result, void *shm_ptr, int elem_num) {
     double *ref_ptr = (double *) shm_ptr;
 
@@ -349,7 +344,7 @@ void read_single_int(int *result, void *shm_ptr) {
 
 void read_single_double(double *result, void *shm_ptr) {
     *result = *(double *) shm_ptr;
-    if (VERBOSE) log_trace("   read_s_int: %f", *result);
+    if (VERBOSE) log_trace("   read_s_double: %f", *result);
 }
 
 void write_int(int *result, int *shm_ptr, int n_elements, int shm_len) {
