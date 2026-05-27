@@ -84,7 +84,7 @@ class integrationTimeManager():
       self.RHM = RHM
       self.overhead_time = 0
       self.last_start = None # of trigger next function
-      self.last_time  = [None for idx in range(16)]
+      self.last_time  = [None for idx in range(5)]
       self.last_idx   = 0
 
 
