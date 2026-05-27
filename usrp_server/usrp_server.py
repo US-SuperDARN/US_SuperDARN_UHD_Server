@@ -82,7 +82,10 @@ class integrationTimeManager():
    """ Estimates the time the integration period has to be reduced to be able to setup USRP copy samples etc"""
    def __init__(self, RHM):
       self.RHM = RHM
+      self.overhead_time = 0
       self.last_start = None # of trigger next function
+      self.last_time  = [None for idx in range(16)]
+      self.last_idx   = 0
 
 
    def started_trigger_next(self):
@@ -90,6 +93,8 @@ class integrationTimeManager():
       if self.last_start != None:
          nSeconds = (now - self.last_start).total_seconds()
          self.RHM.logger.info("Time with overhead for last integration period: {} s".format(nSeconds))
+         self.last_time[self.last_idx] = nSeconds
+         self.last_idx = (self.last_idx + 1) % len(self.last_time)
       self.last_start = now
 
 
@@ -103,14 +108,24 @@ class integrationTimeManager():
       return delay_time
 
 
-   def estimate_calc_time(self):
-      # TODO optimize by tracking times of last periods
-      overhead_time = 0.30
+   def estimate_overhead_time(self):
+      if not None in self.last_time:
+         int_time = self.RHM.commonChannelParameter['integration_period_duration']
+         med_time = np.median(self.last_time)
+         time_diff = int_time - np.median(self.last_time)
 
-      if int(self.RHM.usrp_rf_rx_rate / 1e6) == 10:
-         overhead_time += 0.20
+         if time_diff < 0:
+            self.overhead_time += 0.05*abs(time_diff)
+         elif (med_time < 0.95*int_time) and (self.last_idx % len(self.last_time) == 0):
+            self.overhead_time -= 0.25*time_diff
 
-      return overhead_time
+      else:
+         self.overhead_time = self.get_usrp_delay_time() + 0.30
+
+         if int(self.RHM.usrp_rf_rx_rate / 1e6) == 10:
+            self.overhead_time += 0.20
+
+      return self.overhead_time
 
 
 class statusUpdater():
@@ -2473,15 +2488,14 @@ class RadarHardwareManager:
         self.logger.debug("self.commonChannelParameter['integration_period_duration']: {}".format(self.commonChannelParameter['integration_period_duration']))
 
         # to find out how much time is available in an integration period for pulse sequences, subtract out startup delay
-       # transmitting_time_left = self.starttime_period + self.commonChannelParameter['integration_period_duration'] - time.time() - self.integration_time_manager.get_usrp_delay_time() - self.integration_time_manager.estimate_calc_time()
-
         time_now = time.time()
         nSec_to_end_of_period = self.commonChannelParameter['integration_period_duration'] - time_now + self.starttime_period
         # reduce time if there is a scan boundary
         for ch in np.concatenate(self.channels).tolist()+newChannels:
             nSec_to_end_of_period = min(nSec_to_end_of_period, ch.scanManager.get_nSec_to_scan_boundary(time_now))
 
-        transmitting_time_left = nSec_to_end_of_period - self.integration_time_manager.estimate_calc_time() - self.integration_time_manager.get_usrp_delay_time()
+        overhead_time = self.integration_time_manager.estimate_overhead_time()
+        transmitting_time_left = nSec_to_end_of_period - overhead_time
         self.logger.debug("transmitting time left: {}".format(transmitting_time_left))
 
         if transmitting_time_left <= 0:
@@ -2491,8 +2505,7 @@ class RadarHardwareManager:
         # calculate the number of pulse sequences that fit in the available time within an integration period
         nSequences_per_period = int(transmitting_time_left / pulse_sequence_period)
         nSequences_per_period_max = int((self.commonChannelParameter['integration_period_duration']
-                                         - self.integration_time_manager.get_usrp_delay_time()
-                                         - self.integration_time_manager.estimate_calc_time() ) / pulse_sequence_period)
+                                         - overhead_time ) / pulse_sequence_period)
 
         # calculate the number of RF transmit and receive samples
         downsamplingRates = self.commonChannelParameter["downsample_rates"]
