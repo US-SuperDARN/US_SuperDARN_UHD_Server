@@ -3,11 +3,8 @@ OS:=$(shell uname -s)
 CCpp=g++
 CFLAGS=-c -Wall -pthread -std=c++0x -O3
 LFLAGS=-L"${HOME}/repos/uhd/host/build/lib"
-common_libs=-lm -lrt -luhd -lfftw3
-linux_libs=-lboost_thread -lboost_system -pthread -l argtable2 -lboost_date_time -lboost_chrono
-INCLUDES=-I"${HOME}/repos/uhd/host/include" \
-	 -I"${HOME}/repos/uhd/host/include/uhd/types" \
-	 -I"${HOME}/repos/uhd/host/include/uhd/usrp"
+common_libs=-lm -lrt -luhd
+linux_libs=-lboost_thread -lboost_system -pthread -l argtable2 -lboost_chrono
 
 CPP_SOURCES=usrp_driver.cpp dio.cpp tx_worker.cpp rx_worker.cpp usrp_utils.cpp
 
@@ -20,10 +17,10 @@ all: $(EXECUTABLE)
 build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(CPP_OBJECTS)
-	$(CCpp) -o $@ $(CUDA_OBJECT0) $(CUDA_OBJECT1) $(CPP_OBJECTS) $(LFLAGS) $(common_libs) $(linux_libs) ${INCLUDES}
+	$(CCpp) -o $@ $(CPP_OBJECTS) $(LFLAGS) $(common_libs) $(linux_libs)
 
 .cpp.o:
-	$(CCpp) $(CFLAGS) $< -o $@ $(LFLAGS) $(INCLUDES)
+	$(CCpp) $(CFLAGS) $< -o $@ $(LFLAGS)
 
 clean:
 	rm -rf *.o *.pyc $(EXECUTABLE)

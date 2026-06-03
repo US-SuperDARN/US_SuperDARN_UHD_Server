@@ -59,12 +59,7 @@
 //Added by Alex for usrp
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/utils/thread.hpp>
-#include <uhd/utils/safe_main.hpp>
-#include <uhd/utils/static.hpp>
-#include <uhd/exception.hpp>
 #include <boost/thread.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/gregorian/gregorian.hpp>
 #include <thread>
 #include <math.h>
 

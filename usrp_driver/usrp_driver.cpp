@@ -28,16 +28,12 @@
 #include <sys/stat.h>
 
 #include <argtable2.h>
-#include <uhd/types/tune_request.hpp>
 #include <uhd/utils/thread.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/usrp_clock/multi_usrp_clock.hpp>
-#include <uhd/transport/udp_simple.hpp>
-#include <uhd/exception.hpp>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/format.hpp>
@@ -120,7 +116,6 @@ enum driver_states {
 };
 
 
-namespace po = boost::program_options;
 int32_t driversock = 0;
 int32_t driverconn = 0;
 int32_t verbose = 1;
