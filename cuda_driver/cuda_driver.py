@@ -239,7 +239,7 @@ class cuda_generate_pulse_handler(cudamsg_handler):
         for iPulse in range(nPulses):
             # constant phase over complete integration period
             t = channel.pulse_offsets_vector[iPulse]
-            offset_factor = np.exp(-1j*omega*t)
+            offset_factor = np.exp(1j*omega*t)
 
             # apply phase and beamforming
             bb_signal[:,iPulse,:] = pulsesamps * offset_factor * beamforming_arr
