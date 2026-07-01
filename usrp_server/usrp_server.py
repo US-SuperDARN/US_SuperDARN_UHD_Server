@@ -2542,10 +2542,10 @@ class RadarHardwareManager:
 
            nSamples_per_sequence_if = (int(downsamplingRates[1])
                                        * ((nSamples_per_sequence*nSequences_per_period) - 1 )
-                                       + int(ntaps_rfif))
+                                       + int(ntaps_ifbb))
            num_requested_rx_samples = (int(downsamplingRates[0])
                                        * (nSamples_per_sequence_if                      - 1 )
-                                       + int(ntaps_ifbb))
+                                       + int(ntaps_rfif))
 
         self.logger.debug("RFIFRATE: {}, IFBBRATE: {}, nSamples_per_sequence_if: {}, nSamples_per_sequence: {}, nSequences_per_period: {}, NTapsRX_ifbb: {}, NTapsRX_rfif: {}".format( \
                           downsamplingRates[0], downsamplingRates[1], nSamples_per_sequence_if, nSamples_per_sequence, nSequences_per_period, ntaps_ifbb, ntaps_rfif))
@@ -3841,7 +3841,6 @@ class RadarChannelHandler:
 
         fileName = '{:04d}{:02d}{:02d}.{:02d}{:02d}.{}.{:c}.iraw'.format(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.minute, channel.ststr, 96+channel.cnum)
 
-        exportList = []
         exportList = []
         exportList.append( version )
         exportList.append( channel.stid )
