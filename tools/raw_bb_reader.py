@@ -66,8 +66,8 @@ def read_raw_file(file_with_path):
     while (curr_idx < len(data)):
         period_dict = {}
         period_dict['version'] = data[curr_idx]
-        if period_dict['version'] != 3:
-            print("Error: only Version 3 exports are supported!")
+        if period_dict['version'] != 4:
+            print("Error: only Version 4 exports are supported!")
             return 0
         period_dict['stid'] = data[curr_idx+1]
         period_dict['channel'] = data[curr_idx+2]
@@ -78,27 +78,30 @@ def read_raw_file(file_with_path):
         period_dict['minute'] = data[curr_idx+7]
         period_dict['second'] = data[curr_idx+8]
         period_dict['microsecond'] = data[curr_idx+9]
-        period_dict['nrang'] = data[curr_idx+10]
-        period_dict['mpinc'] = data[curr_idx+11]
-        period_dict['smsep'] = data[curr_idx+12]
-        period_dict['lagfr'] = data[curr_idx+13]
-        period_dict['pulseLength'] = data[curr_idx+14]
-        period_dict['beam'] = data[curr_idx+15]
+        period_dict['cpid'] = data[curr_idx+10]
+        period_dict['nrang'] = data[curr_idx+11]
+        period_dict['mpinc'] = data[curr_idx+12]
+        period_dict['smsep'] = data[curr_idx+13]
+        period_dict['lagfr'] = data[curr_idx+14]
+        period_dict['pulseLength'] = data[curr_idx+15]
+        period_dict['widetx'] = data[curr_idx+16]
+        period_dict['beam'] = data[curr_idx+17]
        
-        period_dict['rfreq'] = data[curr_idx+16]
-        period_dict['mppul'] = data[curr_idx+17]
-        period_dict['ppat'] = data[curr_idx+18:curr_idx+18+period_dict['mppul']]
-        curr_idx = curr_idx+18+period_dict['mppul']
+        period_dict['rfreq'] = data[curr_idx+18]
+        period_dict['mppul'] = data[curr_idx+19]
+        period_dict['ppat'] = data[curr_idx+20:curr_idx+20+period_dict['mppul']]
+        curr_idx = curr_idx+20+period_dict['mppul']
        
         period_dict['nbaud'] = data[curr_idx]
         period_dict['pcode'] = data[curr_idx+1:curr_idx+period_dict['nbaud']+1]
         curr_idx += period_dict['nbaud']+1
        
-        period_dict['nSamples'] = data[curr_idx]
-        period_dict['nSeq'] = data[curr_idx+1]
-        period_dict['nAntennas'] = data[curr_idx+2]
-        period_dict['antenna_list']= data[curr_idx+3:curr_idx+3+period_dict['nAntennas']]
-        curr_idx += period_dict['nAntennas']+3
+        period_dict['nRX_samples'] = data[curr_idx]
+        period_dict['nSamples'] = data[curr_idx+1]
+        period_dict['nSeq'] = data[curr_idx+2]
+        period_dict['nAntennas'] = data[curr_idx+3]
+        period_dict['antenna_list']= data[curr_idx+4:curr_idx+4+period_dict['nAntennas']]
+        curr_idx += period_dict['nAntennas']+4
         print("  Integration period: {} with {} sequences".format(len(all_periods)+1, period_dict['nSeq'] ))
         seq_list = []
         for iSeq in range(period_dict["nSeq"]):
@@ -107,9 +110,9 @@ def read_raw_file(file_with_path):
             seq_dict["seq_start_time_sec"] = data[curr_idx]
             seq_dict["seq_start_time_usec"] = data[curr_idx+1]
             samples = []
-            nSamples = period_dict['nSamples'] *2 # because we read as uint32 but one sample is complex64 (or two float32)
+            nSamples = period_dict['nRX_samples'] *2 # because we read as uint32 but one sample is complex64 (or two float32)
             for iAntenna in range(period_dict['nAntennas']):
-               packed_data = data[curr_idx+2+iAntenna*nSamples:curr_idx+2+nSamples*(iAntenna+1) ]
+               packed_data = data[curr_idx+2+iAntenna*nSamples:curr_idx+2+nSamples*(iAntenna+1)]
                packed_data.dtype = "complex64"
                samples.append( packed_data )
             #   samples.append( np.int16(packed_data >> 16) + 1j* np.int16(packed_data % 2**16))
@@ -197,7 +200,7 @@ class RawDataGUI:
             else:
                 plt.plot(np.real(self.data[self.iPeriod]["seq_list"][self.iSequence]['samples'][iAntenna]))
                 plt.plot(np.imag(self.data[self.iPeriod]["seq_list"][self.iSequence]['samples'][iAntenna]))
-            plt.xlim([0, self.data[self.iPeriod]["nSamples"]])
+            plt.xlim([0, self.data[self.iPeriod]["nRX_samples"]])
             plt.grid(True)
             ax.set_ylabel(yLabel)
             
