@@ -2853,8 +2853,10 @@ class RadarHardwareManager:
                        channel.update_ctrlprm_class("current")
                        channel.resultDict_list[-1]['ctrlprm_dataqueue'] = copy.deepcopy(channel.ctrlprm_struct.dataqueue)
 
-                       channel.raw_export_data['beam']  = channel.ctrlprm_struct.payload['rbeam']
-                       channel.raw_export_data['rfreq'] = channel.ctrlprm_struct.payload['rfreq']
+                       channel.raw_export_data['cpid']   = channel.ctrlprm_struct.payload['cpid']
+                       channel.raw_export_data['beam']   = channel.ctrlprm_struct.payload['rbeam']
+                       channel.raw_export_data['rfreq']  = channel.ctrlprm_struct.payload['rfreq']
+                       channel.raw_export_data['widetx'] = channel.ctrlprm_struct.payload['widetx']
 
                        for item in channel.ctrlprm_struct.dataqueue:
                           if item.name == 'rbeam':
@@ -3307,7 +3309,7 @@ class RadarHardwareManager:
                 first_pol_matrix_idx = [RHM.antenna_idx_list_main[jrad].index(ant_idx) for ant_idx in first_pol_ant_idx]
 
                 # apply Chebyshev window to each main antenna for RX beamforming of wide-beam TX
-                if channel.ctrlprm_struct.payload['tbeamwidth'] > 5:
+                if channel.ctrlprm_struct.payload['widetx']:
                     channel.logger.debug("radar {} ch {}: applying Chebyshev RX window".format(channel.rnum, channel.cnum))
                     for ant_idx in first_pol_ant_idx:
                         antenna_scale_factors[iChannel][ant_idx] *= window[ant_idx]
@@ -3830,7 +3832,7 @@ class RadarChannelHandler:
     def write_bb_data(channel):
         channel.logger.debug('start saving BB samples')
         time_now = datetime.datetime.now(datetime.UTC)
-        version = 3
+        version = 4
         hardwareManager = channel.parent_RadarHardwareManager
 
         savePath = "/data/image_samples/bb_data"
@@ -3851,21 +3853,24 @@ class RadarChannelHandler:
         exportList.append( time_now.minute )
         exportList.append( time_now.second )
         exportList.append( time_now.microsecond )
+        exportList.append( channel.raw_export_data['cpid'])
         exportList.append( channel.raw_export_data['nrang'])
         exportList.append( channel.raw_export_data['mpinc'])
         exportList.append( channel.raw_export_data['smsep'])
         exportList.append( channel.raw_export_data['lagfr'])
         exportList.append( hardwareManager.commonChannelParameter['pulseLength'])  # in micro sec
+        exportList.append( channel.raw_export_data['widetx'])
         exportList.append( channel.raw_export_data['beam'])
         exportList.append( channel.raw_export_data['rfreq']) # in kHz
         exportList.append( channel.raw_export_data['mppul'])
         exportList += channel.raw_export_data['ppat']
         exportList.append( channel.raw_export_data['nbaud'])
         exportList += channel.raw_export_data['pcode']
+        exportList.append(channel.bb_export['nbb_rx_samples_per_sequence'])
         exportList.append(channel.bb_export['number_of_samples'])
         exportList.append(channel.bb_export['nSequences_per_period'])
         exportList.append(channel.bb_export['nMainAntennas'] + channel.bb_export['nBackAntennas'])
-        exportList += channel.bb_export["antenna_list"]
+        exportList += channel.bb_export['antenna_list']
 
         float_main_data = np.complex64(channel.bb_export["main_samples"])
         float_back_data = np.complex64(channel.bb_export["back_samples"])
@@ -3876,7 +3881,7 @@ class RadarChannelHandler:
             export_samples += np.uint32(channel.bb_export['sequence_start_time_usecs'][iSequence]).tobytes()
 
             pulse_sequence_start_index = iSequence * channel.bb_export['nbb_rx_samples_per_sequence']
-            pulse_sequence_end_index = pulse_sequence_start_index + channel.bb_export['number_of_samples']
+            pulse_sequence_end_index = pulse_sequence_start_index + channel.bb_export['nbb_rx_samples_per_sequence']
             for iAntenna in range(channel.bb_export['nMainAntennas']):
                    export_samples += float_main_data[iAntenna][pulse_sequence_start_index:pulse_sequence_end_index].tobytes()
             for iAntenna in range(channel.bb_export['nBackAntennas']):
@@ -3892,7 +3897,7 @@ class RadarChannelHandler:
     def write_if_data(channel):
         channel.logger.debug('start saving IF samples')
         time_now = datetime.datetime.now(datetime.UTC)
-        version = 3
+        version = 4
         RECV_SAMPLE_HEADER = 0 # TODO is this an offset???
         hardwareManager = channel.parent_RadarHardwareManager
 
@@ -3913,11 +3918,13 @@ class RadarChannelHandler:
         exportList.append( time_now.minute )
         exportList.append( time_now.second )
         exportList.append( time_now.microsecond )
+        exportList.append( channel.raw_export_data['cpid'])
         exportList.append( channel.raw_export_data['nrang'])
         exportList.append( channel.raw_export_data['mpinc'])
         exportList.append( channel.raw_export_data['smsep'])
         exportList.append( channel.raw_export_data['lagfr'])
         exportList.append( hardwareManager.commonChannelParameter['pulseLength'])  # in micro sec
+        exportList.append( channel.raw_export_data['widetx'])
         exportList.append( channel.raw_export_data['beam'])
         exportList.append( channel.raw_export_data['rfreq']) # in kHz
         exportList.append( channel.raw_export_data['mppul'])

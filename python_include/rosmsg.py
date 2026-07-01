@@ -143,9 +143,9 @@ class ctrlprm_struct(driver_command):
             ctrlprm_dict = {}
             ctrlprm_dict['radar'] = 0
             ctrlprm_dict['channel'] = 0
-            ctrlprm_dict['local'] = 0
+            ctrlprm_dict['cpid'] = 0
+            ctrlprm_dict['widetx'] = 0
             ctrlprm_dict['priority'] = 0
-            ctrlprm_dict['current_pulseseq_idx'] = 0
             ctrlprm_dict['tbeam'] = 0
             ctrlprm_dict['tbeamcode'] = 0
             ctrlprm_dict['tbeamazm'] = 0
@@ -166,9 +166,9 @@ class ctrlprm_struct(driver_command):
 
         self.queue(ctrlprm_dict['radar'], np.int32, 'radar')
         self.queue(ctrlprm_dict['channel'], np.int32, 'channel')
-        self.queue(ctrlprm_dict['local'], np.int32, 'local')
+        self.queue(ctrlprm_dict['cpid'], np.int32, 'cpid')
+        self.queue(ctrlprm_dict['widetx'], np.int32, 'widetx')
         self.queue(ctrlprm_dict['priority'], np.int32, 'priority')
-        self.queue(ctrlprm_dict['current_pulseseq_idx'], np.int32, 'pulseseq_idx')
         self.queue(ctrlprm_dict['tbeam'], np.int32, 'tbeam')
         self.queue(ctrlprm_dict['tbeamcode'], np.uint32, 'tbeamcode')
 

@@ -185,7 +185,7 @@ class cuda_generate_pulse_handler(cudamsg_handler):
         beamnum   = ctrlprm['tbeam']
         self.logger.debug("generating bb samples for beam {}.".format(beamnum))
 
-        if ctrlprm['tbeamwidth'] > 5:
+        if ctrlprm['widetx']:
             self.logger.debug("applying wide beam phase shift")
 
             # antenna-to-antenna phase shift for wide-beam transmission
