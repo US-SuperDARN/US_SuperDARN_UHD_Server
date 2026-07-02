@@ -9,6 +9,7 @@ sys.path.insert(0, basePath)
 import srr
 import subprocess
 import signal
+import glob
 
 
 wait_after_restart_all = 40 # TODO check if if time is good
@@ -25,6 +26,8 @@ file_age_limit = 90 + 10 # sec
 usrp_restart_period = 60*5 # sec to next restart
 
 watch_usrp_server = "server" in sys.argv
+
+usrp_log_path = "/data/log/usrp_driver/"
 
 # LOG FILE
 if write_log:
@@ -92,11 +95,21 @@ class usrpDriverWatcher():
                 usrp.pid = None
 
 
+    def check_logs(self):
+        for usrp in self.usrp_list:
+            if usrp.pid is not None:
+                file_with_path = max(glob.iglob('{}usrp_driver_{}__*.log'.format(usrp_log_path,usrp.host)), key=os.path.getctime)
+                usrp.log = file_with_path
+            else:
+                usrp.log = None
+
+
     def restart_usrps(self):
         now = time.mktime(time.localtime())
         if self.last_restart == None or (now-self.last_restart) > self.restart_period:
             os.chdir(os.path.join(basePath, "usrp_driver"))
             for usrp in self.usrp_list:
+                # Check if usrp_driver process is alive
                 if usrp.pid == None:
                     self.last_restart = now
                     start_arg = usrp.get_start_arguments()
@@ -105,6 +118,20 @@ class usrpDriverWatcher():
                         subprocess.Popen(start_arg)
                     else:
                         log("Starting of driver disabled ({})".format(" ".join(start_arg)))
+                elif usrp.log is not None:
+                    # Check if usrp_driver has stopped writing to log file
+                    if os.path.isfile(usrp.log):
+                        m_time = os.path.getmtime(usrp.log)
+                    else:
+                        m_time = 0
+                    if (now-m_time) > self.restart_period:
+                        self.last_restart = now
+                        start_arg = usrp.get_start_arguments()
+                        if restart_driver:
+                            log("Starting {} (stale log)".format(" ".join(start_arg)))
+                            subprocess.Popen(start_arg)
+                        else:
+                            log("Starting of driver disabled ({})".format(" ".join(start_arg)))
 
 
 class usrpClass():
@@ -116,6 +143,7 @@ class usrpClass():
         self.mainarray = configDict['mainarray']
         self.side = [configDict['side']]
         self.pid = None
+        self.log = None
 
 
     def get_start_arguments(self):
@@ -183,6 +211,7 @@ while True:
         else:
             # check USRPSs
             usrp_driver_watcher.check_processes()
+            usrp_driver_watcher.check_logs()
             usrp_driver_watcher.restart_usrps()
 
     if killer.kill_now:
