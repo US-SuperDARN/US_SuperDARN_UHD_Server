@@ -27,7 +27,8 @@ usrp_restart_period = 60*5 # sec to next restart
 
 watch_usrp_server = "server" in sys.argv
 
-usrp_log_path = "/data/log/usrp_driver/"
+# usrp driver log path
+usrp_log_path = os.path.join(logPath, "usrp_driver/")
 
 # LOG FILE
 if write_log:
