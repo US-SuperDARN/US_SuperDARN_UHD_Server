@@ -601,7 +601,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
             DEBUG_PRINT("%s: usrp_driver rx shm addr: %p iSide: %d iSwing: %d\n", get_log_time(), shm_rx_vec[iSide][iSwing], iSide, iSwing);
 
             // semaphores only for antennas of first polarization TODO check if this is enough
-            if (antennaVector[iSide] < 19) {
+            if (antennaVector[iSide] < 20) {
                sem_rx_vec[iSwing] = open_sample_semaphore(antennaVector[iSide], iSwing, RXDIR);
                sem_tx_vec[iSwing] = open_sample_semaphore(antennaVector[iSide], iSwing, TXDIR);
             }
