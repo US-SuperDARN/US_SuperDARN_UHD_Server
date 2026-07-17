@@ -775,7 +775,6 @@ def remote_command_echo(user, radar, command, verbose = True, port = 22):
 
     try:
         signal.alarm(5)
-        failed = True
         out = ''
         cmdlist = ["ssh", '-T', user + '@' + radar, '-p', str(port)]
         cmdlist = ["ssh", user + '@' + radar, '-p', str(port)]
