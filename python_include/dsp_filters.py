@@ -103,7 +103,6 @@ def dbPrint(msg):
 # functions to test filters
 if __name__ == '__main__':
     from pylab import *
-    from scipy import signal
     import pdb
 
     ntaps_rfif = 40
