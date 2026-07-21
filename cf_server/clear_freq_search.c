@@ -765,10 +765,10 @@ void phasing_and_beamforming(
     for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
         // log_debug("antenna[%d](%d)", a_idx, meta_data->antenna_list[a_idx]);
 
-        if ((antennas[a_idx] <= IDX_LAST_MA || antennas[a_idx] > IDX_LAST_IA) &&
+        if ((antennas[a_idx] > IDX_LAST_MA && antennas[a_idx] <= IDX_LAST_IA) &&
             (active_antennas[antennas[a_idx]] == 1)) {
             // log_debug("antenna[%d] is active", a_idx);
-            phasing_vector[a_idx] = rad_to_rect(antennas[a_idx] * phase_increment);
+            phasing_vector[a_idx] = rad_to_rect((antennas[a_idx]-10) * phase_increment);
         }
         else phasing_vector[a_idx] = 0;
 
