@@ -105,7 +105,7 @@ def waitFor(nSeconds):
 ######################
 ## init
 def initialize(inputArg):
-   configPath = basePath + "/config"
+   configPath = "config"
 
    array_config_target_file  = basePath + "/array_config.ini"
    driver_config_target_file = basePath + "/driver_config.ini"
