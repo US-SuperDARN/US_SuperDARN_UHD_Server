@@ -11,7 +11,7 @@ memory formats:
 
 TODO:
  - if we need speedup:
-   - calc sin&cos(phi) only once and save it
+   - calc sin&cos(phi) only once and save it (EGT: no noticeable speedup when trying this)
    - calc pulse only once if there is no difference
  - if I have time
    - what is the error of using linear interpolation instead of lowpass after upsampling???
