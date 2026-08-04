@@ -236,6 +236,10 @@ class cuda_generate_pulse_handler(cudamsg_handler):
         # apply gain control
         pulsesamps *= channel.channelScalingFactor
 
+        if ctrlprm['rxonly']:
+            self.logger.debug("muting channel {} for RX-only".format(channel.ctrlprm['channel']))
+            pulsesamps *= 0.
+
         for iPulse in range(nPulses):
             # constant phase over complete integration period
             t = channel.pulse_offsets_vector[iPulse]

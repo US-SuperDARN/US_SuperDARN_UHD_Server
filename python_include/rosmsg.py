@@ -145,7 +145,7 @@ class ctrlprm_struct(driver_command):
             ctrlprm_dict['channel'] = 0
             ctrlprm_dict['cpid'] = 0
             ctrlprm_dict['widetx'] = 0
-            ctrlprm_dict['priority'] = 0
+            ctrlprm_dict['rxonly'] = 0
             ctrlprm_dict['tbeam'] = 0
             ctrlprm_dict['tbeamcode'] = 0
             ctrlprm_dict['tbeamazm'] = 0
@@ -168,7 +168,7 @@ class ctrlprm_struct(driver_command):
         self.queue(ctrlprm_dict['channel'], np.int32, 'channel')
         self.queue(ctrlprm_dict['cpid'], np.int32, 'cpid')
         self.queue(ctrlprm_dict['widetx'], np.int32, 'widetx')
-        self.queue(ctrlprm_dict['priority'], np.int32, 'priority')
+        self.queue(ctrlprm_dict['rxonly'], np.int32, 'rxonly')
         self.queue(ctrlprm_dict['tbeam'], np.int32, 'tbeam')
         self.queue(ctrlprm_dict['tbeamcode'], np.uint32, 'tbeamcode')
 
