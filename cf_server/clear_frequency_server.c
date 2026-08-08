@@ -881,7 +881,7 @@ int main() {
     int sample_sep = 0;
     int old_antenna_num = -1;
     int samples_num = SAMPLES_NUM;
-    // int old_samples_num = -1;
+    int old_samples_num = -1;
     // int old_usrp_fcenter = -1;
     int old_usrp_rf_rate = -1;
     int old_tcs_param[3] = {
@@ -1016,6 +1016,7 @@ int main() {
                 // Reallocate Samples SHM
                 log_info( "Reallocating Sample related Memory due to change in Antenna Num...");
                 realloc_samples(samples_num);
+                old_samples_num = samples_num;
 
                 old_antenna_num = meta_data.num_antennas;
                 log_info( "Reallocation due to change in Antenna Num done...");
@@ -1026,6 +1027,14 @@ int main() {
                 log_trace( "Meta Data reading...");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                 samples_num = meta_data.number_of_samples;
+                old_samples_num = samples_num;
+            }
+
+            if (samples_num != old_samples_num) {
+                // Reallocate Samples SHM
+                log_info( "Reallocating Sample related Memory due to change in Sample Num...");
+                realloc_samples(samples_num);
+                old_samples_num = samples_num;
             }
 
             // If critical TCS parameters have changed, reset TCS
