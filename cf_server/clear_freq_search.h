@@ -56,7 +56,7 @@ void process_avg_beam_spectra(fftw_complex *beamformed_spectra, int avg_ratio,
                               char *fft_file, char *ststr, int channel);
 
 void process_all_beamformed_spectras(fftw_complex *raw_samples, int *active_antennas,
-                                     int clear_freq_range[], int smsep,
+                                     int clear_freq_range[],
                                      sample_meta_data *meta_data, Config config,
                                      fftw_complex *beamformed_spectra);
 

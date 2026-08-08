@@ -825,7 +825,6 @@ void phasing_and_beamforming(
  * @param  *raw_samples: Raw samples to be processed.
  * @param  *active_antennas: Array of active antennas.
  * @param  clear_freq_range: Frequency range for the clear frequencies.
- * @param  smsep: Sample separation in microseconds.
  * @param  meta_data: Metadata containing sample information.
  * @param  *beamformed_spectra: Output array for the beamformed spectra.
  * @retval None
@@ -834,7 +833,6 @@ void process_all_beamformed_spectras(
         fftw_complex *raw_samples,
         int *active_antennas,
         int clear_freq_range[],
-        int smsep,
         sample_meta_data *meta_data,
         Config config,
         fftw_complex *beamformed_spectra
@@ -876,7 +874,6 @@ void process_all_beamformed_spectras(
     log_debug("     Allocated memory for phasing_vector and beamformed_samples");
 
     // Scale parameters to Hz and ms
-    // smsep = smsep / 1000;
     //log_trace("      clr_range: | %d -- %d |", clear_freq_range[0], clear_freq_range[1]);
     if (clear_freq_range[0] < 100000 || clear_freq_range[1] < 100000) {
         clear_freq_range[0] = clear_freq_range[0] * 1000;

@@ -1223,7 +1223,6 @@ int main() {
                                 temp_samples,
                                 active_antennas[cur_radar],
                                 clr_range[cur_radar][range_idx],
-                                sample_sep,
                                 &meta_data,
                                 array_config,
                                 &(spectra_storage[
@@ -1262,7 +1261,6 @@ int main() {
                             temp_samples,
                             active_antennas[cur_radar],
                             clr_range[cur_radar][cur_range],
-                            sample_sep,
                             &meta_data,
                             array_config,
                             &(spectra_storage[
