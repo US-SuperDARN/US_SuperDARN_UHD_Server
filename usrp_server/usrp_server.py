@@ -4306,7 +4306,6 @@ class RadarChannelHandler:
         self.ststr = temp.decode("utf-8")[-4:-1]
         self.rnum = recv_dtype(self.conn, np.int32)
         self.cnum = recv_dtype(self.conn, np.int32)
-        self.rfrate = int(recv_dtype(self.conn, np.int32) * 1e6)
 
         if [self.rnum, self.cnum] in [[[ch.rnum, ch.cnum]] for ch in np.concatenate(self.parent_RadarHardwareManager.channels).tolist() if ch is not None and ch is not self]:
            self.logger.error("New channel (cnum {}) can not be added on radar {} because channel with this cnum already active.".format(self.cnum, self.rnum))
@@ -4386,6 +4385,9 @@ class RadarChannelHandler:
         else:
            scan_times_list = None
            self.logger.debug('SetActiveHandler: no time sync of beams')
+
+        self.rfrate = int(recv_dtype(self.conn, np.int32) * 1e6)
+        self.logger.debug('SetActiveHandler rfrate: {}'.format(self.rfrate))
 
         self.parent_RadarHardwareManager.usrp_timeout_semaphore.acquire()
         if integration_time > self.parent_RadarHardwareManager.usrpManager.sock_timeout:
