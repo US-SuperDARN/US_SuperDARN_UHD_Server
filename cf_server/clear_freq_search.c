@@ -1242,7 +1242,7 @@ void clear_freq_search(
     // Print processing time; Stopwatch End
     t2 = clock();
     log_info("clear_freq_search (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
-};
+}
 
 
 void process_avg_ant_pwr(
@@ -1378,4 +1378,4 @@ void process_avg_ant_pwr(
             }
         }
     }
-};
+}
