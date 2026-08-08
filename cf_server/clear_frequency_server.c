@@ -1027,7 +1027,6 @@ int main() {
                 log_trace( "Meta Data reading...");
                 read_meta_data(&meta_data, meta_obj.shm_ptr, meta_data.num_antennas);
                 samples_num = meta_data.number_of_samples;
-                old_samples_num = samples_num;
             }
 
             if (samples_num != old_samples_num) {
