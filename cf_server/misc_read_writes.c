@@ -539,7 +539,7 @@ FILE* init_log(int level, int file_level, char *filepath) {
     log_set_level(level);
     log_set_quiet(0);
     FILE *file = get_log_file(filepath);
-    int result = log_add_fp(file, 0);
+    int result = log_add_fp(file, file_level);
     if (result == 0){
         log_info("CFS Logger initialized...\n");
         return file;
