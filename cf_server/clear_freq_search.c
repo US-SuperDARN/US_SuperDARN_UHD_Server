@@ -123,7 +123,7 @@ double calc_beam_angle(int n_beams, int cur_beam, double beam_sep) {
  *
  * @retval Returns the Phase Shift (in degrees)
  */
-float calc_phase_increment(float beam_angle, int center_frequency, double x_spacing) {
+float calc_phase_increment(double beam_angle, double center_frequency, double x_spacing) {
     double wavelength = C / center_frequency;
     double phase_shift = (2 * PI * x_spacing * sin(beam_angle)) / wavelength;
     //if (VERBOSE) {
@@ -171,7 +171,7 @@ void fft_samples(fftw_complex *fft_spectrum, int num_samples, fftw_complex *spec
  * @param  *result: Array for Convolution Result
  * @retval N/A
  */
-void convolve(double* u, int u_size, int* v, int v_size, double* result) {
+void convolve(double* u, int u_size, double* v, int v_size, double* result) {
     for (int i = 0; i < u_size - v_size; i++) {
         result[i] = 0;
         for (int j = 0; j < v_size; j++) {
@@ -201,7 +201,7 @@ void mask_restricted_freq(
     double *spectrum,
     double f_start,
     double f_end,
-    int delta_f,
+    double delta_f,
     int num_samples,
     freq_band *restricted_bands,
     int restricted_num,
@@ -237,10 +237,10 @@ void mask_restricted_freq(
 
                 // Apply spectrum freq range's floor or ceiling to mask's bounds
                 if (mask_start < f_start) mask_sample_start = 0;
-                else mask_sample_start = (mask_start - f_start) / delta_f;
+                else mask_sample_start = (int)((mask_start - f_start) / delta_f);
 
                 if (mask_end >= f_end) mask_sample_end = num_samples - 1;
-                else mask_sample_end = (mask_end - f_start) / delta_f;
+                else mask_sample_end = (int)((mask_end - f_start) / delta_f);
                 // log_trace("            Sample bounds... | %d -- %d|", mask_sample_start, mask_sample_end);
 
                 // Apply mask
@@ -260,12 +260,12 @@ void mask_restricted_freq(
                 alias_end = mask_end - (int) (j * meta_data.if_rate);
                 if (alias_end < f_start) break;
                 if (alias_end >= f_end) mask_sample_end = num_samples - 1;
-                else mask_sample_end = (alias_end - f_start) / delta_f;
+                else mask_sample_end = (int)((alias_end - f_start) / delta_f);
 
                 alias_start = mask_start - (int) (j * meta_data.if_rate);
                 if (alias_start > f_end) continue;
                 if (alias_start < f_start) mask_sample_start = 0;
-                else mask_sample_start = (alias_start - f_start) / delta_f;
+                else mask_sample_start = (int)((alias_start - f_start) / delta_f);
 
                 if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias: %5d)", alias_start/1000, alias_end/1000, mask_start/1000);
 
@@ -280,12 +280,12 @@ void mask_restricted_freq(
                 alias_start = mask_start + (int) (j * meta_data.if_rate);
                 if (alias_start > f_end) break;
                 if (alias_start < f_start) mask_sample_start = 0;
-                else mask_sample_start = (alias_start - f_start) / delta_f;
+                else mask_sample_start = (int)((alias_start - f_start) / delta_f);
 
                 alias_end = mask_end + (int) (j * meta_data.if_rate);
                 if (alias_end < f_start) continue;
                 if (alias_end >= f_end) mask_sample_end = num_samples - 1;
-                else mask_sample_end = (alias_end - f_start) / delta_f;
+                else mask_sample_end = (int)((alias_end - f_start) / delta_f);
 
                 if (VERBOSE) log_trace("    [MASK] Applying...  | %5d -- %5d | (IF alias: %5d)", alias_start/1000, alias_end/1000, mask_start/1000);
 
@@ -341,7 +341,7 @@ int find_clear_freqs(
     int restricted_num,
     double f_start,
     double f_end,
-    int clear_bw,
+    float clear_bw,
     freq_band prev_clr_band,
     freq_band *clr_band,
     int radar,
@@ -412,10 +412,10 @@ int find_clear_freqs(
 
     // Scan Search range w/ Bandpass Filter (BPF) to find Clear Freq Band
     // log_debug("[find_clear_freqs()] Scanning Search Range w/ Bandpass...");
-    int bpf[clear_sample_bw];
+    double bpf[clear_sample_bw];
     // bpf = (int *) malloc(sizeof(int) * clear_sample_bw);
     for (int band_i = 0; band_i < clear_sample_bw; band_i++) {
-        bpf[band_i] = 1;
+        bpf[band_i] = 1.0;
     }
     if (VERBOSE) log_trace("    clr_search_sample_start: %d    clr_search_sample_end: %d    clr_search_sample_bw: %d", clr_search_sample_start, clr_search_sample_end, clr_search_sample_bw);
 
@@ -578,8 +578,8 @@ void calc_clear_freq_on_raw_samples(
 
     // Determine Avg Freq Vector; used in Clear Freq Calculation
     double *avg_freq_vector = (double*) malloc(sizeof(double) * num_avg_samples);
-    int delta_f_avg = delta_f * avg_ratio;
-    for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = i * delta_f_avg + f_start;
+    double delta_f_avg = delta_f * avg_ratio;
+    for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = i * delta_f_avg + f_start + delta_f_avg/2;
 
     double *avg_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
     double *raw_spectrum = (double*) calloc(num_avg_samples, sizeof(double));
@@ -641,7 +641,7 @@ void calc_clear_freq_on_raw_samples(
 
     // Display delta_f and num_samples before and after averaging
     if (VERBOSE) log_trace("delta_f: %f num_samples: %d", delta_f, num_samples);
-    log_trace("delta_f_avg: %d num_avg_samples: %d", delta_f_avg, num_avg_samples);
+    log_trace("delta_f_avg: %f num_avg_samples: %d", delta_f_avg, num_avg_samples);
 
     int num_clr_samples = (clear_freq_range[1] - clear_freq_range[0]) / delta_f_avg;
     double *clr_spectrum = (double*) calloc(num_clr_samples, sizeof(double));
@@ -650,7 +650,7 @@ void calc_clear_freq_on_raw_samples(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    num_clr_samples = find_clear_freqs(avg_spectrum, avg_freq_vector, *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
+    num_clr_samples = find_clear_freqs(avg_spectrum, avg_freq_vector, *meta_data, delta_f_avg, restricted_bands, restricted_num, (double)clear_freq_range[0], (double)clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
     t2 = clock();
     if (VERBOSE) log_info("find_clear_freqs (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
@@ -759,7 +759,7 @@ void phasing_and_beamforming(
     // Calculate and Apply phasing vector
     float phase_increment = 0;
     //log_trace("clear_freq_range: | %d -- %d kHz |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
-    phase_increment = calc_phase_increment(beam_angle, (clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
+    phase_increment = calc_phase_increment(beam_angle, (double)(clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
     //if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
 
     for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
@@ -979,8 +979,8 @@ void process_avg_beam_spectra(
 
     // Determine Avg Freq Vector; used in Clear Freq Calculation
     if (avg_freq_vector == NULL) avg_freq_vector = calloc(num_avg_samples, sizeof(double));
-    int delta_f_avg = delta_f * avg_ratio;
-    for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = i * delta_f_avg + f_start;
+    double delta_f_avg = delta_f * avg_ratio;
+    for (int i = 0; i < num_avg_samples; i++) avg_freq_vector[i] = (double)i * delta_f_avg + f_start + delta_f_avg/2;
 
     if (avg_beam_spectra == NULL) {
         avg_beam_spectra[cur_beam] = (double*) fftw_malloc(sizeof(double) * num_avg_samples);
@@ -1097,12 +1097,12 @@ void process_beam_clr_freq(
     log_debug("Entered process_beam_clr_freq()...");
 
     double f_start = avg_freq_vector[0];
-    int delta_f_avg = avg_freq_vector[1] - avg_freq_vector[0];
+    double delta_f_avg = avg_freq_vector[1] - avg_freq_vector[0];
 
     log_trace("------f_start: %f -- f_end: %f", f_start/1000, avg_freq_vector[num_avg_samples - 1]/1000);
 
     log_trace("     num_avg_samples: %d", num_avg_samples);
-    log_trace("     delta_f_avg: %d", delta_f_avg);
+    log_trace("     delta_f_avg: %f", delta_f_avg);
 
     // Define Clear Freq Range from Hz to sample index
     // int clear_sample_start = (int) round((clear_freq_range[0] - f_start) / delta_f_avg);
@@ -1120,14 +1120,14 @@ void process_beam_clr_freq(
     float clear_bw = 1e6 / smsep + gb;          // Clear Bandwidth in Hz
     log_info("clear_bw: %f Hz = %f Hz (signal) + %f Hz (guard)", clear_bw, 1e6 / smsep, gb);
 
-    int num_clr_samples = (clear_freq_range[1] - clear_freq_range[0]) / delta_f_avg;
+    int num_clr_samples = (int)((clear_freq_range[1] - clear_freq_range[0]) / delta_f_avg);
     double *clr_spectrum = (double*) calloc(num_clr_samples, sizeof(double));
     double *clr_freq_vector = (double*) calloc(num_clr_samples, sizeof(double));
 
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    num_clr_samples = find_clear_freqs(avg_beam_spectra[cur_beam], avg_freq_vector, *meta_data, delta_f_avg, restricted_bands, restricted_num, clear_freq_range[0], clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
+    num_clr_samples = find_clear_freqs(avg_beam_spectra[cur_beam], avg_freq_vector, *meta_data, delta_f_avg, restricted_bands, restricted_num, (double)clear_freq_range[0], (double)clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
     t2 = clock();
     log_trace("     find_clear_freqs(s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 

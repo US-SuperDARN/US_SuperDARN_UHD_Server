@@ -30,7 +30,7 @@
 #define RESERV_NUM              (STATIC_RADAR_NUM * STATIC_CHANNEL_NUM) // Number of reserved freq bands in the radar_table
 #define BEAM_NUM                16                      // Number of beams to process
 #define SAMPLE_TIME             3                       // Time per Sample (in seconds)
-#define STORAGE_TIME            60                      // Total time per Sample Storage Batch (in seconds)
+#define STORAGE_TIME            120                      // Total time per Sample Storage Batch (in seconds)
 #define STORAGE_NUM             (STORAGE_TIME / SAMPLE_TIME) // Total number of processed sample sets to store
 #define META_ELEM               2                       // 2 = 3 - 1 (fcenter has unique obj)
 #ifndef RESTRICT_NUM
