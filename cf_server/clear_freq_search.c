@@ -483,10 +483,6 @@ int find_clear_freqs(
     // Free allocated memory
     free(convolve_result);
 
-    if (clr_search_sample_bw < (25 * clear_sample_bw) ) {
-        log_warn("WARN: Clear Search Bandwidth is severely limiting CFS to: %d possible Clr Freqs", clr_search_sample_bw / clear_sample_bw);
-    }
-
     log_debug("Exiting find_clear_freqs()...");
 
     return clr_search_sample_bw;
@@ -633,10 +629,10 @@ void calc_clear_freq_on_raw_samples(
     // int clear_sample_end = (int) round((clear_freq_range[1] - f_start) / delta_f_avg);
     log_trace("clear_range: | %d -- %d |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
 
-    // Trasmission separation
-    float gb = (1e6 * (GB_MULT - 1) ) / (smsep * 2);
-    if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;   // Ensure minimum frequency separation
-    float clear_bw = 1e6 / smsep + gb;          // Clear Bandwidth in Hz
+    // Transmission separation
+    float gb = (1e6 * (GB_MULT - 1) ) / smsep;    // Dynamic Guardband based on sample separation
+    if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;     // Ensure minimum frequency separation
+    float clear_bw = 1e6 / smsep + gb;            // Clear Bandwidth in Hz
     log_info("clear_bw: %f Hz = %f Hz (signal) + %f Hz (guard)", clear_bw, 1e6 / smsep, gb);
 
     // Display delta_f and num_samples before and after averaging
@@ -1112,9 +1108,9 @@ void process_beam_clr_freq(
     // }}
 
     // Clear Freq separation
-    float gb = (1e6 * (GB_MULT - 1) ) / (smsep * 2);  // Dynamic Guardband based on sample separation
-    if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;       // Ensure minimum frequency separation
-    float clear_bw = 1e6 / smsep + gb;          // Clear Bandwidth in Hz
+    float gb = (1e6 * (GB_MULT - 1) ) / smsep;    // Dynamic Guardband based on sample separation
+    if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;     // Ensure minimum frequency separation
+    float clear_bw = 1e6 / smsep + gb;            // Clear Bandwidth in Hz
     log_info("clear_bw: %f Hz = %f Hz (signal) + %f Hz (guard)", clear_bw, 1e6 / smsep, gb);
 
     int num_clr_samples = (int)((clear_freq_range[1] - clear_freq_range[0]) / delta_f_avg);
