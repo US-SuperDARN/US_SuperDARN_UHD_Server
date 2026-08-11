@@ -118,12 +118,12 @@ double calc_beam_angle(int n_beams, int cur_beam, double beam_sep) {
  * @note   By DF
  * @param  beam_angle:          Distrubution of the beam (in radians)
  * @param  center_frequency:    Frequency at the center of the beam;
- * * used to phase-shift allign the other frequencys (in Hz)
+ * * used to phase-shift align the other frequencies (in Hz)
  * @param  x_spacing:           Spacing in-between antennas
  *
  * @retval Returns the Phase Shift (in degrees)
  */
-float calc_phase_increment(double beam_angle, double center_frequency, double x_spacing) {
+double calc_phase_increment(double beam_angle, double center_frequency, double x_spacing) {
     double wavelength = C / center_frequency;
     double phase_shift = (2 * PI * x_spacing * sin(beam_angle)) / wavelength;
     //if (VERBOSE) {
@@ -757,7 +757,7 @@ void phasing_and_beamforming(
     fftw_complex *beamformed_samples
 ) {
     // Calculate and Apply phasing vector
-    float phase_increment = 0;
+    double phase_increment = 0.0;
     //log_trace("clear_freq_range: | %d -- %d kHz |", clear_freq_range[0]/1000, clear_freq_range[1]/1000);
     phase_increment = calc_phase_increment(beam_angle, (double)(clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
     //if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
