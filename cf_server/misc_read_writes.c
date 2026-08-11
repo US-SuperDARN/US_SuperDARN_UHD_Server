@@ -469,12 +469,12 @@ int read_restrict(char *filepath, freq_band *restricted_freq, int *restricted_nu
         sscanf(line, "%d %d", &r1, &r2);
 
         // Skip non-frequency band lines
-        if (r1 == 0 || r2 == 0) continue;
+        if (r1 == 0 && r2 == 0) continue;
         else {
             // log_trace("Storing r1 & r2...\n");
 
             // Check for valid freq
-            if (r1 < r2 && r1 > 0 && r2 > 0) {
+            if (r1 < r2 && r1 >= 0) {
                 // Store freq band
                 restricted_freq[i].f_start  = r1 * 1000;
                 restricted_freq[i].f_end    = r2 * 1000;
