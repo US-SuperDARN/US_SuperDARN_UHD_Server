@@ -68,7 +68,7 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 
 
 // Define Constants
-#define GB_MULT 1.25                // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw = clear_freq bandwidth)
+#define GB_MULT 1.5                // Guard Band Multiplier (Transmission bandwidth * GB_MULT = clear_bw = clear_freq bandwidth)
 #define MIN_FREQ_SEP 1500           // Minimum Frequency Separation (in Hz), guard band will be kept at and above this value.
 
 #define RFIF_ATTEN 30               // Attenuation (in dB) applied by RF-IF filter to out of band signals
