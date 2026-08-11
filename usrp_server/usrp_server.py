@@ -537,7 +537,7 @@ class usrpMixingFreqManager():
 
 
     def get_range_of_channel(self, channel):
-       if channel.scanManager.fixFreq in [ None, -1, 0]:
+       if channel.scanManager.fixFreq in [None, -1, 0]:
           rangeList = channel.scanManager.clear_freq_range_list
           lower = rangeList[0][0]
           upper = rangeList[0][1]
@@ -552,7 +552,7 @@ class usrpMixingFreqManager():
 
     def get_unique_ranges(self, channel):
        # get list of all clear search ranges in scan
-       if channel.scanManager.fixFreq in [ None, -1, 0]:
+       if channel.scanManager.fixFreq in [None, -1, 0]:
           rangeList = channel.scanManager.clear_freq_range_list
        else:
           rangeList = [[channel.scanManager.fixFreq, channel.scanManager.fixFreq]]
@@ -574,7 +574,7 @@ class usrpMixingFreqManager():
           tmpList = [list(x) for x in ctr]
           for x in range(len(tmpList)):
             if len(tmpList[x]) == 1:
-              fixfrq = tmpList[x]
+              fixfrq = tmpList[x][0]
               tmpList[x] = []
               tmpList[x] = [fixfrq, fixfrq]
 
