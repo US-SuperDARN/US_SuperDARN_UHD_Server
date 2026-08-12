@@ -44,6 +44,8 @@
 #define FCENTER_SHM_SIZE        (1 * sizeof(int))
 #define BEAM_NUM_SHM_SIZE       (1 * sizeof(int))
 #define SAMPLE_SEP_SHM_SIZE     (1 * sizeof(int))
+#define RX_ONLY_SHM_SIZE        (1 * sizeof(int))
+#define FIX_FREQ_SHM_SIZE       (1 * sizeof(int))
 #define IF_RATE_SHM_SIZE        (1 * sizeof(double))
 #define META_DATA_SHM_SIZE      ((META_ELEM + STATIC_ANTENNA_NUM) * sizeof(double))
 #define ANTENNA_SHM_SIZE        (1 * sizeof(int))
@@ -59,6 +61,8 @@
 #define FCENTER_SHM_NAME        "/fcenter"
 #define BEAM_NUM_SHM_NAME       "/beam_num"
 #define SAMPLE_SEP_SHM_NAME     "/sample_sep"
+#define RX_ONLY_SHM_NAME        "/rx_only"
+#define FIX_FREQ_SHM_NAME       "/fix_freq"
 #define IF_RATE_SHM_NAME        "/if_rate"
 #define META_DATA_SHM_NAME      "/meta_data"
 #define ANTENNA_SHM_NAME        "/antenna_num"
@@ -69,7 +73,7 @@
 #define MUTED_ANT_SHM_NAME      "/muted_ant"
 
 #define RESTRICT_PARAM_NUM 2
-#define PARAM_NUM 13
+#define PARAM_NUM 15
 
 #define SEM_F_CLIENT    "/sf_client"                // For Sync and reserving client and server roles during data transfer
 #define SEM_F_SERVER    "/sf_server"

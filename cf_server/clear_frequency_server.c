@@ -65,6 +65,8 @@ shm_obj clr_range_obj   = {CLR_RANGE_SHM_NAME, NULL, -1, CLR_RANGE_SHM_SIZE};
 shm_obj fcenter_obj     = {FCENTER_SHM_NAME, NULL, -1, FCENTER_SHM_SIZE};
 shm_obj beam_num_obj    = {BEAM_NUM_SHM_NAME, NULL, -1, BEAM_NUM_SHM_SIZE};
 shm_obj sample_sep_obj  = {SAMPLE_SEP_SHM_NAME, NULL, -1, SAMPLE_SEP_SHM_SIZE};
+shm_obj rx_only_obj     = {RX_ONLY_SHM_NAME, NULL, -1, RX_ONLY_SHM_SIZE};
+shm_obj fix_freq_obj    = {FIX_FREQ_SHM_NAME, NULL, -1, FIX_FREQ_SHM_SIZE};
 shm_obj if_rate_obj     = {IF_RATE_SHM_NAME, NULL, -1, IF_RATE_SHM_SIZE};
 shm_obj meta_obj        = {META_DATA_SHM_NAME, NULL, -1, META_DATA_SHM_SIZE};
 shm_obj antenna_obj     = {ANTENNA_SHM_NAME, NULL, -1, ANTENNA_SHM_SIZE};
@@ -79,6 +81,8 @@ struct shm_obj *objects[PARAM_NUM] = {
     &clr_range_obj,
     &beam_num_obj,
     &sample_sep_obj,
+    &rx_only_obj,
+    &fix_freq_obj,
     &if_rate_obj,
     &meta_obj,
     &antenna_obj,
@@ -879,6 +883,8 @@ int main() {
     int cur_channel = 0;
     int cur_beam = 0;
     int sample_sep = 0;
+    int rx_only = 0;
+    int fix_freq = 0;
     int old_antenna_num = -1;
     int samples_num = SAMPLES_NUM;
     int old_samples_num = -1;
@@ -1335,7 +1341,7 @@ int main() {
             }
 
             // Read Sample Separation
-            if ( *(int*) (sample_sep_obj.shm_ptr) != 0) {
+            if (*(int*) (sample_sep_obj.shm_ptr) != 0) {
                 log_debug( "Sample Separation reading...");
                 read_single_int(&sample_sep, sample_sep_obj.shm_ptr);
                 log_debug("    sample_sep: %d", sample_sep);
@@ -1346,6 +1352,20 @@ int main() {
                 log_debug( "Freq Center reading...");
                 read_single_int( &(meta_data.usrp_fcenter), fcenter_obj.shm_ptr);
                 log_debug("    fcenter: %d", meta_data.usrp_fcenter);
+            }
+
+            // Read RX-only
+            if (*(int*) (rx_only_obj.shm_ptr) >= 0) {
+                log_debug( "RX-only reading...");
+                read_single_int(&rx_only, rx_only_obj.shm_ptr);
+                log_debug("    rx_only: %d", rx_only);
+            }
+
+            // Read Fixed Frequency
+            if (*(int*) (fix_freq_obj.shm_ptr) >= 0) {
+                log_debug( "Fixed Frequency reading...");
+                read_single_int(&fix_freq, fix_freq_obj.shm_ptr);
+                log_debug("    fix_freq: %d", fix_freq);
             }
 
             // Read IF Rate
@@ -1394,6 +1414,14 @@ int main() {
             if (*(int*) (clr_range_obj.shm_ptr) != 0) {
                 log_debug( "Clear Range reading...");
                 read_int(tmp_clr_range, clr_range_obj.shm_ptr, 2);
+
+                if (fix_freq > 0) {
+                    float gb = (1e6 * (GB_MULT - 1) ) / sample_sep;
+                    if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;
+                    tmp_clr_range[0] = (int) (fix_freq - (1e6 / sample_sep + gb)/2e3);
+                    tmp_clr_range[1] = ceil(fix_freq + (1e6 / sample_sep + gb)/2e3);
+                    log_debug("    fix_frq_range: %d -- %d kHz", tmp_clr_range[0], tmp_clr_range[1]);
+                }
 
                 // If clr_range is in kHz, convert to Hz
                 if (tmp_clr_range[0] < 100000 ||    tmp_clr_range[1] < 100000) {
@@ -1650,7 +1678,15 @@ int main() {
 
             // Clear Freq Selection and Display
             bool is_clr_band_found = true;
-            if (clr_band->noise != 0 && clr_band->noise != RAND_MAX) {  // if clr_band filled correctly, proceed to Freq Selection
+            if (rx_only) {
+                is_clr_band_found = false;
+            } else if (fix_freq > 0) {
+                log_debug("Fixed Freq Band: | %5d kHz -- Noise: %-9.2f -- %5d kHz |",
+                    clr_band->f_start/1000,
+                    clr_band->noise,
+                    clr_band->f_end/1000
+                );
+            } else if (clr_band->noise != 0 && clr_band->noise != RAND_MAX) {  // if clr_band filled correctly, proceed to Freq Selection
                 log_debug("Clear Freq Band: | %5d kHz -- Noise: %-9.2f -- %5d kHz |",
                     clr_band->f_start/1000,
                     clr_band->noise,
@@ -1712,11 +1748,16 @@ int main() {
                     log_error("ERROR: There COULD be an error in CFS order of operations, or too wide of a guardband/narrow clear search range!");
                 }
             }
+            else if (rx_only) {
+            // RX-only: do not reserve the frequency band
+                log_debug("    Not reserving frequency into RadarTable... (RX-only)");
+            }
             // Fail: A valid clr freq could not be found
             else {
                 selected_clr_band.f_start = 0;
                 selected_clr_band.f_end = 0;
                 selected_clr_band.noise = 0;
+
                 log_error("ERROR: CFS couldn't compute valid Clear Freqs. See eariler logs for details.");
 
                 // If prev reservation for radar's channel exists, maintain freq
