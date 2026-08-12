@@ -1642,7 +1642,14 @@ class scanManager():
 
     def wait_for_next_trigger(self):
         if self.syncBeams:
-           time_to_wait = self.beam_times[self.current_period] - self.get_time_in_scan() - self.RHM.integration_time_manager.get_usrp_delay_time()
+           if self.isPrePeriod:
+              current_period = self.current_period
+           else:
+              current_period = self.current_period + 1
+
+           time_to_wait = self.beam_times[current_period] - self.get_time_in_scan() \
+                            - self.RHM.integration_time_manager.get_usrp_delay_time() - 0.001
+
            if time_to_wait > 0:
               self.logger.debug("Waiting for {} s".format(time_to_wait))
               time.sleep(time_to_wait)
@@ -2688,12 +2695,22 @@ class RadarHardwareManager:
 
               self.usrp_setup_semaphore.release()
 
-              # wait if periods should be time synchronized
+        if any(transmittingChannelAvailable) and trigger_next_period:
+           # wait if periods should be time synchronized
+           wait = False
+           pulse_alignment = 10000.0
+           for jrad in range(self.N_RADARs):
+              if wait or not radar_active[jrad]:
+                 continue
+
               for tmpChannel in self.channels[jrad]:
                  if (tmpChannel is not None) and (not tmpChannel.scanManager.isLastPeriod):
                     tmpChannel.scanManager.wait_for_next_trigger()
+                    wait = True
+                    if tmpChannel.scanManager.syncBeams:
+                       pulse_alignment = 1000.0
+                    break
 
-        if any(transmittingChannelAvailable) and trigger_next_period:
            # USRP_TRIGGER - END OF SETUP NEW LOOP OVER RADARS
            self.logger.debug("start USRP_GET_TIME")
 
@@ -2707,7 +2724,8 @@ class RadarHardwareManager:
            self.logger.debug("end USRP_GET_TIME")
 
            trigger_time = usrp_time + self.integration_time_manager.get_usrp_delay_time()
-           trigger_time = np.ceil(trigger_time * 10000) / 10000.0 - self.commonChannelParameter['pulse_sequence_offsets_vector'][0]
+           trigger_time = np.ceil(trigger_time * pulse_alignment) / pulse_alignment \
+                             - self.commonChannelParameter['pulse_sequence_offsets_vector'][0]
            trigger_time = np.round(trigger_time * 1e6) / 1e6
 
         usrp_integration_period_start_clock_time = time.time() + self.integration_time_manager.get_usrp_delay_time()
