@@ -1416,10 +1416,11 @@ int main() {
                 read_int(tmp_clr_range, clr_range_obj.shm_ptr, 2);
 
                 if (fix_freq > 0) {
+                    int tmp_fix_freq = tmp_clr_range[0];
                     float gb = (1e6 * (GB_MULT - 1) ) / sample_sep;
                     if (gb < MIN_FREQ_SEP) gb = MIN_FREQ_SEP;
-                    tmp_clr_range[0] = (int) (fix_freq - (1e6 / sample_sep + gb)/2e3);
-                    tmp_clr_range[1] = ceil(fix_freq + (1e6 / sample_sep + gb)/2e3);
+                    tmp_clr_range[0] = (int) (tmp_fix_freq - (1e6 / sample_sep + gb)/2e3);
+                    tmp_clr_range[1] = ceil(tmp_fix_freq + (1e6 / sample_sep + gb)/2e3);
                     log_debug("    fix_frq_range: %d -- %d kHz", tmp_clr_range[0], tmp_clr_range[1]);
                 }
 

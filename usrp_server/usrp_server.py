@@ -537,25 +537,18 @@ class usrpMixingFreqManager():
 
 
     def get_range_of_channel(self, channel):
-       if channel.scanManager.fixFreq in [None, -1, 0]:
-          rangeList = channel.scanManager.clear_freq_range_list
-          lower = rangeList[0][0]
-          upper = rangeList[0][1]
-          for periodRange in rangeList[1:]:
-             lower = min(lower, periodRange[0])
-             upper = max(upper, periodRange[1])
-       else:
-          lower = channel.scanManager.fixFreq
-          upper = channel.scanManager.fixFreq
+       rangeList = channel.scanManager.clear_freq_range_list
+       lower = rangeList[0][0]
+       upper = rangeList[0][1]
+       for periodRange in rangeList[1:]:
+          lower = min(lower, periodRange[0])
+          upper = max(upper, periodRange[1])
        return lower, upper
 
 
     def get_unique_ranges(self, channel):
        # get list of all clear search ranges in scan
-       if channel.scanManager.fixFreq in [None, -1, 0]:
-          rangeList = channel.scanManager.clear_freq_range_list
-       else:
-          rangeList = [[channel.scanManager.fixFreq, channel.scanManager.fixFreq]]
+       rangeList = channel.scanManager.clear_freq_range_list
 
        # get unique search ranges from any other channels
        if self.channelUniqueList[channel.rnum]:
@@ -1737,10 +1730,6 @@ class scanManager():
 
            self.current_clrFreq_result = self.evaluate_clear_freq(jrad, self.channel.cnum, self.current_period, self.current_beam)
 
-           if self.fixFreq > 0: # it looks like control program could use -1 and 0 to disable it
-               self.current_clrFreq_result[0] = self.fixFreq
-               self.logger.debug("Using fixed frequency of {} kHz for current period".format(self.fixFreq))
-
         return self.current_clrFreq_result
 
 
@@ -1749,15 +1738,11 @@ class scanManager():
            self.logger.debug("  calc next clr_freq (radar {} ch {}, period {})".format(self.channel.rnum, self.channel.cnum, self.current_period+1))
 
            if self.camping:
-               next_period = self.current_period
+              next_period = self.current_period
            else:
-               next_period = self.current_period + 1
+              next_period = self.current_period + 1
 
            self.next_clrFreq_result = self.evaluate_clear_freq(jrad, self.channel.cnum, next_period, self.next_beam)
-
-           if self.fixFreq > 0: # it looks like control program could use -1 and 0 to disable it
-               self.next_clrFreq_result[0] = self.fixFreq
-               self.logger.debug("Using fixed frequency of {} kHz for next period".format(self.fixFreq))
 
         return self.next_clrFreq_result
 
@@ -1803,6 +1788,11 @@ class scanManager():
            noise = 99999.99
 
         self.logger.debug('end calc_clear_freq_on_raw_samples')
+
+        if self.fixFreq > 0:
+           clearFreq = clear_freq_range[0]
+           self.logger.debug("Using fixed frequency of {} kHz".format(clearFreq))
+
 
         self.logger.debug("clear freq result for radar {} ch {}: selected {}, noise level {:2.1f}".format(self.channel.rnum, self.channel.cnum, clearFreq, noise))
         RHM.clearFreqRawDataManager.select_clear_freq.release()
