@@ -1811,7 +1811,6 @@ class scanManager():
            clearFreq = clear_freq_range[0]
            self.logger.debug("Using fixed frequency of {} kHz".format(clearFreq))
 
-
         self.logger.debug("clear freq result for radar {} ch {}: selected {}, noise level {:2.1f}".format(self.channel.rnum, self.channel.cnum, clearFreq, noise))
         RHM.clearFreqRawDataManager.select_clear_freq.release()
         RHM.set_par_semaphore.release()
