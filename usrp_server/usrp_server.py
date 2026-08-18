@@ -424,6 +424,7 @@ class usrpMixingFreqManager():
        self.channelRangeList    = [[] for jrad in range(N_RADARs)]
        self.channelUniqueList   = [[] for jrad in range(N_RADARs)]
        self.channelList         = [[] for jrad in range(N_RADARs)]
+       self.fixList             = []
        self.semaphore = threading.BoundedSemaphore()
 
 
@@ -442,6 +443,7 @@ class usrpMixingFreqManager():
           self.channelRangeList[jrad] = []
           self.channelUniqueList[jrad] = []
           self.channelList[jrad] = []
+          self.fixList = []
 
        newLower, newUpper = self.get_range_of_channel(channel)
        if newLower < RHM.hardwareLimit_freqRange[jrad][0] or newUpper > RHM.hardwareLimit_freqRange[jrad][1]:
@@ -481,6 +483,22 @@ class usrpMixingFreqManager():
              newMixingFreq = max(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][0]+bandwidth/2)
              newMixingFreq = min(newMixingFreq, RHM.hardwareLimit_freqRange[jrad][1]-bandwidth/2)
              result = newMixingFreq
+
+       # check for possible conflicts between fixed frequency bands
+       if channel.scanManager.fixFreq > 0 and not channel.scanManager.rxonly and result is not False:
+          fixFreqs = [x[0] for x in channel.scanManager.clear_freq_range_list]
+          if any(freq in self.fixList for freq in fixFreqs):
+             channel.logger.error("radar {} ch {}: new channel can not be added. fixed frequency band conflict".format(channel.rnum, channel.cnum))
+             result = False
+          else:
+             for freq in self.fixList:
+                fixFreqs.append(freq)
+
+             if len(fixFreqs) == 1:
+                self.fixList = fixFreqs
+             else:
+                # get unique fixed frequencies
+                self.fixList = list(set(fixFreqs))
 
        # adjust mixing freq to avoid overlap with channel search ranges
        if result is not False:
