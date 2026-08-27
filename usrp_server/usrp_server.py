@@ -2915,7 +2915,7 @@ class RadarHardwareManager:
                           channel.bb_export['nSequences_per_period'] = channel.resultDict_list[-1]['nSequences_per_period']
                           seq_pulse_times = self.usrpManager.pulse_times[jrad]
                           seq_start_time_sec = np.array(seq_pulse_times, dtype=np.uint64)
-                          seq_start_time_usec = np.array(np.fix((np.array(seq_pulse_times) - seq_start_time_sec)*1e6), dtype=np.uint32)
+                          seq_start_time_usec = np.array(np.round((np.array(seq_pulse_times) - seq_start_time_sec)*1e6), dtype=np.uint32)
                           channel.bb_export['sequence_start_time_secs'] = seq_start_time_sec
                           channel.bb_export['sequence_start_time_usecs'] = seq_start_time_usec
                           channel.bb_export['nbb_rx_samples_per_sequence'] = channel.resultDict_list[-1]['nbb_rx_samples_per_sequence']
@@ -4302,7 +4302,7 @@ class RadarChannelHandler:
         self.logger.debug('GET_DATA returning samples for {} pulses'.format(resultDict['nSequences_per_period']))
 
         seq_start_time_sec = np.array(pulse_times, dtype=np.uint32)
-        seq_start_time_usec = np.fix((np.array(pulse_times) - seq_start_time_sec)*1e6)
+        seq_start_time_usec = np.round((np.array(pulse_times) - seq_start_time_sec)*1e6)
 
         for iSequence in range(resultDict['nSequences_per_period']):
             # self.logger.debug('GET_DATA sending samples for seq {} time: {}'.format(iSequence, seq_start_time_sec[iSequence] + seq_start_time_usec[iSequence]/1.e6))
