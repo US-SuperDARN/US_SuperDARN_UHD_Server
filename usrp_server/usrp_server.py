@@ -4281,7 +4281,7 @@ class RadarChannelHandler:
 
         # transmit trigger time
         first_pulse_time = pulse_times[0]
-        first_pulse_usec = int((first_pulse_time - int(first_pulse_time))*1e6)
+        first_pulse_usec = int(round((first_pulse_time - int(first_pulse_time))*1e6))
 
         time_struct = time.gmtime(first_pulse_time)
         transmit_dtype(self.conn, time_struct.tm_year, np.int32)
