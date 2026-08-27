@@ -941,9 +941,18 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                                 break;
                             }
                             fprintf(fd, "%s ", get_log_time());
+
+                            // get current epoch time
+                            stat = clock_gettime(CLOCK_REALTIME, &file_tm);
+                            // convert epoch ns to fractional seconds
+                            double frac_secs = (double)file_tm.tv_nsec/1.0e9;
+                            int64_t sec_0 = pulse_time_offsets[0].get_full_secs();
+                            if (pulse_time_offsets[0].get_frac_secs() < frac_secs)
+                                sec_0 -= 1;
+
                             int32_t line_count=0;
                             for (uint32_t p_i=0; p_i<number_of_pulses; p_i++) {
-                                fprintf(fd, "%f, ", pulse_time_offsets[p_i].get_frac_secs());
+                                fprintf(fd, "%f, ", pulse_time_offsets[p_i].get_full_secs() - sec_0 + pulse_time_offsets[p_i].get_frac_secs());
                                 line_count++;
                                 if ((line_count % LINE_LENGTH) == 0) fprintf(fd, "\n");
                             }
