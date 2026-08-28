@@ -48,8 +48,8 @@ void usrp_rx_worker(
     bool realtime=true;
     uhd::set_thread_priority_safe(priority,realtime);
 
-    float debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("%s: entering RX_WORKER %2.4f\n", get_log_time(), debugt);
+    uhd::time_spec_t debugt = usrp->get_time_now();
+    DEBUG_PRINT("%s: entering RX_WORKER %s\n", get_log_time(), format_usrp_time(debugt));
 
     int nSides = (*rx_data_buffer).size();
     const size_t max_samples_per_packet = rx_stream->get_max_num_samps();
@@ -86,8 +86,8 @@ void usrp_rx_worker(
     size_t num_acc_samps = 0;
     std::vector<std::complex<int16_t>*> buff_ptrs(nSides);
 
-    debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("%s: starting rx_worker while loop %2.4f\n", get_log_time(), debugt);
+    debugt = usrp->get_time_now();
+    DEBUG_PRINT("%s: starting rx_worker while loop %s\n", get_log_time(), format_usrp_time(debugt));
     while (num_acc_samps < num_requested_samps) {
 
         size_t samp_request = std::min(max_samples_per_packet, num_requested_samps - num_acc_samps);
@@ -125,8 +125,8 @@ void usrp_rx_worker(
         num_acc_samps += num_rx_samps;
     }
 
-    debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("%s:     RX_WORKER fetched samples! %2.4f\n", get_log_time(), debugt);
+    debugt = usrp->get_time_now();
+    DEBUG_PRINT("%s:     RX_WORKER fetched samples! %s\n", get_log_time(), format_usrp_time(debugt));
 
     if (num_acc_samps != num_requested_samps) {
         *return_status=-100;

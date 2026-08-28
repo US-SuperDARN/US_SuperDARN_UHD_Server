@@ -83,6 +83,7 @@
 #define RXDIR 0
 #define INIT_SHM 1
 
+char timestr[128];
 
 const char * log_dir = "/data/log/usrp_driver";
 const char * diag_dir = "/data/diagnostic_samples/usrp_driver";
@@ -419,11 +420,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
     uint32_t exit_driver = 0;
 
     uint32_t tx_worker_active;
+    struct timespec c_tm;
 
-    boost::xtime sync_time;
-    double pulse_offset = 0.0;
-
-    uhd::time_spec_t start_time, rx_start_time;
+    uhd::time_spec_t start_time, rx_start_time, seq_start_time;
     uhd::usrp_clock::multi_usrp_clock::sptr gps_clock;
 
     // vector of all pulse start times over an integration period
@@ -568,7 +567,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
     if (usrp->get_rx_num_channels() < nSides || usrp->get_tx_num_channels() < nSides) {
        DEBUG_PRINT("%s: ERROR: Number of defined channels (%i) is smaller than avaialable channels:\n"
-                   "    usrp->get_rx_num_channels(): %lu \n    usrp->get_tx_num_channels(): %lu \n\n",
+                   "    usrp->get_rx_num_channels(): %lu\n    usrp->get_tx_num_channels(): %lu\n\n",
                    get_log_time(), nSides, usrp->get_rx_num_channels(), usrp->get_tx_num_channels());
        return -1;
     }
@@ -858,7 +857,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         }
                     }
 
-                    DEBUG_PRINT("%s: USRP_SETUP sending back parameters rxfreq %f \n", get_log_time(), rxfreq);
+                    DEBUG_PRINT("%s: USRP_SETUP sending back parameters rxfreq %f\n", get_log_time(), rxfreq);
                     sock_send_float64(driverconn, rxrate);
                     sock_send_float64(driverconn, rxfreq);
                     sock_send_float64(driverconn, txrate);
@@ -940,12 +939,20 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                                 std::cerr << "Could not open file:  " << PTfname << "\n";
                                 break;
                             }
-                            fprintf(fd, "%s ", get_log_time());
 
                             // get current epoch time
-                            stat = clock_gettime(CLOCK_REALTIME, &file_tm);
-                            // convert epoch ns to fractional seconds
-                            double frac_secs = (double)file_tm.tv_nsec/1.0e9;
+                            seq_start_time = usrp->get_time_now();
+                            time_t full_seconds = seq_start_time.get_full_secs();
+                            double frac_secs = (double)seq_start_time.get_frac_secs();
+                            gmt = gmtime(&full_seconds);
+
+                            sprintf(timestr, "%04d-%02d-%02d %02d:%02d:%02d.%06d  ",
+                                    1900+gmt->tm_year, gmt->tm_mon+1, gmt->tm_mday,
+                                    gmt->tm_hour, gmt->tm_min, gmt->tm_sec,
+                                    (int)(frac_secs*1.e6));
+
+                            fprintf(fd,"%s",timestr);
+
                             int64_t sec_0 = pulse_time_offsets[0].get_full_secs();
                             if (pulse_time_offsets[0].get_frac_secs() < frac_secs)
                                 sec_0 -= 1;
@@ -961,7 +968,9 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                             fclose(fd);
                         }
 
-                        DEBUG_PRINT("%s: first TRIGGER_PULSE time is %2.5f and last is %2.5f\n", get_log_time(), pulse_time_offsets[0].get_real_secs(), pulse_time_offsets.back().get_real_secs());
+                        uhd::time_spec_t first_trigger = pulse_time_offsets[0];
+                        uhd::time_spec_t last_trigger =  pulse_time_offsets.back();
+                        DEBUG_PRINT("%s: first TRIGGER_PULSE time is %s and last is %s\n", get_log_time(), format_usrp_time(first_trigger), format_usrp_time(last_trigger));
 
                         rx_start_time = offset_time_spec(start_time, tr_to_pulse_delay/1e6);
                         rx_start_time = offset_time_spec(rx_start_time, pulse_sample_idx_offsets[0]/txrate);
@@ -969,8 +978,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         // send_timing_for_sequence(usrp, start_time, pulse_times);
                         double pulseLength = (double)nSamples_tx_pulse / (double)txrate;
 
-                        float debugt = usrp->get_time_now().get_real_secs();
-                        DEBUG_PRINT("%s: USRP_DRIVER: spawning worker threads at usrp_time %2.4f\n", get_log_time(), debugt);
+                        uhd::time_spec_t debugt = usrp->get_time_now();
+                        DEBUG_PRINT("%s: USRP_DRIVER: spawning worker threads at usrp_time %s\n", get_log_time(), format_usrp_time(debugt));
 
                         DEBUG_PRINT("%s: TRIGGER_PULSE creating rx and tx worker threads on swing %d (nSamples_rx= %d + %ld pause + %ld auto clear freq)\n", get_log_time(), swing,(int) nSamples_rx, nSamples_pause_after_rx, nSamples_auto_clear_freq);
                         // works fine with tx_worker and dio_worker, fails if rx_worker is enabled
@@ -998,8 +1007,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     swing = sock_get_int16(driverconn);
                     DEBUG_PRINT("%s: READY_DATA command (swing %d), waiting for uhd threads to join back\n", get_log_time(), swing);
 
-                    float debugt = usrp->get_time_now().get_real_secs();
-                    DEBUG_PRINT("%s: READY_DATA unlocking swing a semaphore at time is %2.5f\n", get_log_time(), debugt);
+                    uhd::time_spec_t debugt = usrp->get_time_now();
+                    DEBUG_PRINT("%s: READY_DATA unlocking swing %d semaphore at time %s\n", get_log_time(), swing, format_usrp_time(debugt));
                     unlock_semaphore(sem_rx_vec[swing]);
                     unlock_semaphore(sem_tx_vec[swing]);
 
@@ -1050,7 +1059,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     // send actual start times of each pulse sequence
                     double pulse_time;
                     for (uint32_t i = 0; i < nsequences; i++) {
-                        pulse_time = pulse_time_offsets[i*npulses/nsequences].get_real_secs() + pulse_offset;
+                        pulse_time = (double)pulse_time_offsets[i*npulses/nsequences].get_full_secs() +
+                                     (double)pulse_time_offsets[i*npulses/nsequences].get_frac_secs();
                         sock_send_float64(driverconn, pulse_time);
                     }
 
@@ -1063,8 +1073,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         }
                         mute_output = 0;
                     } else {
-                        debugt = usrp->get_time_now().get_real_secs();
-                        DEBUG_PRINT("%s: READY_DATA starting copying rx data buffer to shared memory at %2.5f\n", get_log_time(), debugt);
+                        debugt = usrp->get_time_now();
+                        DEBUG_PRINT("%s: READY_DATA starting copying rx data buffer to shared memory at %s\n", get_log_time(), format_usrp_time(debugt));
                         // regural rx data
                         for (iSide = 0; iSide < nSides; iSide++) {
                             // DEBUG_PRINT("usrp_drivercopy to rx shm addr: %p iSide: %d iSwing: %d\n", shm_rx_vec[iSide][swing], iSide, iSwing);
@@ -1093,8 +1103,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     state_vec[swing] = ST_READY;
                     DEBUG_PRINT("%s: changing state_vec[%d] to ST_READY\n", get_log_time(), swing);
 
-                    debugt = usrp->get_time_now().get_real_secs();
-                    DEBUG_PRINT("%s: READY_DATA returning command success at %2.5f\n", get_log_time(), debugt);
+                    debugt = usrp->get_time_now();
+                    DEBUG_PRINT("%s: READY_DATA returning command success at %s\n", get_log_time(), format_usrp_time(debugt));
                     sock_send_uint8(driverconn, READY_DATA);
                     break;
                 }
@@ -1103,13 +1113,13 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     DEBUG_PRINT("%s: entering UHD_GETTIME command\n", get_log_time());
                     start_time = usrp->get_time_now();
 
-                    uint32_t real_time = start_time.get_real_secs();
+                    uint32_t real_time = (uint32_t)start_time.get_full_secs();
                     double frac_time = start_time.get_frac_secs();
 
                     sock_send_uint32(driverconn, real_time);
                     sock_send_float64(driverconn, frac_time);
 
-                    DEBUG_PRINT("%s: UHD_GETTIME current UHD time: %d %.2f command\n", get_log_time(), real_time, frac_time);
+                    DEBUG_PRINT("%s: UHD_GETTIME current UHD time: %s command\n", get_log_time(), format_usrp_time(start_time));
                     sock_send_uint8(driverconn, UHD_GETTIME);
                     break;
                 }
@@ -1120,7 +1130,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     // if --intclk flag passed to usrp_driver, set clock source as internal and do not sync time
                     if (al_intclk->count > 0) {
                         usrp->set_time_now(uhd::time_spec_t(0.0));
-                        boost::xtime_get(&sync_time, boost::TIME_UTC_);
                     } else {
                         // Sync time to the GPS Octoclock if it is available and locked
                         if (strcmp(clk_addr, "addr=") &&
@@ -1149,15 +1158,22 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                                 auto usrp_time = usrp->get_time_last_pps(board);
                                 auto time_diff = clock_time - usrp_time;
 
-                                DEBUG_PRINT("%s: Time difference between USRPs and GPS clock for board %d is %f\n",
-                                            get_log_time(), board, time_diff.get_real_secs());
+                                DEBUG_PRINT("%s: Time difference between USRPs and GPS clock for board %d is %s\n",
+                                            get_log_time(), board, format_usrp_time(time_diff));
                             }
                         } else {
-                            DEBUG_PRINT("%s: Start setting unknown pps\n", get_log_time());
-                            usrp->set_time_unknown_pps(uhd::time_spec_t(11.0));
-                            boost::xtime_get(&sync_time, boost::TIME_UTC_);
-                            DEBUG_PRINT("%s: End setting unknown pps\n", get_log_time());
-                            pulse_offset = sync_time.sec + sync_time.nsec/1000000000 - 11.0;
+
+                            const uhd::time_spec_t last_pps_time = usrp->get_time_last_pps();
+                            while (last_pps_time == usrp->get_time_last_pps()) {
+                                //sleep 100 milliseconds (give or take)
+                            }
+                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+                            DEBUG_PRINT("%s: Start setting next pps\n", get_log_time());
+                            stat = clock_gettime(CLOCK_REALTIME, &c_tm);
+
+                            usrp->set_time_next_pps(uhd::time_spec_t(c_tm.tv_sec+1));
+                            DEBUG_PRINT("%s: End setting next pps\n", get_log_time());
                         }
                     }
 
@@ -1217,12 +1233,10 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                     uint32_t real_time;
                     double frac_time;
 
-                    DEBUG_PRINT("%s: CLRFREQ time: %d . %.2f \n", get_log_time(), clrfreq_time_full, clrfreq_time_frac);
+                    DEBUG_PRINT("%s: CLRFREQ time: %d . %.2f\n", get_log_time(), clrfreq_time_full, clrfreq_time_frac);
                     DEBUG_PRINT("%s: CLRFREQ rate: %.2f, CLRFREQ_nsamples %d, freq: %.2f\n", get_log_time(), clrfreq_rate, num_clrfreq_samples, clrfreq_cfreq);
                     uhd::time_spec_t clrfreq_start_time = uhd::time_spec_t(clrfreq_time_full, clrfreq_time_frac);
-                    real_time = clrfreq_start_time.get_real_secs();
-                    frac_time = clrfreq_start_time.get_frac_secs();
-                    DEBUG_PRINT("%s: CLRFREQ UHD clrfreq target time: %d %.2f \n", get_log_time(), real_time, frac_time);
+                    DEBUG_PRINT("%s: CLRFREQ UHD clrfreq target time: %s\n", get_log_time(), format_usrp_time(clrfreq_start_time));
 
                     if (rxrate != clrfreq_rate) {
                         DEBUG_PRINT("%s: CLRFREQ resetting rxrate from %f to %f\n", get_log_time(), rxrate, clrfreq_rate);
@@ -1293,9 +1307,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
                     sock_send_uint8(driverconn, CLRFREQ);
                     start_time = usrp->get_time_now();
-                    real_time = start_time.get_real_secs();
-                    frac_time = start_time.get_frac_secs();
-                    DEBUG_PRINT("%s: CLRFREQ finished at UHD time: %d %.2f \n", get_log_time(), real_time, frac_time);
+                    DEBUG_PRINT("%s: CLRFREQ finished at UHD time: %s\n", get_log_time(), format_usrp_time(start_time));
                     break;
                 }
 

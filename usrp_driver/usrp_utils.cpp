@@ -17,6 +17,7 @@
 #include <cstdlib>
 
 char tstr[128];
+char usrp_tstr[128];
 
 
 char *get_log_time() {
@@ -27,12 +28,28 @@ char *get_log_time() {
     stat = clock_gettime(CLOCK_REALTIME, &err_tm);
 
     gmt = gmtime(&err_tm.tv_sec);
-    sprintf(tstr, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
+    sprintf(tstr, "%04d-%02d-%02d %02d:%02d:%02d.%06d",
             1900+gmt->tm_year, gmt->tm_mon+1, gmt->tm_mday,
             gmt->tm_hour, gmt->tm_min, gmt->tm_sec,
-            (int)(err_tm.tv_nsec/1e6));
+            (int)(err_tm.tv_nsec/1e3));
 
     return tstr;
+}
+
+
+char *format_usrp_time(uhd::time_spec_t usrp_time) {
+    struct tm *gmt;
+    int stat __attribute__ ((unused));
+
+    time_t full_seconds = usrp_time.get_full_secs();
+    double frac_secs = (double)usrp_time.get_frac_secs();
+
+    gmt = gmtime(&full_seconds);
+    sprintf(usrp_tstr, "%02d:%02d:%02d.%06d",
+            gmt->tm_hour, gmt->tm_min, gmt->tm_sec,
+            (int)(frac_secs*1.e6));
+
+    return usrp_tstr;
 }
 
 

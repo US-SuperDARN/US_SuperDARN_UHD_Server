@@ -166,8 +166,8 @@ void init_timing_signals(
     bool realtime=true;
     uhd::set_thread_priority_safe(priority,realtime);
 
-    double debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("%s: DIO queing GPIO commands at usrp_time %2.4f\n", get_log_time(), debugt);
+    uhd::time_spec_t debugt = usrp->get_time_now();
+    DEBUG_PRINT("%s: DIO queing GPIO commands at usrp_time %s\n", get_log_time(), format_usrp_time(debugt));
 
     if (MCM_STYLE) {
         usrp->set_gpio_attr("FP0", "CTRL", MANUAL_CONTROL, MCM_SYNC);
@@ -200,8 +200,8 @@ void init_timing_signals(
         }
     }
 
-    debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("%s: DIO: set gpio attrs at usrp_time %2.4f\n", get_log_time(), debugt);
+    debugt = usrp->get_time_now();
+    DEBUG_PRINT("%s: DIO: set gpio attrs at usrp_time %s\n", get_log_time(), format_usrp_time(debugt));
 }
 
 
@@ -344,7 +344,7 @@ void send_timing_for_sequence(
         }
     }
 
-    float debugt = usrp->get_time_now().get_real_secs();
+    uhd::time_spec_t debugt = usrp->get_time_now();
 
     /* boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
     std::cout << "GPIO command issue start time is: "<< to_iso_extended_string(now)<< std::endl;
@@ -354,7 +354,7 @@ void send_timing_for_sequence(
     gmt = gmtime(&current_time);
     fprintf(stderr,"GPIO command issue start time is: %s", asctime(gmt));
 
-    DEBUG_PRINT("%s: DIO: pushed gpio commands at usrp_time %2.4f\n", get_log_time(), debugt);
+    DEBUG_PRINT("%s: DIO: pushed gpio commands at usrp_time %s\n", get_log_time(), format_usrp_time(debugt));
 
     // issue gpio commands in time sorted order
     // set_command_time must be sent in temporal order, they are sent
@@ -379,8 +379,8 @@ void send_timing_for_sequence(
     gmt = gmtime(&current_time);
     fprintf(stderr,"GPIO command issue end time is: %s", asctime(gmt));
 
-    debugt = usrp->get_time_now().get_real_secs();
-    DEBUG_PRINT("%s: All DIO commands sent! clock time %2.4f\n", get_log_time(), debugt);
+    debugt = usrp->get_time_now();
+    DEBUG_PRINT("%s: All DIO commands sent! clock time %s\n", get_log_time(), format_usrp_time(debugt));
 
     usrp->clear_command_time();
 
