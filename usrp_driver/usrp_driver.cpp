@@ -1127,6 +1127,18 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                 // command to reset time, sync time with external PPS pulse
                 case UHD_SYNC: {
                     DEBUG_PRINT("%s: entering UHD_SYNC command\n", get_log_time());
+
+                    auto wait_for_update = [&]() {
+                        uhd::time_spec_t last = usrp->get_time_last_pps();
+                        uhd::time_spec_t next = usrp->get_time_last_pps();
+                        while (next == last) {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                            last = next;
+                            next = usrp->get_time_last_pps();
+                        }
+                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                    };
+
                     // if --intclk flag passed to usrp_driver, set clock source as internal and do not sync time
                     if (al_intclk->count > 0) {
                         usrp->set_time_now(uhd::time_spec_t(0.0));
@@ -1134,17 +1146,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         // Sync time to the GPS Octoclock if it is available and locked
                         if (strcmp(clk_addr, "addr=") &&
                             gps_clock->get_sensor("gps_locked").to_bool()) {
-
-                            auto wait_for_update = [&]() {
-                                uhd::time_spec_t last = usrp->get_time_last_pps();
-                                uhd::time_spec_t next = usrp->get_time_last_pps();
-                                while (next == last) {
-                                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                                    last = next;
-                                    next = usrp->get_time_last_pps();
-                                }
-                                std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                            };
 
                             DEBUG_PRINT("%s: Start setting GPS-locked PPS.\n", get_log_time());
                             wait_for_update();
@@ -1162,17 +1163,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                                             get_log_time(), board, format_usrp_time(time_diff));
                             }
                         } else {
-
-                            const uhd::time_spec_t last_pps_time = usrp->get_time_last_pps();
-                            while (last_pps_time == usrp->get_time_last_pps()) {
-                                //sleep 100 milliseconds (give or take)
-                            }
-                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
                             DEBUG_PRINT("%s: Start setting next pps\n", get_log_time());
+                            wait_for_update();
                             stat = clock_gettime(CLOCK_REALTIME, &c_tm);
-
                             usrp->set_time_next_pps(uhd::time_spec_t(c_tm.tv_sec+1));
+                            wait_for_update();
                             DEBUG_PRINT("%s: End setting next pps\n", get_log_time());
                         }
                     }
@@ -1229,9 +1224,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                             clrfreq_data_buffer[iSide].resize(num_clrfreq_samples);
                         }
                     }
-
-                    uint32_t real_time;
-                    double frac_time;
 
                     DEBUG_PRINT("%s: CLRFREQ time: %d . %.2f\n", get_log_time(), clrfreq_time_full, clrfreq_time_frac);
                     DEBUG_PRINT("%s: CLRFREQ rate: %.2f, CLRFREQ_nsamples %d, freq: %.2f\n", get_log_time(), clrfreq_rate, num_clrfreq_samples, clrfreq_cfreq);
