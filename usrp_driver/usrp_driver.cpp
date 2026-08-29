@@ -975,7 +975,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         rx_start_time = offset_time_spec(start_time, tr_to_pulse_delay/1e6);
                         rx_start_time = offset_time_spec(rx_start_time, pulse_sample_idx_offsets[0]/txrate);
 
-                        // send_timing_for_sequence(usrp, start_time, pulse_times);
                         double pulseLength = (double)nSamples_tx_pulse / (double)txrate;
 
                         uhd::time_spec_t debugt = usrp->get_time_now();
@@ -992,7 +991,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
                         }
 
                         usleep(usecs);
-                        uhd_threads.create_thread(boost::bind(send_timing_for_sequence, usrp, start_time, pulse_time_offsets, pulseLength, mimic_active, mimic_delay, nSides, nsequences));
+                        uhd_threads.create_thread(boost::bind(send_timing_for_sequence, usrp, start_time, pulse_time_offsets, pulseLength, mimic_active, mimic_delay, nsequences));
 
                         usleep(usecs);
                         sock_send_uint8(driverconn, TRIGGER_PULSE);

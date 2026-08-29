@@ -249,7 +249,6 @@ void send_timing_for_sequence(
     double pulseLength,
     bool mimic_active,
     float mimic_delay,
-    int nSides,
     int nSequences
 ) {
 
