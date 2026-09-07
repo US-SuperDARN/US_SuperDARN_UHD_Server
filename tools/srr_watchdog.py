@@ -210,7 +210,7 @@ while True:
             usrp_driver_watcher.last_restart = time.mktime(time.localtime())
 
         else:
-            # check USRPSs
+            # check USRPs
             usrp_driver_watcher.check_processes()
             usrp_driver_watcher.check_logs()
             usrp_driver_watcher.restart_usrps()
