@@ -959,7 +959,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]) {
 
                             int32_t line_count=0;
                             for (uint32_t p_i=0; p_i<number_of_pulses; p_i++) {
-                                fprintf(fd, "%f, ", pulse_time_offsets[p_i].get_full_secs() - sec_0 + pulse_time_offsets[p_i].get_frac_secs());
+                                fprintf(fd, ", %f", pulse_time_offsets[p_i].get_full_secs() - sec_0 + pulse_time_offsets[p_i].get_frac_secs());
                                 line_count++;
                                 if ((line_count % LINE_LENGTH) == 0) fprintf(fd, "\n");
                             }
