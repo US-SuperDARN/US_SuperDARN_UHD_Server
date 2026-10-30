@@ -31,7 +31,6 @@ TODO:
 __device__ __constant__ double  phaseIncrement_NCO_rad[MAXCHANNELS];
 __device__ __constant__ int16_t decimationRates[2]; // [0]: rf2if, [1]: if2bb
 
-
 // downsampling and filter
 __global__ void multiply_and_add(float *samples, float *odata, float *filter, uint32_t nSamples_if)
 {
@@ -170,7 +169,9 @@ __global__ void multiply_mix_add(int16_t *samples, float *odata, float *filter, 
     // number of (complex) samples in rf signal
     uint32_t iSample_rf = iSampleIF * decimationRate_rf2if + iFilterSampleTimes2 * 2;
 
+    
     if (iSample_rf >= offset) {
+
         // index in memory (account for I/Q, iAntenna)
         uint32_t idxSample_rf = (iSample_rf - offset) * 2 + iAntenna * nSamples_rf *2;
 
@@ -256,3 +257,97 @@ __global__ void multiply_mix_add(int16_t *samples, float *odata, float *filter, 
 
 }
 
+// unchirp at IF
+__global__ void unchirp_if(float *samples, float *odata, float *chirp)
+{
+    __shared__ float itemp[1024]; // Array size is max number of threads in a block
+    __shared__ float qtemp[1024];
+
+    // clear variable names
+    uint32_t iChirpSamp           = threadIdx.x;
+    uint32_t iChannel             = threadIdx.y;
+    uint32_t nChirpSamp           = blockDim.x;
+    uint32_t nChannels            = blockDim.y;
+    uint32_t iSampleIF            = blockIdx.x;
+    uint32_t iAntenna             = blockIdx.y;
+    uint32_t nSamplesIF           = gridDim.x;
+
+    // linear thread index in block
+    uint32_t iThread_lin = iChirpSamp + iChannel*nChirpSamp;
+
+    // offset to align center of pulse
+    int32_t offset = nChirpSamp / 2;
+
+    // 2 samples/thread (unrolled) * 2 components/sample (I /Q) = 4
+    uint32_t idxSample_chirp = 2 * iChirpSamp;
+
+
+    if (iSampleIF >= offset) {
+        // index in memory (account for I/Q, iChannel, iAntenna)
+        uint32_t idxSample_if = (iSampleIF - offset + iChirpSamp) * 2 + iChannel * nSamplesIF *2 + iAntenna * nChannels * nSamplesIF *2;
+        float i0 = samples[idxSample_if  ];
+        float q0 = samples[idxSample_if+1];
+
+        // get filter values from global memory
+        float p0re = (float)chirp[idxSample_chirp  ];
+        float p0im = (float)chirp[idxSample_chirp+1];
+
+        // multiply filter
+        itemp[iThread_lin] = p0re * i0 - p0im * q0;
+        qtemp[iThread_lin] = p0re * q0 + p0im * i0;
+    } else {
+        // zero padding the first part of the filter for output sample 0
+        itemp[iThread_lin] = 0;
+        qtemp[iThread_lin] = 0;
+    }
+    __syncthreads();
+
+    // parallel reduce samples (could unroll loop for speedup?)
+    // Do this as long as the reduction is a power of 2
+    int32_t s, rem;
+    s = blockDim.x;// / blockDim.y;
+    rem = s % 2;
+    while (s > 0 && rem == 0) {
+        s /= 2;
+        if (threadIdx.x < s) {
+            itemp[iThread_lin] += itemp[iThread_lin + s];
+            qtemp[iThread_lin] += qtemp[iThread_lin + s];
+        }
+        rem = s % 2;
+
+        __syncthreads();
+    }
+
+    // Do this as long as the reduction is a power of 5
+    rem = s % 5;
+    while (s > 0 && rem == 0) {
+        s /= 5;
+        if (threadIdx.x < s) {
+            itemp[iThread_lin] = itemp[iThread_lin] + itemp[iThread_lin + s] +
+                                 itemp[iThread_lin+2*s] + itemp[iThread_lin+3*s] +
+                                 itemp[iThread_lin+4*s];
+            qtemp[iThread_lin] = qtemp[iThread_lin] + qtemp[iThread_lin + s] +
+                                 qtemp[iThread_lin+2*s] + qtemp[iThread_lin+3*s] +
+                                 qtemp[iThread_lin+4*s];
+        }
+        rem = s % 5;
+
+        __syncthreads();
+    }
+
+    // Now do a serial reduction for the remaining
+    if (threadIdx.x == 0) {
+        for (int32_t i=1; i<s; i++) {
+            itemp[iThread_lin] += itemp[iThread_lin + i];
+            qtemp[iThread_lin] += qtemp[iThread_lin + i];
+        }
+    }
+    __syncthreads();
+
+    // write back results
+    if (threadIdx.x == 0) {
+        uint32_t output_idx = iSampleIF *2 + iChannel * nSamplesIF *2 + iAntenna * nChannels * nSamplesIF *2;
+        odata[output_idx  ] = (float) itemp[iThread_lin];
+        odata[output_idx+1] = (float) qtemp[iThread_lin];
+    }
+}

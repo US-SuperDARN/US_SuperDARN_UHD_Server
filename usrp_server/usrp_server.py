@@ -2152,7 +2152,9 @@ class RadarHardwareManager:
                                      self.commonChannelParameter['upsample_rate'], \
                                      self.commonChannelParameter['downsample_rates'][0], \
                                      self.commonChannelParameter['downsample_rates'][1], \
-                                     self.mixingFreqManager.current_mixing_freq[jrad]*1000)
+                                     self.mixingFreqManager.current_mixing_freq[jrad]*1000,\
+                                     self.commonChannelParameter['pulseLength'], \
+                                    )
             cmd.transmit()
             cmd_list.append(cmd)
 
@@ -3619,14 +3621,14 @@ class RadarChannelHandler:
             self.update_ctrlprm_class('current')
             self.logger.debug("Getting current sequence with {} samples ({} x {} x {}) rbeam {}".format(self.nrf_rx_samples_per_integration_period, self.nbb_rx_samples_per_sequence, np.prod(self.parent_RadarHardwareManager.commonChannelParameter['downsample_rates']), self.nSequences_per_period, self.ctrlprm_struct.payload['rbeam']))
 
-        seq = sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload )
+        seq = sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.chirp_bandwidth, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload )
         return seq
 
 
     def get_next_sequence(self):
         self.update_ctrlprm_class('next')
         self.logger.debug("Getting next sequence with {} samples ({} x {} x {}) rbeam {}".format(self.nrf_rx_samples_per_integration_period, self.nbb_rx_samples_per_sequence, np.prod(self.parent_RadarHardwareManager.commonChannelParameter['downsample_rates']), self.nSequences_per_period, self.ctrlprm_struct.payload['rbeam']))
-        seq = copy.deepcopy( sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload) )
+        seq = copy.deepcopy( sequence(self.npulses_per_sequence, self.tr_to_pulse_delay, self.parent_RadarHardwareManager.all_possible_integration_period_pulse_sample_offsets, self.pulse_lens, self.chirp_bandwidth, self.phase_masks, self.pulse_masks, self.channelScalingFactor, self.ctrlprm_struct.payload) )
         return seq
 
 
@@ -3735,6 +3737,7 @@ class RadarChannelHandler:
            pat.append(recv_dtype(self.conn, np.int32))
         self.raw_export_data['ppat'] = pat
 
+        self.raw_export_data['chirp_bandwidth'] = recv_dtype(self.conn, np.int32)
         self.raw_export_data['nbaud'] = recv_dtype(self.conn, np.int32)
         pcode = []
         for iBaudCode in range(self.raw_export_data['nbaud']):
@@ -3807,6 +3810,7 @@ class RadarChannelHandler:
         self.npulses_per_sequence = npulses_per_sequence
         self.pulse_sequence_offsets_vector = pulse_sequence_offsets_vector / 1e6
         self.pulse_lens = pulse_lens # length of pulses, in seconds
+        self.chirp_bandwidth = self.raw_export_data['chirp_bandwidth']
         self.phase_masks = phase_masks # phase masks are complex number to multiply phase by, so
         self.pulse_masks = pulse_masks
         self.tr_to_pulse_delay = tr_to_pulse_delay
@@ -3817,7 +3821,7 @@ class RadarChannelHandler:
       #  print("pulse masks (len {}):".format(len(pulse_masks)))
       #  print(pulse_masks)
 
-        self.logger.debug("pulse0 length: {} us, tr_pulse_delay: {} us, tx_time: {} us".format(self.pulse_lens[0], tr_to_pulse_delay, self.pulse_lens[0] + 2 * self.tr_to_pulse_delay))
+        self.logger.debug("pulse0 length: {} us, tr_pulse_delay: {} us, tx_time: {} us, chirp_bandwidth: {} Hz".format(self.pulse_lens[0], tr_to_pulse_delay, self.pulse_lens[0] + 2 * self.tr_to_pulse_delay, self.chirp_bandwidth))
         if npulses_per_sequence == 0:
             raise ValueError('number of pulses per sequence must be greater than zero!')
         if nbb_samples == 0:

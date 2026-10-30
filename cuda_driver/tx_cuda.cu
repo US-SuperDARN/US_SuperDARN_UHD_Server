@@ -32,6 +32,7 @@ TODO:
 
 __device__ __constant__ double txfreq_rads[MAXCHANNELS];
 __device__ __constant__ float  txphasedelay_rads[MAXANTS * MAXCHANNELS];
+__device__ __constant__ double chirp_frequency_increment; // frequency step in chirp
 
 
 // main function
@@ -78,8 +79,14 @@ __global__ void interpolate_and_multiply(
         inc_q = (inData[idxInput + Q_OFFSET+2] - inData[idxInput + Q_OFFSET]) / upSampleRate * iUpsample;
     }
 
+
+    // find index of sample in the pulse, which is used to calculate the chirp frequency
+    int sample_in_pulse = iSample_bb*upSampleRate + iUpsample - (int)(nSamples_bb*upSampleRate);    
+    // frequency range is plus-minus half of the bandwidth
+    double chirp_freq = (double)sample_in_pulse * chirp_frequency_increment;
+
     // Calculate phase for each sample by adding phase of local oscillator and cable phase offset
-    float phase = fmod( (double)( iSample_bb*upSampleRate + iUpsample )*txfreq_rads[iChannel], 2*M_PI) + txphasedelay_rads[iAntenna+iChannel*nAntennas];
+    float phase = fmod( (double)( iSample_bb*upSampleRate + iUpsample )*(txfreq_rads[iChannel] + chirp_freq), 2*M_PI) + txphasedelay_rads[iAntenna+iChannel*nAntennas];
 
     // Calculate the output sample vectors, one for each freq/beam channel
     unsigned int localInx = iChannel*upSampleRate + iUpsample;

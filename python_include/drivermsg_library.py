@@ -228,13 +228,14 @@ class cuda_process_command(driver_command):
 
 
 class cuda_setup_command(driver_command):
-    def __init__(self, cudas, rfrate=0, upsampleRate=0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0):
+    def __init__(self, cudas, rfrate=0, upsampleRate=0, downsampleRate_rf2if=0, downsampleRate_if2bb=0, usrp_mixing_freq=0, pulseLength=0):
         driver_command.__init__(self, cudas, CUDA_SETUP)
         self.queue(upsampleRate, np.uint32, 'upsampleRate')
         self.queue(downsampleRate_rf2if, np.uint32, 'downsampleRate_rf2if')
         self.queue(downsampleRate_if2bb, np.uint32, 'downsampleRate_if2bb')
         self.queue(usrp_mixing_freq, np.uint32, 'usrp_mixing_freq')
         self.queue(rfrate, np.uint32, 'usrp_rfrate')
+        self.queue(pulseLength, np.uint32, 'pulseLength')
 
 
 # add a pulse sequence/channel
@@ -493,11 +494,12 @@ class usrp_exit_command(driver_command):
 
 # class with pulse sequence information
 class sequence(object):
-    def __init__(self, npulses, tr_to_pulse_delay, pulse_offsets_vector, pulse_lens, phase_masks, pulse_masks, channelScalingFactor, ctrlprm):
+    def __init__(self, npulses, tr_to_pulse_delay, pulse_offsets_vector, pulse_lens, chirp_bandwidth, phase_masks, pulse_masks, channelScalingFactor, ctrlprm):
         self.ctrlprm = ctrlprm
         self.npulses = npulses
         self.pulse_offsets_vector = pulse_offsets_vector
         self.pulse_lens = pulse_lens # length of pulses, in seconds
+        self.chirp_bandwidth = chirp_bandwidth # chirp bandwidth, in Hz
         self.phase_masks = phase_masks # phase masks are complex number to multiply phase by, so, 1 + j0 is no rotation
         self.pulse_masks = pulse_masks
         self.tr_to_pulse_delay = tr_to_pulse_delay
