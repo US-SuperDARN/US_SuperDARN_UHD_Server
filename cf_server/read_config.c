@@ -46,6 +46,48 @@ static int config_ini_handler(void* user, const char* section, const char* name,
         if (strcmp(name, "avg_ratio") == 0) {
             pconfig->clr_settings.avg_ratio = atoi(value);
         }
+    } else if (strcmp(section, "dsp_filters") == 0) {
+        if (strcmp(name, "rfif_atten") == 0) {
+            char *value_copy = strdup(value);
+            int idx = 0;
+            char *token = strtok(value_copy, ",");
+            while (token != NULL && idx < 4) {
+                pconfig->dsp_filters.rfif_atten[idx] = atof(token);
+                token = strtok(NULL, ",");
+                idx++;
+            }
+            free(value_copy);
+        } else if (strcmp(name, "rfif_width") == 0) {
+            char *value_copy = strdup(value);
+            int idx = 0;
+            char *token = strtok(value_copy, ",");
+            while (token != NULL && idx < 4) {
+                pconfig->dsp_filters.rfif_width[idx] = atof(token);
+                token = strtok(NULL, ",");
+                idx++;
+            }
+            free(value_copy);
+        } else if (strcmp(name, "ifbb_atten") == 0) {
+            char *value_copy = strdup(value);
+            int idx = 0;
+            char *token = strtok(value_copy, ",");
+            while (token != NULL && idx < 4) {
+                pconfig->dsp_filters.ifbb_atten[idx] = atof(token);
+                token = strtok(NULL, ",");
+                idx++;
+            }
+            free(value_copy);
+        } else if (strcmp(name, "ifbb_rfreq") == 0) {
+            char *value_copy = strdup(value);
+            int idx = 0;
+            char *token = strtok(value_copy, ",");
+            while (token != NULL && idx < 4) {
+                pconfig->dsp_filters.ifbb_rfreq[idx] = atof(token);
+                token = strtok(NULL, ",");
+                idx++;
+            }
+            free(value_copy);
+        }
     }
 
     return 1;

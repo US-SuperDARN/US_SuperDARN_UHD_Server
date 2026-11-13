@@ -99,6 +99,13 @@ typedef struct {
 } ArrayInfo;
 
 typedef struct {
+    double rfif_atten[4];
+    double rfif_width[4];
+    double ifbb_atten[4];
+    double ifbb_rfreq[4];
+} DspFilters;
+
+typedef struct {
     int mute_antenna_ids[STATIC_ANTENNA_NUM];
     int num_mute_antennas;
 } GainControl;
@@ -109,6 +116,7 @@ typedef struct {
 
 typedef struct {
     ArrayInfo array_info;
+    DspFilters dsp_filters;
     GainControl gain_control;
     ClrSettings clr_settings;
 } Config;

@@ -631,13 +631,14 @@ class ProcessingGPU(object):
         ifbb_rFreq = bw*float(self.dsp_info['ifbb_rFreq'].split(",")[filter_idx]) # stop band frequency multiple of pulse bandwidth
 
         self.ntaps_rfif,self.beta_rfif = kaiserord(rfif_atten, rfif_width)
-#        self.ntaps_rfif = int( int(self.ntaps_rfif/downRate_rf2if + 1)*downRate_rf2if)
+        self.ntaps_rfif_0 = int( int(self.ntaps_rfif/downRate_rf2if + 1)*downRate_rf2if) # make sure ntaps is multiple of downsampling rate
+        self.ntaps_rfif = self.ntaps_rfif_0 + downRate_rf2if + 1 # make sure ntaps is multiple of downsampling ratew
         self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bw, rfif_width, self.ntaps_rfif))
 
         if_samplingRate = self.rx_rf_samplingRate/self.rx_rf2if_downsamplingRate
         ifbb_width = 2*ifbb_rFreq/if_samplingRate
         self.ntaps_ifbb,self.beta_ifbb = kaiserord(ifbb_atten, ifbb_width)
-#        self.ntaps_ifbb = int( int(self.ntaps_ifbb/downRate_if2bb + 1)*downRate_if2bb)
+        self.ntaps_ifbb = int( int(self.ntaps_ifbb/downRate_if2bb + 1)*downRate_if2bb)
         self.logger.debug('ifbb_atten: {}  ifbb_rFreq: {}  bw: {}  ifbb_width: {}  ntaps_ifbb: {}'.format(ifbb_atten, ifbb_rFreq, bw, ifbb_width, self.ntaps_ifbb))
 
         if (if_samplingRate <= rfif_rFreq):
@@ -761,8 +762,21 @@ class ProcessingGPU(object):
 
         self.logger.debug("bw: {}  if_samplingRate: {}  if_corner: {}  bb_corner: {}".format(bw,if_samplingRate,if_corner,bb_corner))
 
-        self.rx_filtertap_rfif = dsp_filters.firwin(channelFreqVec, if_corner, self.ntaps_rfif, self.beta_rfif)
+        self.rx_filtertap_rfif_temp = dsp_filters.firwin(channelFreqVec, if_corner, self.ntaps_rfif_0, self.beta_rfif)
+        
+        boxcar = np.ones(self.rx_rf2if_downsamplingRate)
+
+        self.rx_filtertap_rfif=np.zeros((len(channelFreqVec), self.ntaps_rfif,2), dtype=np.float32)
+        for iChannel in range(self.nChannels):
+            real_taps = np.convolve(self.rx_filtertap_rfif_temp[iChannel,:,0], boxcar)
+            imag_taps = np.convolve(self.rx_filtertap_rfif_temp[iChannel,:,1], boxcar)
+            normalization = np.sum(np.abs(real_taps + 1j*imag_taps))
+
+            self.rx_filtertap_rfif[iChannel,0:len(real_taps),0] = real_taps/normalization
+            self.rx_filtertap_rfif[iChannel,0:len(imag_taps),1] = imag_taps/normalization
+
         self.rx_filtertap_ifbb = dsp_filters.firwin(channelFreqVec, bb_corner, self.ntaps_ifbb, self.beta_ifbb)
+
 
         # for j in range(self.ntaps_rfif):
         #     self.logger.debug("rf filter tap {}: {}".format(j,self.rx_filtertap_rfif[0,j,0]))
