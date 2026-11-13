@@ -138,6 +138,7 @@ class cuda_generate_pulse_handler(cudamsg_handler):
             os.remove('cuda.dump.tx') # only save tx samples once
             self.logger.info('Wrote raw tx samples to /data/diagnostic_samples/cuda_dump_tx_'+ name + '.pkl')
 
+
     # generate baseband sample vectors for a transmit pulse from sequence information
     def generate_bb_signal(self, channel, swing, shapefilter = None):
         self.logger.debug('entering generate_bb_signal')
@@ -560,17 +561,17 @@ class ProcessingGPU(object):
 
         with open('rx_cuda.cu', 'r') as f:
             self.cu_rx = pycuda.compiler.SourceModule(f.read())
-            self.cu_rx_multiply_and_add      = self.cu_rx.get_function('multiply_and_add')
-            self.cu_rx_multiply_mix_add      = self.cu_rx.get_function('multiply_mix_add')
-            self.cu_rx_unchirp_if            = self.cu_rx.get_function('unchirp_if')
-            self.cu_rx_phaseIncrement_rad    = self.cu_rx.get_global('phaseIncrement_NCO_rad')[0]
-            self.cu_rx_decimationRates       = self.cu_rx.get_global('decimationRates')[0]
+            self.cu_rx_multiply_and_add   = self.cu_rx.get_function('multiply_and_add')
+            self.cu_rx_multiply_mix_add   = self.cu_rx.get_function('multiply_mix_add')
+            self.cu_rx_unchirp_if         = self.cu_rx.get_function('unchirp_if')
+            self.cu_rx_phaseIncrement_rad = self.cu_rx.get_global('phaseIncrement_NCO_rad')[0]
+            self.cu_rx_decimationRates    = self.cu_rx.get_global('decimationRates')[0]
 
         with open('tx_cuda.cu', 'r') as f:
             self.cu_tx = pycuda.compiler.SourceModule(f.read())
-            self.cu_tx_interpolate_and_multiply = self.cu_tx.get_function('interpolate_and_multiply')
-            self.cu_tx_mixer_freq_rads = self.cu_tx.get_global('txfreq_rads')[0]
-            self.cu_txoffsets_rads = self.cu_tx.get_global('txphasedelay_rads')[0]
+            self.cu_tx_interpolate_and_multiply  = self.cu_tx.get_function('interpolate_and_multiply')
+            self.cu_tx_mixer_freq_rads           = self.cu_tx.get_global('txfreq_rads')[0]
+            self.cu_txoffsets_rads               = self.cu_tx.get_global('txphasedelay_rads')[0]
             self.cu_tx_chirp_frequency_increment = self.cu_tx.get_global('chirp_frequency_increment')[0]
 
         self.streams = [cuda.Stream() for i in range(nSwings)]
@@ -658,7 +659,8 @@ class ProcessingGPU(object):
         if_chirp_length = np.round(self.tx_pulse_len/1e6 * self.rx_if_samplingRate).astype(int) 
         temp_chirp = np.float32(np.zeros([if_chirp_length, 2]))
         self.cu_rx_chirp = cuda.mem_alloc_like(temp_chirp)
-    # 
+
+
     def synth_tx_rf_pulses(self, bb_signal, tx_bb_nSamples_per_pulse, swing):
         for iChannel in range(self.nChannels):
             if self.sequences[swing][iChannel] != None:  # if channel is defined
@@ -818,7 +820,6 @@ class ProcessingGPU(object):
         self.rx_if_block = self._intify((self.ntaps_rfif / 2, self.nChannels, 1))
         self.rx_if_unc_block = self._intify((self.chirp_length, self.nChannels, 1))
         self.rx_bb_block = self._intify((self.ntaps_ifbb / 2, self.nChannels, 1))
-        
 
         if self.chirp_bandwidth != 0:
             self._set_rx_chirp_array()
@@ -864,7 +865,6 @@ class ProcessingGPU(object):
         # [NCHANNELS][NTAPS][I/Q]
         self.rx_filtertap_rfif = np.float32(np.zeros([self.nChannels, self.ntaps_rfif, 2]))
         self.rx_filtertap_ifbb = np.float32(np.zeros([self.nChannels, self.ntaps_ifbb, 2]))
-
 
 
     # synthesize rf waveform (beamforming, apply phase_masks, mixing in cuda)
@@ -950,8 +950,10 @@ class ProcessingGPU(object):
 
         if self.chirp_bandwidth == 0:
             self.cu_rx_multiply_mix_add(self.cu_rx_rf_samples, self.cu_rx_if_samples, self.cu_rx_filtertaps_rfif[swing], np.uint32(self.rx_rf_nSamples), block = self.rx_if_block, grid = self.rx_if_grid, stream = self.streams[swing])
+            self.logger.debug("  block: {}, grid : {}".format(self.rx_if_block, self.rx_if_grid))
         else:
             self.cu_rx_multiply_mix_add(self.cu_rx_rf_samples, self.cu_rx_chirped_if_samples, self.cu_rx_filtertaps_rfif[swing], np.uint32(self.rx_rf_nSamples), block = self.rx_if_block, grid = self.rx_if_grid, stream = self.streams[swing])
+            self.logger.debug("  block: {}, grid : {}".format(self.rx_if_block, self.rx_if_grid))
 
             if os.path.isfile('./cuda.dump.chirp.rx'):
                 name = datetime.now(UTC).strftime('%Y-%m-%d_%H%M%S')
@@ -959,22 +961,20 @@ class ProcessingGPU(object):
 
                 with open('/data/diagnostic_samples/cuda_dump_chirp_rx_'+ name + '.pkl', 'wb') as f:
                     pickle.dump([self.rx_chirped_if_samples], f, pickle.HIGHEST_PROTOCOL)
-                os.remove('cuda.dump.chirp.rx') # only save tx samples once
-                self.logger.info('Wrote raw tx samples to /data/diagnostic_samples/cuda_dump_tx_'+ name + '.pkl')
-        
-            self.logger.debug("  block: {}, grid : {}".format(self.rx_if_block, self.rx_if_grid))
+                os.remove('cuda.dump.chirp.rx') # only save rx samples once
+                self.logger.info('Wrote raw chirp rx samples to /data/diagnostic_samples/cuda_dump_chirp_rx_'+ name + '.pkl')
+
             self.logger.debug('unchirping at if')
             self.cu_rx_unchirp_if(self.cu_rx_chirped_if_samples, self.cu_rx_if_samples, self.cu_rx_chirp, block = self.rx_if_unc_block, grid = self.rx_if_unc_grid, stream = self.streams[swing])
 
-            if os.path.isfile('./cuda.dump.if.rx'):
-                name = datetime.now(UTC).strftime('%Y-%m-%d_%H%M%S')
-                cuda.memcpy_dtoh(self.rx_if_samples, self.cu_rx_if_samples)
+        if os.path.isfile('./cuda.dump.if.rx'):
+            name = datetime.now(UTC).strftime('%Y-%m-%d_%H%M%S')
+            cuda.memcpy_dtoh(self.rx_if_samples, self.cu_rx_if_samples)
 
-                with open('/data/diagnostic_samples/cuda_dump_if_rx_'+ name + '.pkl', 'wb') as f:
-                    pickle.dump([self.rx_if_samples], f, pickle.HIGHEST_PROTOCOL)
-                os.remove('cuda.dump.if.rx') # only save tx samples once
-                self.logger.info('Wrote raw tx samples to /data/diagnostic_samples/cuda_dump_tx_'+ name + '.pkl')
-
+            with open('/data/diagnostic_samples/cuda_dump_if_rx_'+ name + '.pkl', 'wb') as f:
+                pickle.dump([self.rx_if_samples], f, pickle.HIGHEST_PROTOCOL)
+            os.remove('cuda.dump.if.rx') # only save rx samples once
+            self.logger.info('Wrote raw if rx samples to /data/diagnostic_samples/cuda_dump_if_rx_'+ name + '.pkl')
 
         self.logger.debug('processing if -> bb')
         self.cu_rx_multiply_and_add(self.cu_rx_if_samples, self.cu_rx_bb_samples, self.cu_rx_filtertaps_ifbb[swing], np.uint32(self.rx_if_grid[0]), block = self.rx_bb_block, grid = self.rx_bb_grid, stream = self.streams[swing])
@@ -1160,6 +1160,7 @@ class ProcessingGPU(object):
                 self.logger.debug('setting rx mixer freq (phase offset) for ch {}: {} MHz (usrp BB {} MHz) swing {}'.format(channel, fc/1e6, (self.usrp_mixing_freq[swing] - fc)/1e6, swing))
         cuda.memcpy_htod(self.cu_rx_phaseIncrement_rad, self.rx_phaseIncrement_rad)
 
+
     # update chirp radian frequency step (actually phase step)
     def _set_tx_chirp_frequency_increment(self, tx_bb_nSamples_per_pulse):
         n_rf_samples_per_pulse = tx_bb_nSamples_per_pulse * self.tx_upsamplingRate
@@ -1168,6 +1169,7 @@ class ProcessingGPU(object):
         self.tx_chirp_frequency_increment = np.array([2*np.pi*bw/(n_rf_samples_per_pulse*self.tx_rf_samplingRate)],dtype=np.float64)
         self.logger.debug('setting tx_chirp bandwidth to {:0.2f} kHz with frequency increment {:0.3e} rad/s'.format(bw/1000, self.tx_chirp_frequency_increment[0]))
         cuda.memcpy_htod(self.cu_tx_chirp_frequency_increment, self.tx_chirp_frequency_increment)
+
 
     # update chirp receive phase increments
     def _set_rx_chirp_array(self):
@@ -1182,7 +1184,7 @@ class ProcessingGPU(object):
         self.rx_chirp[:,1] = rx_chirp_complex.imag/chirp_norm
         self.logger.debug('setting rx_chirp bandwidth to {:0.2f} kHz with chirp length {} and step {:0.3e} rad'.format(bw/1000, if_chirp_length, if_chirp_step))
         cuda.memcpy_htod(self.cu_rx_chirp, self.rx_chirp)
-        
+
 
     # update host-side phase delay table with current channel sequence, then refresh array on GPU
     def _set_tx_phasedelay(self, swing):
