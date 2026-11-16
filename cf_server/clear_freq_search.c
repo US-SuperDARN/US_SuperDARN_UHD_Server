@@ -767,15 +767,10 @@ void phasing_and_beamforming(
             } else {phasing_vector[a_idx] = 0;} 
         } else {
             if ((antennas[a_idx] <= IDX_LAST_MA || antennas[a_idx] > IDX_LAST_IA) && (active_antennas[antennas[a_idx]] == 1)){ // standard form */   
-            phasing_vector[a_idx] = rad_to_rect(antennas[a_idx] * phase_increment); 
-        } else {phasing_vector[a_idx] = 0;} 
+                phasing_vector[a_idx] = rad_to_rect(antennas[a_idx] * phase_increment); 
+            } else {phasing_vector[a_idx] = 0;} 
         }
     } 
-         // if (VERBOSE) {
-        //     // log_trace("ant[%d]: %d", i, antennas[i]);
-            // log_trace("phasing vec[%d]: %f + %fi", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
-        // }
-    }
 
     // Apply beamforming
     double avg_pwr[meta_data->num_antennas];
