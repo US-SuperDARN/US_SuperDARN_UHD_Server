@@ -768,8 +768,9 @@ void phasing_and_beamforming(
             } else {
                  if ((antennas[a_idx] <= IDX_LAST_MA || antennas[a_idx] > IDX_LAST_IA) && (active_antennas[antennas[a_idx]] == 1)){ // standard form */   
                 phasing_vector[a_idx] = rad_to_rect(antennas[a_idx] * phase_increment); 
+                 }
             }
-        }
+        } 
         else phasing_vector[a_idx] = 0;
         // if (VERBOSE) {
         //     // log_trace("ant[%d]: %d", i, antennas[i]);
