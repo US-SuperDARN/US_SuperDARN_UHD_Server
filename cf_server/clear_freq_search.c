@@ -758,17 +758,19 @@ void phasing_and_beamforming(
     phase_increment = calc_phase_increment(beam_angle, (double)(clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
     //if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
 
+    int use_interferometer_antennas = 1; // Set to 1 to use interferometer antennas, 0 to use standard form 
     for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
         // log_debug("antenna[%d](%d)", a_idx, meta_data->antenna_list[a_idx]);
-
-    /*        if ((antennas[a_idx] <= IDX_LAST_MA || antennas[a_idx] > IDX_LAST_IA) && // standard form */
-        if ((antennas[a_idx] <= IDX_LAST_MA && antennas[a_idx] <= IDX_LAST_IA) && // form for using interferometer antennas 
-            (active_antennas[antennas[a_idx]] == 1)) {
-            // log_debug("antenna[%d] is active", a_idx);
-            phasing_vector[a_idx] = rad_to_rect(antennas[a_idx] * phase_increment);
+        if( use_interferometer_antennas ) {
+            if ((antennas[a_idx] <= IDX_LAST_MA && antennas[a_idx] <= IDX_LAST_IA) && (active_antennas[antennas[a_idx]] == 1)) { // form for using interferometer antennas 
+                // log_debug("antenna[%d] is active", a_idx);
+                phasing_vector[a_idx] = rad_to_rect((antennas[a_idx]-10) * phase_increment); 
+            } else {
+                 if ((antennas[a_idx] <= IDX_LAST_MA || antennas[a_idx] > IDX_LAST_IA) && (active_antennas[antennas[a_idx]] == 1)){ // standard form */   
+                phasing_vector[a_idx] = rad_to_rect(antennas[a_idx] * phase_increment); 
+            }
         }
         else phasing_vector[a_idx] = 0;
-
         // if (VERBOSE) {
         //     // log_trace("ant[%d]: %d", i, antennas[i]);
             // log_trace("phasing vec[%d]: %f + %fi", aidx, creal(phasing_vector[aidx]), cimag(phasing_vector[aidx]));
