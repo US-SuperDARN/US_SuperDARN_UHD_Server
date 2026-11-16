@@ -45,6 +45,8 @@ static int config_ini_handler(void* user, const char* section, const char* name,
     } else if (strcmp(section, "clr_settings") == 0) {
         if (strcmp(name, "avg_ratio") == 0) {
             pconfig->clr_settings.avg_ratio = atoi(value);
+        } else if (strcmp(name, "use_intf") == 0) {
+            pconfig->clr_settings.use_intf = atoi(value);
         }
     } else if (strcmp(section, "dsp_filters") == 0) {
         if (strcmp(name, "rfif_atten") == 0) {

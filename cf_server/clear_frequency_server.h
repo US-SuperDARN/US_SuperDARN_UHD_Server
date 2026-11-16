@@ -112,6 +112,7 @@ typedef struct {
 
 typedef struct {
     int avg_ratio;
+    int use_intf;
 } ClrSettings;
 
 typedef struct {

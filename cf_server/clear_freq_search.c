@@ -24,7 +24,8 @@ fftw_plan storage_fft_plan = NULL;
 void phasing_and_beamforming(double beam_angle, int *clear_freq_range,
                              sample_meta_data *meta_data, fftw_complex *phasing_vector,
                              int *antennas, int num_samples, fftw_complex *raw_samples,
-                             int *active_antennas, fftw_complex *beamformed_samples);
+                             int *active_antennas, fftw_complex *beamformed_samples,
+                             int use_intf);
 
 
 // Initialization function to create the plan
@@ -505,7 +506,8 @@ void calc_clear_freq_on_raw_samples(
     char *clr_file,
     char *ststr,
     int radar,
-    int channel
+    int channel,
+    int use_intf
 ) {
     // int **sample_re = NULL;
     // int **sample_im = NULL;
@@ -554,7 +556,8 @@ void calc_clear_freq_on_raw_samples(
         num_samples,
         raw_samples,
         active_antennas,
-        beamformed_samples
+        beamformed_samples,
+        use_intf
     );
 
     // if (VERBOSE) {for (int i = 0; i < num_samples; i++) if (i < 5) log_trace("beamformed[%d]    = %f + %fi", i, creal(beamformed_samples[i]), cimag(beamformed_samples[i]));}
@@ -750,7 +753,8 @@ void phasing_and_beamforming(
     int num_samples,
     fftw_complex *raw_samples,
     int *active_antennas,
-    fftw_complex *beamformed_samples
+    fftw_complex *beamformed_samples,
+    int use_intf
 ) {
     // Calculate and Apply phasing vector
     double phase_increment = 0.0;
@@ -758,10 +762,9 @@ void phasing_and_beamforming(
     phase_increment = calc_phase_increment(beam_angle, (double)(clear_freq_range[0] + clear_freq_range[1]) / 2, meta_data->x_spacing);
     //if (VERBOSE) log_trace("phase_increment: %lf", phase_increment);
 
-    int use_interferometer_antennas = 1; // Set to 1 to use interferometer antennas, 0 to use standard form 
     for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
         // log_debug("antenna[%d](%d)", a_idx, meta_data->antenna_list[a_idx]);
-        if( use_interferometer_antennas ) {
+        if (use_intf) {
             if ((antennas[a_idx] >= IDX_LAST_MA && antennas[a_idx] <= IDX_LAST_IA) && (active_antennas[antennas[a_idx]] == 1)) { // form for using interferometer antennas 
                 phasing_vector[a_idx] = rad_to_rect((antennas[a_idx]-10) * phase_increment); 
             } else {phasing_vector[a_idx] = 0;} 
@@ -836,6 +839,7 @@ void process_all_beamformed_spectras(
     // Initial Data Variables
     int beam_total = config.array_info.nbeams;
     double beam_sep = config.array_info.beam_sep;
+    int use_intf = config.clr_settings.use_intf;
     // int **sample_re = NULL;
     // int **sample_im = NULL;
     int num_samples = meta_data->number_of_samples;
@@ -897,7 +901,8 @@ void process_all_beamformed_spectras(
             num_samples,
             raw_samples,
             active_antennas,
-            current_beam_samples
+            current_beam_samples,
+            use_intf
         );
     }
     log_debug("     Beamforming done");
@@ -1199,6 +1204,7 @@ void clear_freq_search(
     // Initial Data Variables
     int n_beams = config.array_info.nbeams;
     double beam_sep = config.array_info.beam_sep;
+    int use_intf = config.clr_settings.use_intf;
 
     // Scale Clear Freq Range from kHz to Hz
     if (clear_freq_range[0] < 100000 || clear_freq_range[1] < 100000) {
@@ -1230,7 +1236,8 @@ void clear_freq_search(
         clr_file,
         ststr,
         radar,
-        channel
+        channel,
+        use_intf
     );
 
     // Print processing time; Stopwatch End
