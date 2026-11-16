@@ -765,7 +765,7 @@ void phasing_and_beamforming(
     for (int a_idx = 0; a_idx < meta_data->num_antennas; a_idx++) {
         // log_debug("antenna[%d](%d)", a_idx, meta_data->antenna_list[a_idx]);
         if (use_intf) {
-            if ((antennas[a_idx] >= IDX_LAST_MA && antennas[a_idx] <= IDX_LAST_IA) && (active_antennas[antennas[a_idx]] == 1)) { // form for using interferometer antennas 
+            if ((antennas[a_idx] > IDX_LAST_MA && antennas[a_idx] <= IDX_LAST_IA) && (active_antennas[antennas[a_idx]] == 1)) { // form for using interferometer antennas
                 phasing_vector[a_idx] = rad_to_rect((antennas[a_idx]-10) * phase_increment); 
             } else {phasing_vector[a_idx] = 0;} 
         } else {
@@ -1341,7 +1341,7 @@ void process_avg_ant_pwr(
         if (USE_ACTIVE_MUTE == 1) {
             // Check if main antenna meets active pwr threshold, ...
             if (avg_pwrs[ant_idx] >= min_main_pwr_threshold &&
-                ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
+                (meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
                 log_debug("         Antenna[%2d]   active: pwr = %.2f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
                 ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
                 active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
@@ -1362,7 +1362,7 @@ void process_avg_ant_pwr(
         else {
             // Check if main antenna is present, ...
             if (avg_pwrs[ant_idx] > 0 &&
-                ( meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
+                (meta_data->antenna_list[ant_idx] <= IDX_LAST_MA || meta_data->antenna_list[ant_idx] > IDX_LAST_IA)) {
                 log_debug("         Antenna[%2d]   active: pwr = %.2f", meta_data->antenna_list[ant_idx], avg_pwrs[ant_idx]);
                 ant_active_ct[meta_data->antenna_list[ant_idx]]++;      // Increment # of times ant was active
                 active_antennas[meta_data->antenna_list[ant_idx]] = 1;  // Mark antenna as active
