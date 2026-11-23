@@ -633,7 +633,7 @@ class ProcessingGPU(object):
 
         self.ntaps_rfif,self.beta_rfif = kaiserord(rfif_atten, rfif_width)
         self.ntaps_rfif_0 = int( int(self.ntaps_rfif/downRate_rf2if + 1)*downRate_rf2if) # make sure ntaps is multiple of downsampling rate
-        self.ntaps_rfif = self.ntaps_rfif_0 + downRate_rf2if + 1 # make sure ntaps is multiple of downsampling ratew
+        self.ntaps_rfif = self.ntaps_rfif_0 + downRate_rf2if + 1 # add extra taps for overlap-save convolution
         self.logger.debug('rfif_atten: {}  rfif_rFreq: {}  bw: {}  rfif_width: {}  ntaps_rfif: {}'.format(rfif_atten, rfif_rFreq, bw, rfif_width, self.ntaps_rfif))
 
         if_samplingRate = self.rx_rf_samplingRate/self.rx_rf2if_downsamplingRate
