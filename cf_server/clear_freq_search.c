@@ -396,7 +396,7 @@ int find_clear_freqs(
     // Calculate noise in previously selected band if in current search range
     if (CLR_BAND_MULT != 0 && prev_sample_bw != 0) {
 
-        double prev_noise = find_power_freq(i_prev_freq, spec_len, XFR_Function, spectrum);
+        double prev_noise = find_power_freq(i_prev_freq, (int)num_avg_samples, XFR_Function, spectrum);
         prev_clr_band.noise = prev_noise;
 
         if ( clr_band->noise > prev_clr_band.noise * CLR_BAND_MULT ) {
