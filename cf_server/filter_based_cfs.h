@@ -51,7 +51,7 @@ extern "C" {
 int find_power_min_c(int i_start, int i_end,
                     const double *xfr_function, int xfr_function_len,
                     struct freq_band *restricted_bands, int restricted_num,
-                    float* f_spectrum, int spec_len,
+                    double* f_spectrum, int spec_len,
                     int freq_start, int dfreq,
                     float *min_pwr);
 
@@ -69,8 +69,8 @@ extern "C" {
  * spectrum_data  : pointer to a populated SpectrumData
  * min_pwr        : out-parameter, set to the minimum power found
  */
-int find_power_freq_c(int i_freq, const double *xfr_function, int xfr_function_len,
-                    float* f_spectrum, int spec_len);
+int find_power_freq_c(int i_freq, int spec_len,
+                    const double *xfr_function, double* f_spectrum);
 
 #ifdef __cplusplus
 }

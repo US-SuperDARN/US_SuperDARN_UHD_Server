@@ -223,7 +223,7 @@ std::vector<double> filter_transfer_function(
 
 int find_power_freq(int i_freq, int spec_len,
                     const std::vector<double>& XFR_Function,
-                    float* f_spectrum)
+                    double* f_spectrum)
 {
     double sum = 0;
     const int tail = spec_len - i_freq;
@@ -241,7 +241,7 @@ int find_power_freq(int i_freq, int spec_len,
 int find_power_min(int i_start, int i_end,
                     const std::vector<double>& XFR_Function,
                     freq_band *restricted_bands, int restricted_num,
-                    float* f_spectrum, int spec_len,
+                    double* f_spectrum, int spec_len,
                     int freq_start, int dfreq,
                     float* min_pwr)
 {
@@ -315,7 +315,7 @@ int find_power_min_c(
     int i_start, int i_end,
     const double* xfr_function, int xfr_function_len,
     freq_band *restricted_bands, int restricted_num,
-    float* f_spectrum, int spec_len, 
+    double* f_spectrum, int spec_len,
     int freq_start, int dfreq,
     float* min_pwr)
 {
@@ -330,7 +330,7 @@ int find_power_min_c(
 int find_power_freq_c(
     int i_freq, int spec_len,
     const double* xfr_function,
-    float* f_spectrum)
+    double* f_spectrum)
 {
     if (xfr_function == nullptr)
         return -1;

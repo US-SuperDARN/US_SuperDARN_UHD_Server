@@ -9,6 +9,7 @@
 #include <signal.h>
 #include "clear_freq_search.h"
 #include "clear_frequency_server.h"
+#include "filter_based_cfs.h"
 #include "log.h"
 #include "misc_read_writes.h"
 
