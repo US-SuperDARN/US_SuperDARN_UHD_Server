@@ -220,7 +220,7 @@ std::vector<double> filter_transfer_function(
     return response;
 }
 
-int find_power_freq(int i_freq, int spec_len,
+float find_power_freq(int i_freq, int spec_len,
                     const std::vector<double>& XFR_Function,
                     double* f_spectrum)
 {
@@ -326,7 +326,7 @@ int find_power_min_c(
     return find_power_min(i_start, i_end, xfr_vec, restricted_bands, restricted_num, f_spectrum, (int)spec_len, freq_start, dfreq, min_pwr);
 }
 
-int find_power_freq_c(
+float find_power_freq_c(
     int i_freq, int spec_len,
     const double* xfr_function,
     double* f_spectrum)
