@@ -69,7 +69,7 @@ extern "C" {
  * spectrum_data  : pointer to a populated SpectrumData
  * min_pwr        : out-parameter, set to the minimum power found
  */
-int find_power_freq_c(int i_freq, int spec_len,
+float find_power_freq_c(int i_freq, int spec_len,
                     const double *xfr_function, double* f_spectrum);
 
 #ifdef __cplusplus
