@@ -1,4 +1,8 @@
+#ifndef CLEAR_FREQ_SEARCH_H
+#define CLEAR_FREQ_SEARCH_H
+
 #include <stdbool.h>
+#include <time.h>
 #include <fftw3.h>      // FFT transform library
 #include "clear_frequency_server.h"
 #include "ini_parser.h"
@@ -19,20 +23,19 @@ typedef struct sample_meta_data {
     double if_rate;
 } sample_meta_data;
 
-typedef struct freq_band {
+struct freq_band {
     int f_start;
     int f_end;
     double noise;
-} freq_band;
+};
+typedef struct freq_band freq_band;
 
-typedef struct radar_freq_data {
+typedef struct {
     int clear_freq_range[2];
     freq_band clr_band;
     time_t last_time;
 } radar_freq_data;
 
-
-#pragma once
 
 void clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
                        int clear_freq_range[], int cur_beam, int smsep,
@@ -92,3 +95,5 @@ void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_fr
 #define SPECTRUM_FILE       "/data/log/fft_spectrum/%s.%s.%c.fft%s"
 #define CLR_FREQ_FILE       "/data/log/clr_freq/%s.%s.%c.clr%s"
 #define CLR_STOR_FILE       "/data/log/clr_freq/%s.%s.%c.clrlog.csv"
+
+#endif /* CLEAR_FREQ_SEARCH_H */

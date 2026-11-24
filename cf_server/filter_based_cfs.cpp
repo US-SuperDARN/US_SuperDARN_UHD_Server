@@ -242,12 +242,12 @@ int find_power_min(int i_start, int i_end,
                     freq_band *restricted_bands, int restricted_num,
                     double* f_spectrum, int spec_len,
                     int freq_start, int dfreq,
-                    float* min_pwr)
+                    double* min_pwr)
 {
     if (min_pwr == nullptr)
         return -1;
 
-    *min_pwr = std::numeric_limits<float>::max();
+    *min_pwr = std::numeric_limits<double>::max();
 
     if (spec_len <= 0 ||
         XFR_Function.size() < static_cast<std::size_t>(spec_len))
@@ -297,7 +297,7 @@ int find_power_min(int i_start, int i_end,
     }
 
     if (best_frequency >= 0)
-        *min_pwr = static_cast<float>(best_power/spec_len);
+        *min_pwr = static_cast<double>(best_power/spec_len);
 
     return best_frequency;
 }
@@ -316,7 +316,7 @@ int find_power_min_c(
     freq_band *restricted_bands, int restricted_num,
     double* f_spectrum, int spec_len,
     int freq_start, int dfreq,
-    float* min_pwr)
+    double* min_pwr)
 {
     if (xfr_function == nullptr)
         return -1;
@@ -326,7 +326,7 @@ int find_power_min_c(
     return find_power_min(i_start, i_end, xfr_vec, restricted_bands, restricted_num, f_spectrum, (int)spec_len, freq_start, dfreq, min_pwr);
 }
 
-float find_power_freq_c(
+double find_power_freq_c(
     int i_freq, int spec_len,
     const double* xfr_function,
     double* f_spectrum)

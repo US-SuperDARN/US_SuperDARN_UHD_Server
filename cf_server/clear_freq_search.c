@@ -373,7 +373,7 @@ int find_clear_freqs(
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
     log_info("    Clear Search Bandwidth: %d samples", clr_search_sample_bw);
 
-    float min_pwr;
+    double min_pwr;
     int freq_min = find_power_min_c(clr_search_sample_start, clr_search_sample_end, XFR_Function, (int)num_avg_samples, restricted_bands, 
         restricted_num, spectrum, (int)num_avg_samples, freq_vector[0], avg_delta_f, &min_pwr);
 
