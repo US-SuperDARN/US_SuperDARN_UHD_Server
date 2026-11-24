@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
-#include <numbers> // C++20 for std::numbers::pi
 #include <complex>
 #include <memory>
 #include "clear_frequency_server.h"
@@ -44,7 +43,7 @@ int KaiserOrder(double atten, double width, int &num_taps, double &beta) {
     } else {
         beta = 0.1102 * (atten - 8.7);
     }
-    num_taps = static_cast<int>(std::ceil((atten - 7.95) / (2.285 * std::numbers::pi * width))) + 1;
+    num_taps = static_cast<int>(std::ceil((atten - 7.95) / (2.285 * PI * width))) + 1;
     return 0;
 }
 
@@ -53,7 +52,7 @@ std::vector<double> designKaiserLPF(int num_taps, double width, double beta) {
     std::vector<double> coefficients(num_taps);
     
     // Normalized cutoff frequency in radians/sample (0 to pi)
-    double wc = std::numbers::pi * width;
+    double wc = PI * width;
     
     // M represents the order of the filter (num_taps - 1)
     double M = num_taps - 1; 
@@ -65,9 +64,9 @@ std::vector<double> designKaiserLPF(int num_taps, double width, double beta) {
         double ideal_sinc;
         
         if (std::abs(i_centered) < 1e-9) {
-            ideal_sinc = wc / std::numbers::pi; // L'Hopital's rule limit at the center tap
+            ideal_sinc = wc / PI; // L'Hopital's rule limit at the center tap
         } else {
-            ideal_sinc = std::sin(wc * i_centered) / (std::numbers::pi * i_centered);
+            ideal_sinc = std::sin(wc * i_centered) / (PI * i_centered);
         }
 
         // 2. Calculate Kaiser Window Weight
