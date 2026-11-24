@@ -37,7 +37,7 @@ typedef struct radar_freq_data {
 void clear_freq_search(fftw_complex *raw_samples, int *active_antennas,
                        int clear_freq_range[], int cur_beam, int smsep,
                        int avg_ratio, freq_band *restricted_bands,
-                       int restrict_num, sample_meta_data meta_data,
+                       int restrict_num, sample_meta_data meta_data, double *XFR_Function,
                        Config config, freq_band prev_clr_band, freq_band *clr_band,
                        char *fft_file, char *clr_file,
                        char *ststr, int radar, int channel);
@@ -62,8 +62,8 @@ void process_all_beamformed_spectras(fftw_complex *raw_samples, int *active_ante
 
 void process_beam_clr_freq(double **avg_beam_spectra, int cur_beam, int clear_freq_range[],
                            int smsep, freq_band *restricted_bands, int restricted_num,
-                           double *avg_freq_vector, int num_avg_samples,
-                           sample_meta_data *meta_data, freq_band prev_clr_band, freq_band *clr_band,
+                           double *avg_freq_vector, int num_avg_samples, sample_meta_data *meta_data, 
+                           double *XFR_Function, freq_band prev_clr_band, freq_band *clr_band,
                            char *clr_file, char *ststr, int radar, int channel);
 
 

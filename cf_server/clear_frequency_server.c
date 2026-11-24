@@ -17,6 +17,8 @@
 #include "read_config.c"
 #include "log.h"
 #include "misc_read_writes.h"
+#include "filter_based_cfs.h"
+
 
 // Build with the following flags:
 // -lrt -pthread -lfftw3 -lm
@@ -964,6 +966,41 @@ int main() {
         }
     }
 
+    
+    // get filter transfer function for clear search
+    //define speed of light to match units kilometers per microsecond 
+    #define C_kpmu 0.3
+    double rfif_downsample = meta_data.usrp_rf_rate / meta_data.if_rate;
+    double ifbb_downsample = meta_data.if_rate * sample_sep / 1e6;
+    double bw = 1e6/sample_sep;
+    int rsep = C_kpmu*sample_sep/2;
+    int filter_idx;
+    for( int i=0; i<4; i++){
+        if( (array_config.dsp_filters.rate_list[i] == (int)(meta_data.usrp_rf_rate/1e6)) & (array_config.dsp_filters.rsep_list[i] == rsep) ) filter_idx = i;
+    }
+    double rfif_atten = array_config.dsp_filters.rfif_atten[filter_idx];
+    double rfif_width = array_config.dsp_filters.rfif_width[filter_idx];
+    double ifbb_atten = array_config.dsp_filters.ifbb_atten[filter_idx];
+    double ifbb_rfreq = array_config.dsp_filters.ifbb_rfreq[filter_idx];
+    int spec_len = samples_num / avg_ratio;
+
+    double *XFR_Function;
+    XFR_Function = (double*)calloc(sizeof(double), spec_len);
+    filter_transfer_function_c(
+        (double) meta_data.usrp_rf_rate, 
+        (double) meta_data.if_rate, 
+        rfif_downsample, 
+        ifbb_downsample, 
+        bw, 
+        rfif_atten, 
+        rfif_width, 
+        ifbb_atten, 
+        ifbb_rfreq, 
+        spec_len, 
+        XFR_Function
+    );
+
+
 
     // Continuously process clients via shared memory
     while (1) {
@@ -1066,6 +1103,37 @@ int main() {
                         ant_active_ct[r_idx][ant_idx] = 0;
                     }
                 }
+
+
+                rfif_downsample = meta_data.usrp_rf_rate / meta_data.if_rate;
+                ifbb_downsample = meta_data.if_rate * sample_sep / 1e6;
+                bw = 1e6/sample_sep;
+                rsep = C_kpmu*sample_sep/2;
+                for( int i=0; i<4; i++){
+                    if( (array_config.dsp_filters.rate_list[i] == (int)(meta_data.usrp_rf_rate/1e6)) & (array_config.dsp_filters.rsep_list[i] == rsep) ) filter_idx = i;
+                }
+                rfif_atten = array_config.dsp_filters.rfif_atten[filter_idx];
+                rfif_width = array_config.dsp_filters.rfif_width[filter_idx];
+                ifbb_atten = array_config.dsp_filters.ifbb_atten[filter_idx];
+                ifbb_rfreq = array_config.dsp_filters.ifbb_rfreq[filter_idx];
+                spec_len = samples_num / avg_ratio;
+
+                free(XFR_Function);
+                XFR_Function = (double*)calloc(sizeof(double), spec_len);
+                filter_transfer_function_c(
+                    (double) meta_data.usrp_rf_rate, 
+                    (double) meta_data.if_rate, 
+                    rfif_downsample, 
+                    ifbb_downsample, 
+                    bw, 
+                    rfif_atten, 
+                    rfif_width, 
+                    ifbb_atten, 
+                    ifbb_rfreq, 
+                    spec_len, 
+                    XFR_Function
+                );
+
                 // log_info( "Reinitializing TCS FFTW plan...");
                 // cleanup_storage_fft();
                 // init_storage_fft(samples_num, beam_total);
@@ -1626,6 +1694,7 @@ int main() {
                             restricted_freq,
                             restricted_num,
                             meta_data,
+                            XFR_Function,
                             array_config,
                             prev_clr_band,
                             clr_band,
@@ -1666,6 +1735,7 @@ int main() {
                         avg_freq_vector,
                         (int) (meta_data.number_of_samples / avg_ratio),
                         &meta_data,
+                        XFR_Function,
                         prev_clr_band,
                         clr_band,
                         clr_file[cur_radar][cur_channel],

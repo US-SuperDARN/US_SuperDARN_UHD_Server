@@ -4,7 +4,7 @@ LIBS= -lfftw3_threads -lfftw3 -lm -lrt
 
 INCLUDE=
 
-OBJS=clear_freq_search.o ini_parser.o misc_read_writes.o log.o clear_frequency_server.o
+OBJS=clear_freq_search.o ini_parser.o misc_read_writes.o log.o clear_frequency_server.o filter_based_cfs.o
 
 TARGET= cf_server
 
@@ -13,10 +13,13 @@ all: $(TARGET)
 build: $(TARGET)
 
 $(TARGET):	$(OBJS)
-	gcc -o $(TARGET) $(CFLAGS) $(OBJS) $(LIBS)
+	g++ -o $(TARGET) $(CFLAGS) $(OBJS) $(LIBS)
 
 .c.o:
 	gcc $(CFLAGS) $(INCLUDE) -c -o $@ $<
+
+.cpp.o:
+	g++ -std=c++20 -Wall -Wextra -c -o $@ $<
 
 clean:
 	-rm -rf $(OBJS) $(TARGET)

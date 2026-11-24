@@ -337,6 +337,8 @@ int find_clear_freqs(
     double *spectrum,
     double *freq_vector,
     sample_meta_data meta_data,
+    double *XFR_Function,
+    int num_avg_samples,
     double avg_delta_f,
     freq_band *restricted_bands,
     int restricted_num,
@@ -370,96 +372,32 @@ int find_clear_freqs(
     int clr_search_sample_bw = clr_search_sample_end - clr_search_sample_start;
     log_info("    Clear Search Bandwidth: %d samples", clr_search_sample_bw);
 
+    float min_pwr;
+    int freq_min = find_power_min_c(clr_search_sample_start, clr_search_sample_end, XFR_Function, (int)num_avg_samples, restricted_bands, 
+        restricted_num, spectrum, (int)num_avg_samples, freq_vector[0], avg_delta_f, &min_pwr);
+
+    clr_band->f_start = freq_min - clear_bw/2;
+    clr_band->f_end = freq_min + clear_bw/2;
+    clr_band->noise = min_pwr; 
+
+
     int prev_sample_start = (int) (prev_clr_band.f_start / avg_delta_f) - spectrum_sample_start - clr_search_sample_start;
     int prev_sample_end = (int) (prev_clr_band.f_end / avg_delta_f) - spectrum_sample_start - clr_search_sample_start;
-
+    
     // Set previous band range to within bounds of Search Range
     if (prev_sample_start < 0) prev_sample_start = 0;
     else if (prev_sample_start > clr_search_sample_bw) prev_sample_start = clr_search_sample_bw;
     if (prev_sample_end < 0) prev_sample_end = 0;
     else if (prev_sample_end > clr_search_sample_bw) prev_sample_end = clr_search_sample_bw;
     int prev_sample_bw = prev_sample_end - prev_sample_start;
-
-    double atten = pow(10, RFIF_ATTEN/10.);
-    int num_alias = ceil(meta_data.usrp_rf_rate / meta_data.if_rate);
-    int alias_sample = 0;
-
-    // Trim Spectrum Data to only Clear Search Range (Used for convolving)
-    for (int i = 0; i < clr_search_sample_bw; i++) {
-        clr_search_band[i] = spectrum[i + clr_search_sample_start];
-        clr_freq_vector[i] = freq_vector[i + clr_search_sample_start];
-
-        // Sum power at +/- each multiple of the IF sample rate
-        for (int j = 1; j < num_alias; j++) {
-            alias_sample = i + clr_search_sample_start - (int) (j * meta_data.if_rate / avg_delta_f);
-            if (alias_sample > 0) clr_search_band[i] += spectrum[alias_sample] / atten;
-            else break;
-        }
-        for (int j = 1; j < num_alias; j++) {
-            alias_sample = i + clr_search_sample_start + (int) (j * meta_data.if_rate / avg_delta_f);
-            if (alias_sample < spectrum_sample_bw) clr_search_band[i] += spectrum[alias_sample] / atten;
-            else break;
-        }
-
-        // Debug: Check the Clear Search Range
-        // if (i < 2  || i > clr_search_sample_bw - 2) {
-        //     log_trace("clr_search_band[%d]: %f", i, clr_search_band[i]);
-        //     log_trace("                   : %f", spectrum[i + clr_search_sample_start]);
-        // }
-    }
-
-    // Mask restricted frequencies
-    if (restricted_bands != NULL) mask_restricted_freq(clr_search_band, f_start, f_end, avg_delta_f, clr_search_sample_bw, restricted_bands, restricted_num, meta_data, radar);
-
-    // Scan Search range w/ Bandpass Filter (BPF) to find Clear Freq Band
-    // log_debug("[find_clear_freqs()] Scanning Search Range w/ Bandpass...");
-    double bpf[clear_sample_bw];
-    // bpf = (int *) malloc(sizeof(int) * clear_sample_bw);
-    for (int band_i = 0; band_i < clear_sample_bw; band_i++) {
-        bpf[band_i] = 1.0;
-    }
-    if (VERBOSE) log_trace("    clr_search_sample_start: %d    clr_search_sample_end: %d    clr_search_sample_bw: %d", clr_search_sample_start, clr_search_sample_end, clr_search_sample_bw);
-
-    // Convolve BPF with Search Range
-    int convolve_bw = clr_search_sample_bw - clear_sample_bw;
-    double *convolve_result = calloc(convolve_bw, sizeof(double));
-    convolve(clr_search_band, clr_search_sample_bw, bpf, clear_sample_bw, convolve_result);
-    log_debug("    Convolved Scan Band and BPF...");
-
-    // Debug: Check convolve result
-    // for (int i = 0; i < clr_search_sample_bw; i++)
-    // {
-    //     if (i < 10) log_trace("convolve[%d]: %f", i, convolve_result[i]);
-    // }
-
-    // Initialize Clear Freq Band
-    clr_band->f_start = clr_search_sample_start * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-    clr_band->f_end   = clr_search_sample_end * avg_delta_f - (meta_data.usrp_rf_rate / 2) + meta_data.usrp_fcenter * 1000;
-    clr_band->noise   = RAND_MAX;
-
-    // Identify lowest noise band from convolve results...
-    freq_band curr_band;
-    for (int i = 0; i < convolve_bw; i++) {
-        curr_band.f_start = (spectrum_sample_start + clr_search_sample_start + i) * avg_delta_f;
-        curr_band.f_end = (spectrum_sample_start + clr_search_sample_start + i + clear_sample_bw) * avg_delta_f;
-        curr_band.noise = convolve_result[i];
-        // log_trace("[%d] | %d -- %f -- %d|", i, curr_band.f_start, curr_band.noise, curr_band.f_end);
-
-        // Select band if it has a lower noise
-        if (curr_band.noise < clr_band->noise && curr_band.noise > 0 && curr_band.noise < RAND_MAX) {
-            clr_band->f_start = curr_band.f_start;
-            clr_band->f_end   = curr_band.f_end;
-            clr_band->noise   = curr_band.noise;
-        }
-    }
+    
+    int i_prev_freq = (prev_sample_start + prev_sample_end)/2;
 
     // Calculate noise in previously selected band if in current search range
     if (CLR_BAND_MULT != 0 && prev_sample_bw != 0) {
-        prev_clr_band.noise = 0;
-        for (int i = 0; i < prev_sample_bw; i++) {
-            prev_clr_band.noise += clr_search_band[prev_sample_start + i];
-        }
-        prev_clr_band.noise /= clear_sample_bw;
+
+        double prev_noise = find_power_freq(i_prev_freq, spec_len, XFR_Function, spectrum);
+        prev_clr_band.noise = prev_noise;
 
         if ( clr_band->noise > prev_clr_band.noise * CLR_BAND_MULT ) {
             log_trace("Noise difference too small, keeping previous clear band:");
@@ -470,6 +408,7 @@ int find_clear_freqs(
             clr_band->noise   = prev_clr_band.noise;
         }
     }
+   
 
     // Success: Clr Band Found
     if (clr_band->f_start > 0 && clr_band->f_end > 0 && clr_band->noise < RAND_MAX) {
@@ -482,7 +421,9 @@ int find_clear_freqs(
     }
 
     // Free allocated memory
-    free(convolve_result);
+    //free(convolve_result);
+
+// end replaced block
 
     log_debug("Exiting find_clear_freqs()...");
 
@@ -494,6 +435,7 @@ void calc_clear_freq_on_raw_samples(
     fftw_complex *raw_samples,
     int *active_antennas,
     sample_meta_data *meta_data,
+    double *XFR_Function,
     freq_band *restricted_bands,
     int restricted_num,
     int *clear_freq_range,
@@ -649,7 +591,7 @@ void calc_clear_freq_on_raw_samples(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    num_clr_samples = find_clear_freqs(avg_spectrum, avg_freq_vector, *meta_data, delta_f_avg, restricted_bands, restricted_num, (double)clear_freq_range[0], (double)clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
+    num_clr_samples = find_clear_freqs(avg_spectrum, avg_freq_vector, *meta_data, XFR_Function, num_avg_samples, delta_f_avg, restricted_bands, restricted_num, (double)clear_freq_range[0], (double)clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
     t2 = clock();
     if (VERBOSE) log_info("find_clear_freqs (s): %lf", ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
@@ -1083,6 +1025,7 @@ void process_beam_clr_freq(
     double *avg_freq_vector,
     int num_avg_samples,
     sample_meta_data *meta_data,
+    double *XFR_Function,
     freq_band prev_clr_band,
     freq_band *clr_band,
     char *clr_file,
@@ -1123,7 +1066,7 @@ void process_beam_clr_freq(
     // Find clear frequency
     clock_t t1, t2;
     t1 = clock();
-    num_clr_samples = find_clear_freqs(avg_beam_spectra[cur_beam], avg_freq_vector, *meta_data, delta_f_avg, restricted_bands, restricted_num, (double)clear_freq_range[0], (double)clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
+    num_clr_samples = find_clear_freqs(avg_beam_spectra[cur_beam], avg_freq_vector, *meta_data, XFR_Function, num_avg_samples, delta_f_avg, restricted_bands, restricted_num, (double)clear_freq_range[0], (double)clear_freq_range[1], clear_bw, prev_clr_band, clr_band, radar, clr_spectrum, clr_freq_vector);
     t2 = clock();
     log_trace("     find_clear_freqs(s): %lf", cur_beam, ((double) (t2 - t1)) / (CLOCKS_PER_SEC));
 
@@ -1191,6 +1134,7 @@ void clear_freq_search(
     freq_band *restricted_bands,
     int restricted_num,
     sample_meta_data meta_data,
+    double *XFR_Function,
     Config config,
     freq_band prev_clr_band,
     freq_band *clr_band,
@@ -1224,6 +1168,7 @@ void clear_freq_search(
         raw_samples,
         active_antennas,
         &meta_data,
+        XFR_Function,
         restricted_bands,
         restricted_num,
         clear_freq_range,

@@ -99,6 +99,8 @@ typedef struct {
 } ArrayInfo;
 
 typedef struct {
+    int rate_list[4];
+    int rsep_list[4];
     double rfif_atten[4];
     double rfif_width[4];
     double ifbb_atten[4];
